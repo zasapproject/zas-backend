@@ -1,12 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabase = require('../supabase');
 
 // Crear nuevo viaje
 router.post('/nuevo', async (req, res) => {
@@ -54,7 +48,6 @@ router.get('/conductor/:conductor_id', async (req, res) => {
 });
 
 // Actualizar estado de un viaje
-// estados posibles: 'solicitado', 'aceptado', 'en_curso', 'completado', 'cancelado'
 router.patch('/estado/:id', async (req, res) => {
   const { id } = req.params;
   const { estado, conductor_id } = req.body;

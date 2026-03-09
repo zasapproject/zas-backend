@@ -1,17 +1,10 @@
-
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabase = require('../supabase');
 
 // Crear un pago para un viaje
 router.post('/nuevo', async (req, res) => {
   const { viaje_id, monto, metodo } = req.body;
-  // metodo puede ser: 'efectivo', 'tarjeta', 'nequi', 'daviplata'
   try {
     const { data, error } = await supabase
       .from('pagos')
@@ -39,7 +32,7 @@ router.get('/viaje/:viaje_id', async (req, res) => {
   }
 });
 
-// Confirmar pago (cambiar estado a 'completado')
+// Confirmar pago
 router.patch('/confirmar/:id', async (req, res) => {
   const { id } = req.params;
   try {
