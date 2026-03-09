@@ -75,4 +75,5 @@ router.get('/estado/:estado', async (req, res) => {
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
+module.exports = router;
 });
