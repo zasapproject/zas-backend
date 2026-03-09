@@ -72,7 +72,10 @@ export default function LoginScreen() {const router = useRouter();
           </>
         )}
       </View>
-    </KeyboardAvoidingView>
+    <TouchableOpacity onPress={() => router.push('/conductor')} style={styles.botonConductor}>
+  <Text style={styles.botonConductorTexto}>🏍️ Soy conductor</Text>
+</TouchableOpacity>
+</KeyboardAvoidingView>
   );
 }
 
@@ -87,5 +90,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#0f3460', color: '#fff', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 16 },
   boton: { backgroundColor: '#FFD700', borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 4 },
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
-  linkTexto: { color: '#FFD700', textAlign: 'center', marginTop: 16, fontSize: 14 },
+  linkTexto: { color: '#FFD700', textAlign: 'center', marginTop: 16, fontSize: 14},
+ botonConductor: { marginTop: 20, alignItems: 'center' },
+botonConductorTexto: { color: '#888', fontSize: 14 },
 });
