@@ -63,5 +63,16 @@ router.patch('/estado/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
-
-module.exports = router;
+router.get('/estado/:estado', async (req, res) => {
+  const { estado } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('viajes')
+      .select('*')
+      .eq('estado', estado);
+    if (error) throw error;
+    res.json({ ok: true, viajes: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
