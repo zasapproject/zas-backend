@@ -33,6 +33,7 @@ app.use('/api/pagos', pagosRoutes);
 
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`⚡ Servidor ZAS corriendo en puerto ${PORT}`);
 });
+const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
