@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+
 
 // Importar rutas
 const usuariosRoutes = require('./routes/usuarios');
@@ -14,11 +14,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conectar con Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+
+
 
 // Ruta de prueba
 app.get('/', (req, res) => {
