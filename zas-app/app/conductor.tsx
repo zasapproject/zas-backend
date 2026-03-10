@@ -1,3 +1,4 @@
+import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 
@@ -7,6 +8,9 @@ export default function ConductorScreen() {
   const [viajes, setViajes] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+  registrarNotificaciones();
+}, []);
 
   const cargarViajes = async () => {
     setCargando(true);
@@ -31,7 +35,7 @@ export default function ConductorScreen() {
       });
       const data = await res.json();
       if (data.ok) {
-        Alert.alert('¡Viaje aceptado!', 'Ve a recoger al pasajero 🏍️');
+        Alert.alert('¡Viaje aceptado!', 'Ve a recoger al pasajero 🏍️');await enviarNotificacion('¡Viaje aceptado! 🏍️', 'El conductor va en camino');
         cargarViajes();
       }
     } catch {

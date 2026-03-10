@@ -1,54 +1,36 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 
 const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [origen, setOrigen] = useState('');
   const [destino, setDestino] = useState('');
   const [cargando, setCargando] = useState(false);
   const [viaje, setViaje] = useState(null);
+  const [metodoPago, setMetodoPago] = useState('efectivo');
 
-  const calcularPrecio = () => {
-    return 4000;
-  };
+  const calcularPrecio = () => { return 4000; };
 
   const solicitarViaje = async () => {
-    if (!origen || !destino) {
-      Alert.alert('Error', 'Ingresa origen y destino');
-      return;
-    }
+    if (!origen || !destino) { Alert.alert('Error', 'Ingresa origen y destino'); return; }
     setCargando(true);
     try {
       const res = await fetch(`${API_URL}/api/viajes/nuevo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usuario_id: '1ce45e4f-a59f-4c15-815e-f699da05c219',
-          origen,
-          destino,
-          precio: calcularPrecio(),
-        }),
+        body: JSON.stringify({ usuario_id: '1ce45e4f-a59f-4c15-815e-f699da05c219', origen, destino, precio: calcularPrecio() }),
       });
       const data = await res.json();
-      if (data.ok) {
-        setViaje(data.viaje);
-        Alert.alert('¡Viaje solicitado!', 'Buscando conductor cercano... 🏍️');
-      } else {
-        Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
-      }
-    } catch {
-      Alert.alert('Error', 'No se pudo conectar al servidor');
-    } finally {
-      setCargando(false);
-    }
+      if (data.ok) { setViaje(data.viaje); Alert.alert('¡Viaje solicitado!', 'Buscando conductor cercano... 🏍️'); }
+      else { Alert.alert('Error', data.error || 'No se pudo solicitar el viaje'); }
+    } catch { Alert.alert('Error', 'No se pudo conectar al servidor'); }
+    finally { setCargando(false); }
   };
 
-  const cancelarViaje = () => {
-    setViaje(null);
-    setOrigen('');
-    setDestino('');
-  };
+  const cancelarViaje = () => { setViaje(null); setOrigen(''); setDestino(''); };
 
   return (
     <ScrollView style={styles.container}>
@@ -61,44 +43,47 @@ export default function HomeScreen() {
         <View style={styles.formulario}>
           <View style={styles.inputContainer}>
             <Text style={styles.inputIcon}>🟢</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="¿Desde dónde?"
-              placeholderTextColor="#888"
-              value={origen}
-              onChangeText={setOrigen}
-            />
+            <TextInput style={styles.input} placeholder="Desde" placeholderTextColor="#888" value={origen} onChangeText={setOrigen} />
           </View>
-
           <View style={styles.linea} />
-
           <View style={styles.inputContainer}>
             <Text style={styles.inputIcon}>🔴</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="¿A dónde vas?"
-              placeholderTextColor="#888"
-              value={destino}
-              onChangeText={setDestino}
-            />
+            <TextInput style={styles.input} placeholder="Destino" placeholderTextColor="#888" value={destino} onChangeText={setDestino} />
           </View>
-
           <View style={styles.precioContainer}>
             <Text style={styles.precioLabel}>Precio estimado</Text>
-            <Text style={styles.precio}>$4.000 COP</Text>
-<Text style={styles.precioSecundario}>Bs 14.8 · USD 0.97</Text>
+            <View>
+              <Text style={styles.precio}>$4.000 COP</Text>
+              <Text style={styles.precioSecundario}>Bs 14.8 · USD 0.97</Text>
+            </View>
           </View>
-
-          <TouchableOpacity
-            style={styles.boton}
-            onPress={solicitarViaje}
-            disabled={cargando}
-          >
-            {cargando ? (
-              <ActivityIndicator color="#1a1a2e" />
-            ) : (
-              <Text style={styles.botonTexto}>🏍️ Solicitar ZAS</Text>
-            )}
+          <View style={styles.pagoContainer}>
+            <Text style={styles.pagoLabel}>Método de pago</Text>
+            <View style={styles.pagoOpciones}>
+              <TouchableOpacity
+                style={[styles.pagoBoton, metodoPago === 'efectivo' && styles.pagoBotonActivo]}
+                onPress={() => setMetodoPago('efectivo')}
+              >
+                <Text style={styles.pagoIcon}>💵</Text>
+                <Text style={[styles.pagoTexto, metodoPago === 'efectivo' && styles.pagoTextoActivo]}>Cash</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pagoBoton, metodoPago === 'tarjeta' && styles.pagoBotonActivo]}
+                onPress={() => setMetodoPago('tarjeta')}
+              >
+                <Text style={styles.pagoIcon}>💳</Text>
+                <Text style={[styles.pagoTexto, metodoPago === 'tarjeta' && styles.pagoTextoActivo]}>Tarjeta</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.botonMapa} onPress={() => router.push('/mapa')}>
+            <Text style={styles.botonMapaTexto}>🗺️ Seleccionar en mapa</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.boton} onPress={solicitarViaje} disabled={cargando}>
+            {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>🏍️ Solicitar ZAS</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/conductor')}>
+            <Text style={styles.botonConductorTexto}>🏍️ Soy conductor</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -111,11 +96,16 @@ export default function HomeScreen() {
             <Text style={styles.viajeValor}>{viaje.destino}</Text>
             <Text style={styles.viajeLabel}>Precio</Text>
             <Text style={styles.viajeValor}>${viaje.precio.toLocaleString()}</Text>
+            <Text style={styles.viajeLabel}>Método de pago</Text>
+            <Text style={styles.viajeValor}>{metodoPago === 'efectivo' ? '💵 Cash' : '💳 Tarjeta'}</Text>
             <Text style={styles.viajeLabel}>Estado</Text>
             <Text style={styles.viajeEstado}>{viaje.estado.toUpperCase()}</Text>
           </View>
           <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}>
             <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/conductor')}>
+            <Text style={styles.botonConductorTexto}>🏍️ Ir al panel conductor</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -136,6 +126,17 @@ const styles = StyleSheet.create({
   precioContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 16, padding: 16, backgroundColor: '#0f3460', borderRadius: 10 },
   precioLabel: { color: '#aaa', fontSize: 14 },
   precio: { color: '#FFD700', fontSize: 22, fontWeight: 'bold' },
+  precioSecundario: { color: '#aaa', fontSize: 12, marginTop: 2 },
+  pagoContainer: { marginBottom: 16 },
+  pagoLabel: { color: '#aaa', fontSize: 14, marginBottom: 8 },
+  pagoOpciones: { flexDirection: 'row', justifyContent: 'space-between' },
+  pagoBoton: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginHorizontal: 4 },
+  pagoBotonActivo: { borderColor: '#FFD700', backgroundColor: '#0f3460' },
+  pagoIcon: { fontSize: 20 },
+  pagoTexto: { color: '#888', fontSize: 12, marginTop: 4 },
+  pagoTextoActivo: { color: '#FFD700' },
+  botonMapa: { borderWidth: 1, borderColor: '#FFD700', borderRadius: 10, padding: 14, alignItems: 'center', marginBottom: 10 },
+  botonMapaTexto: { color: '#FFD700', fontSize: 14 },
   boton: { backgroundColor: '#FFD700', borderRadius: 10, padding: 16, alignItems: 'center' },
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   viajeActivo: { backgroundColor: '#16213e', margin: 16, borderRadius: 16, padding: 20 },
@@ -146,5 +147,6 @@ const styles = StyleSheet.create({
   viajeEstado: { color: '#FFD700', fontSize: 16, fontWeight: 'bold' },
   botonCancelar: { marginTop: 20, borderWidth: 1, borderColor: '#ff4444', borderRadius: 10, padding: 14, alignItems: 'center' },
   botonCancelarTexto: { color: '#ff4444', fontWeight: 'bold' },
-  precioSecundario: { color: '#aaa', fontSize: 12, marginTop: 2 },
+  botonConductor: { marginTop: 10, alignItems: 'center', padding: 10 },
+  botonConductorTexto: { color: '#888', fontSize: 14 },
 });
