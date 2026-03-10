@@ -31,7 +31,7 @@ export default function ConductorScreen() {
       const res = await fetch(`${API_URL}/api/viajes/estado/${viajeId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'aceptado' }),
+        body: JSON.stringify({ estado: 'aceptado', conductor_id: '9fe102bb-5720-48d4-8290-95ab66c1449b' }),
       });
       const data = await res.json();
       if (data.ok) {

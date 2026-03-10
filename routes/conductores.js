@@ -64,4 +64,34 @@ router.patch('/ubicacion/:id', async (req, res) => {
   }
 });
 
+router.patch('/calificar/:id', async (req, res) => {
+  const { id } = req.params;
+  const { calificacion } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ calificacion })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+router.patch('/calificar/:id', async (req, res) => {
+  const { id } = req.params;
+  const { calificacion } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ calificacion })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

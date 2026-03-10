@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
@@ -31,6 +32,20 @@ export default function HomeScreen() {
   };
 
   const cancelarViaje = () => { setViaje(null); setOrigen(''); setDestino(''); };
+  useEffect(() => {
+  if (!viaje) return;
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/viajes/usuario/1ce45e4f-a59f-4c15-815e-f699da05c219`);
+      const data = await res.json();
+      if (data.ok && data.viajes.length > 0) {
+        const viajeActual = data.viajes.find(v => v.id === viaje.id);
+        if (viajeActual) setViaje(viajeActual);
+      }
+    } catch {}
+  }, 5000);
+  return () => clearInterval(interval);
+}, [viaje]);
 
   return (
     <ScrollView style={styles.container}>
@@ -100,7 +115,15 @@ export default function HomeScreen() {
             <Text style={styles.viajeValor}>{metodoPago === 'efectivo' ? '💵 Cash' : '💳 Tarjeta'}</Text>
             <Text style={styles.viajeLabel}>Estado</Text>
             <Text style={styles.viajeEstado}>{viaje.estado.toUpperCase()}</Text>
-          </View>
+          {viaje.estado === 'aceptado' && (
+  <TouchableOpacity 
+    style={styles.botonCalificar} 
+    onPress={() => router.push({ pathname: '/calificacion', params: { conductor_id: viaje.conductor_id } })}
+  >
+    <Text style={styles.botonCalificarTexto}>⭐ Calificar conductor</Text>
+  </TouchableOpacity>
+)}
+</View>
           <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}>
             <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
           </TouchableOpacity>
@@ -149,4 +172,6 @@ const styles = StyleSheet.create({
   botonCancelarTexto: { color: '#ff4444', fontWeight: 'bold' },
   botonConductor: { marginTop: 10, alignItems: 'center', padding: 10 },
   botonConductorTexto: { color: '#888', fontSize: 14 },
+botonCalificar: { marginTop: 16, backgroundColor: '#FFD700', borderRadius: 10, padding: 14, alignItems: 'center' },
+botonCalificarTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
 });
