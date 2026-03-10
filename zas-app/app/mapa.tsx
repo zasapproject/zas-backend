@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+
+const GOOGLE_MAPS_KEY = 'AIzaSyCeqK-QCWzpkhUW5SIzB_FkFOrhV3AAIms';
 
 export default function MapaScreen() {
   const router = useRouter();
@@ -10,6 +12,9 @@ export default function MapaScreen() {
   const [origen, setOrigen] = useState(null);
   const [destino, setDestino] = useState(null);
   const [paso, setPaso] = useState('origen');
+  const [ruta, setRuta] = useState([]);
+  const [distancia, setDistancia] = useState('');
+  const [duracion, setDuracion] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -28,21 +33,57 @@ export default function MapaScreen() {
     })();
   }, []);
 
+  const obtenerRuta = async (org, dest) => {
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${org.latitude},${org.longitude}&destination=${dest.latitude},${dest.longitude}&key=${GOOGLE_MAPS_KEY}&mode=driving`
+      );
+      const data = await res.json();
+      if (data.routes.length > 0) {
+        const puntos = decodePolyline(data.routes[0].overview_polyline.points);
+        setRuta(puntos);
+        setDistancia(data.routes[0].legs[0].distance.text);
+        setDuracion(data.routes[0].legs[0].duration.text);
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo obtener la ruta');
+    }
+  };
+
+  const decodePolyline = (encoded) => {
+    let index = 0, lat = 0, lng = 0;
+    const result = [];
+    while (index < encoded.length) {
+      let shift = 0, result2 = 0, b;
+      do { b = encoded.charCodeAt(index++) - 63; result2 |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lat += result2 & 1 ? ~(result2 >> 1) : result2 >> 1;
+      shift = 0; result2 = 0;
+      do { b = encoded.charCodeAt(index++) - 63; result2 |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lng += result2 & 1 ? ~(result2 >> 1) : result2 >> 1;
+      result.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return result;
+  };
+
   const seleccionarPunto = (e) => {
     const coords = e.nativeEvent.coordinate;
     if (paso === 'origen') {
       setOrigen(coords);
       setPaso('destino');
       Alert.alert('Origen seleccionado', 'Ahora toca el destino en el mapa');
-    } else {
+    } else if (paso === 'destino') {
       setDestino(coords);
       setPaso('listo');
+      obtenerRuta(origen, coords);
     }
   };
 
   const reiniciar = () => {
     setOrigen(null);
     setDestino(null);
+    setRuta([]);
+    setDistancia('');
+    setDuracion('');
     setPaso('origen');
   };
 
@@ -83,7 +124,7 @@ export default function MapaScreen() {
         <Text style={styles.instruccion}>
           {paso === 'origen' && '📍 Toca el mapa para marcar tu origen'}
           {paso === 'destino' && '🔴 Ahora toca el destino'}
-          {paso === 'listo' && '✅ Ruta lista'}
+          {paso === 'listo' && `✅ ${distancia} · ${duracion}`}
         </Text>
       </View>
 
@@ -96,6 +137,9 @@ export default function MapaScreen() {
         >
           {origen && <Marker coordinate={origen} title="Origen" pinColor="green" />}
           {destino && <Marker coordinate={destino} title="Destino" pinColor="red" />}
+          {ruta.length > 0 && (
+            <Polyline coordinates={ruta} strokeColor="#FFD700" strokeWidth={4} />
+          )}
         </MapView>
       ) : (
         <View style={styles.cargando}>
