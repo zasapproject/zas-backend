@@ -1,13 +1,14 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
-
+import { useRouter } from 'expo-router';
 const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function ConductorScreen() {
   const [viajes, setViajes] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
   useEffect(() => {
   registrarNotificaciones();
 }, []);
@@ -55,9 +56,16 @@ export default function ConductorScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); cargarViajes(); }} tintColor="#FFD700" />}
     >
       <View style={styles.header}>
-        <Text style={styles.logo}>⚡ ZAS</Text>
-        <Text style={styles.titulo}>Panel del Conductor</Text>
-        <Text style={styles.subtitulo}>Desliza hacia abajo para actualizar</Text>
+  <Text style={styles.logo}>⚡ ZAS</Text>
+  <Text style={styles.titulo}>Panel del Conductor</Text>
+  <Text style={styles.subtitulo}>Desliza hacia abajo para actualizar</Text>
+  <TouchableOpacity 
+    style={styles.botonSuscripcion} 
+    onPress={() => router.push('/suscripcion')}
+  >
+    <Text style={styles.botonSuscripcionTexto}>⚡ Mi Suscripción</Text>
+  </TouchableOpacity>
+</View>
       </View>
 
       {cargando && !refreshing ? (
@@ -112,4 +120,6 @@ const styles = StyleSheet.create({
   viajeEstado: { color: '#aaa', fontSize: 12, textTransform: 'uppercase' },
   botonAceptar: { backgroundColor: '#FFD700', borderRadius: 10, padding: 14, alignItems: 'center' },
   botonAceptarTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
+botonSuscripcion: { backgroundColor: '#0f3460', borderRadius: 8, padding: 10, marginTop: 12, alignItems: 'center' },
+botonSuscripcionTexto: { color: '#FFD700', fontWeight: 'bold', fontSize: 14 },
 });
