@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
-
+const supabase = require('../supabase');
 const supabase = createClient(
   process.env.supabase_url,
   process.env.supabase_key
