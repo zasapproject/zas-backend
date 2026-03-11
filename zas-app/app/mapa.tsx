@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-const GOOGLE_MAPS_KEY = 'AIzaSyCeqK-QCWzpkhUW5SIzB_FkFOrhV3AAIms';
+const GOOGLE_MAPS_KEY = 'AIzaSyChSfD2ju0jrG3i3vU6VMPfD4lRSFLjP-o';
 
 export default function MapaScreen() {
   const router = useRouter();
