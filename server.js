@@ -30,7 +30,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/conductores', conductoresRoutes);
 app.use('/api/viajes', viajesRoutes);
 app.use('/api/pagos', pagosRoutes);
-app.use('/suscripciones', suscripcionesRouter);
+app.use('/api/suscripciones', suscripcionesRouter);
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
