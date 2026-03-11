@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
-const supabase = createClient(
-  process.env.supabase_url,
-  process.env.supabase_key
-);
+
 
 // GET /suscripciones/estado/:conductorId
 router.get('/estado/:conductorId', async (req, res) => {
