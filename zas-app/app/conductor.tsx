@@ -1,18 +1,105 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking } from 'react-native';
+import {
+  View, Text, TouchableOpacity, StyleSheet, Alert,
+  ActivityIndicator, ScrollView, RefreshControl, Linking,
+  TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
-const CONDUCTOR_ID = '9fe102bb-5720-48d4-8290-95ab66c1449b';
 
 export default function ConductorScreen() {
+  const [pantalla, setPantalla] = useState<'login' | 'panel'>('login');
+  const [conductorId, setConductorId] = useState('');
+  const [conductorNombre, setConductorNombre] = useState('');
+  const [conductorTelefono, setConductorTelefono] = useState('');
+
+  // Login
+  const [telefono, setTelefono] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginCargando, setLoginCargando] = useState(false);
+
+  // Panel
   const [viajes, setViajes] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [navegandoAlMapa, setNavegandoAlMapa] = useState(false);
+
   const router = useRouter();
 
-  useEffect(() => { registrarNotificaciones(); }, []);
+  // Verificar sesión guardada al abrir
+  useEffect(() => {
+    verificarSesion();
+  }, []);
+
+  useEffect(() => {
+    if (pantalla === 'panel') {
+      registrarNotificaciones();
+      cargarViajes();
+      const interval = setInterval(cargarViajes, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [pantalla]);
+
+  const verificarSesion = async () => {
+    try {
+      const sesion = await AsyncStorage.getItem('conductor_sesion');
+      if (sesion) {
+        const conductor = JSON.parse(sesion);
+        setConductorId(conductor.id);
+        setConductorNombre(conductor.nombre);
+        setConductorTelefono(conductor.telefono);
+        setPantalla('panel');
+      }
+    } catch (_) {}
+  };
+
+  const iniciarSesion = async () => {
+    if (!telefono.trim() || !password.trim()) {
+      Alert.alert('Campos requeridos', 'Ingresa tu teléfono y contraseña');
+      return;
+    }
+    setLoginCargando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/conductores/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: telefono.trim(), password: password.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        await AsyncStorage.setItem('conductor_sesion', JSON.stringify(data.conductor));
+        setConductorId(data.conductor.id);
+        setConductorNombre(data.conductor.nombre);
+        setConductorTelefono(data.conductor.telefono);
+        setPantalla('panel');
+      } else {
+        Alert.alert('Error', data.error || 'Teléfono o contraseña incorrectos');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar al servidor');
+    } finally {
+      setLoginCargando(false);
+    }
+  };
+
+  const cerrarSesion = async () => {
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Salir', onPress: async () => {
+          await AsyncStorage.removeItem('conductor_sesion');
+          setConductorId('');
+          setConductorNombre('');
+          setTelefono('');
+          setPassword('');
+          setPantalla('login');
+        }
+      }
+    ]);
+  };
 
   const cargarViajes = async () => {
     setCargando(true);
@@ -28,72 +115,113 @@ export default function ConductorScreen() {
     }
   };
 
-  const aceptarViaje = async (viajeId) => {
+  const aceptarViaje = async (viaje: any) => {
     try {
-      const res = await fetch(`${API_URL}/api/viajes/estado/${viajeId}`, {
+      const res = await fetch(`${API_URL}/api/viajes/estado/${viaje.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'aceptado', conductor_id: CONDUCTOR_ID }),
-      // Al inicio del archivo, asegúrate de tener:
-import { useRouter } from 'expo-router';
-
-// Dentro del componente:
-const router = useRouter();
-
-// Después de aceptar el viaje exitosamente:
-router.push({
-  pathname: '/mapa_viaje',
-  params: {
-    viaje_id: viaje.id,
-    rol: 'conductor',
-    conductor_id: CONDUCTOR_ID,           // tu ID fijo ya definido
-    usuario_nombre: viaje.usuario_nombre, // ajusta el nombre del campo según tu respuesta
-    usuario_telefono: viaje.usuario_telefono,
-    origen: viaje.origen,
-    destino: viaje.destino,
-  },
-});
-
+        body: JSON.stringify({ estado: 'aceptado', conductor_id: conductorId }),
+      });
       const data = await res.json();
       if (data.ok) {
-        Alert.alert('¡Viaje aceptado!', 'Ve a recoger al pasajero 🏍️');
         await enviarNotificacion('¡Viaje aceptado! 🏍️', 'El conductor va en camino');
-        cargarViajes();
+        if (!navegandoAlMapa) {
+          setNavegandoAlMapa(true);
+          router.push({
+            pathname: '/mapa_viaje',
+            params: {
+              viaje_id: viaje.id,
+              rol: 'conductor',
+              conductor_id: conductorId,
+              usuario_nombre: viaje.usuario_nombre || viaje.nombre_usuario || '',
+              usuario_telefono: viaje.usuario_telefono || viaje.telefono_usuario || '',
+              origen: viaje.origen,
+              destino: viaje.destino,
+            },
+          });
+          setTimeout(() => setNavegandoAlMapa(false), 3000);
+        }
       }
     } catch {
       Alert.alert('Error', 'No se pudo aceptar el viaje');
     }
   };
 
-  const llamarUsuario = (telefono) => {
-    if (!telefono) { Alert.alert('Sin teléfono', 'Este usuario no tiene teléfono registrado'); return; }
-    Linking.openURL(`tel:${telefono}`);
+  const llamarUsuario = (tel: string) => {
+    if (!tel) { Alert.alert('Sin teléfono'); return; }
+    Linking.openURL(`tel:${tel}`);
+  };
+  const whatsappUsuario = (tel: string) => {
+    if (!tel) return;
+    Linking.openURL(`https://wa.me/57${tel}`);
+  };
+  const smsUsuario = (tel: string) => {
+    if (!tel) return;
+    Linking.openURL(`sms:${tel}`);
   };
 
-  const mensajeUsuario = (telefono) => {
-    if (!telefono) { Alert.alert('Sin teléfono', 'Este usuario no tiene teléfono registrado'); return; }
-    Linking.openURL(`sms:${telefono}`);
-  };
+  // ─── PANTALLA LOGIN ──────────────────────────────────────────────────────────
+  if (pantalla === 'login') {
+    return (
+      <KeyboardAvoidingView
+        style={styles.loginContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Text style={styles.loginLogo}>⚡ ZAS</Text>
+        <Text style={styles.loginTitulo}>Acceso Conductores</Text>
+        <Text style={styles.loginSubtitulo}>Ingresa con tu teléfono y contraseña</Text>
 
-  const whatsappUsuario = (telefono) => {
-    if (!telefono) { Alert.alert('Sin teléfono', 'Este usuario no tiene teléfono registrado'); return; }
-    Linking.openURL(`https://wa.me/57${telefono}`);
-  };
+        <View style={styles.loginForm}>
+          <Text style={styles.loginLabel}>📱 Teléfono</Text>
+          <TextInput
+            style={styles.loginInput}
+            placeholder="Ej: 3001234567"
+            placeholderTextColor="#555"
+            keyboardType="phone-pad"
+            value={telefono}
+            onChangeText={setTelefono}
+          />
 
-  useEffect(() => {
-    cargarViajes();
-    const interval = setInterval(cargarViajes, 10000);
-    return () => clearInterval(interval);
-  }, []);
+          <Text style={styles.loginLabel}>🔒 Contraseña</Text>
+          <TextInput
+            style={styles.loginInput}
+            placeholder="Tu contraseña"
+            placeholderTextColor="#555"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
+          <TouchableOpacity
+            style={styles.loginBoton}
+            onPress={iniciarSesion}
+            disabled={loginCargando}
+          >
+            {loginCargando
+              ? <ActivityIndicator color="#1a1a2e" />
+              : <Text style={styles.loginBotonTexto}>Entrar al panel</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ─── PANTALLA PANEL ──────────────────────────────────────────────────────────
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); cargarViajes(); }} tintColor="#FFD700" />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); cargarViajes(); }}
+          tintColor="#FFD700"
+        />
+      }
     >
       <View style={styles.header}>
         <Text style={styles.logo}>⚡ ZAS</Text>
-        <Text style={styles.titulo}>Panel del Conductor</Text>
+        <Text style={styles.titulo}>Hola, {conductorNombre || 'Conductor'}</Text>
         <Text style={styles.subtitulo}>Desliza hacia abajo para actualizar</Text>
         <View style={styles.headerBotones}>
           <TouchableOpacity style={styles.botonPerfil} onPress={() => router.push('/perfil_conductor')}>
@@ -101,6 +229,9 @@ router.push({
           </TouchableOpacity>
           <TouchableOpacity style={styles.botonSuscripcion} onPress={() => router.push('/suscripcion')}>
             <Text style={styles.botonSuscripcionTexto}>⚡ Suscripción</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botonSalir} onPress={cerrarSesion}>
+            <Text style={styles.botonSalirTexto}>🚪 Salir</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -114,7 +245,7 @@ router.push({
           <Text style={styles.sinViajesSubtexto}>Espera nuevas solicitudes...</Text>
         </View>
       ) : (
-        viajes.map((viaje) => (
+        viajes.map((viaje: any) => (
           <View key={viaje.id} style={styles.viajeCard}>
             <View style={styles.viajeRuta}>
               <Text style={styles.viajeIcon}>🟢</Text>
@@ -125,11 +256,10 @@ router.push({
               <Text style={styles.viajeTexto}>{viaje.destino}</Text>
             </View>
             <View style={styles.viajePrecioRow}>
-              <Text style={styles.viajePrecio}>${viaje.precio.toLocaleString()} COP</Text>
+              <Text style={styles.viajePrecio}>${viaje.precio?.toLocaleString()} COP</Text>
               <Text style={styles.viajeEstado}>{viaje.estado}</Text>
             </View>
 
-            {/* Botones contacto usuario */}
             {viaje.usuario_telefono && (
               <View style={styles.contactoBotones}>
                 <TouchableOpacity style={styles.btnLlamar} onPress={() => llamarUsuario(viaje.usuario_telefono)}>
@@ -138,13 +268,13 @@ router.push({
                 <TouchableOpacity style={styles.btnWhatsapp} onPress={() => whatsappUsuario(viaje.usuario_telefono)}>
                   <Text style={styles.btnContactoTexto}>💬 WhatsApp</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.btnSms} onPress={() => mensajeUsuario(viaje.usuario_telefono)}>
+                <TouchableOpacity style={styles.btnSms} onPress={() => smsUsuario(viaje.usuario_telefono)}>
                   <Text style={styles.btnContactoTexto}>✉️ SMS</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje.id)}>
+            <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
               <Text style={styles.botonAceptarTexto}>✅ Aceptar viaje</Text>
             </TouchableOpacity>
           </View>
@@ -155,16 +285,50 @@ router.push({
 }
 
 const styles = StyleSheet.create({
+  // ── Login ──
+  loginContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  loginLogo: { fontSize: 36, fontWeight: 'bold', color: '#FFD700', textAlign: 'center', marginBottom: 8 },
+  loginTitulo: { fontSize: 22, color: '#fff', fontWeight: '700', textAlign: 'center' },
+  loginSubtitulo: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 36 },
+  loginForm: { gap: 12 },
+  loginLabel: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  loginInput: {
+    backgroundColor: '#16213e',
+    borderRadius: 10,
+    padding: 14,
+    color: '#fff',
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#0f3460',
+    marginBottom: 8,
+  },
+  loginBoton: {
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginBotonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
+
+  // ── Panel ──
   container: { flex: 1, backgroundColor: '#1a1a2e' },
   header: { padding: 24, paddingTop: 60 },
   logo: { fontSize: 28, fontWeight: 'bold', color: '#FFD700' },
   titulo: { fontSize: 22, color: '#fff', marginTop: 8, fontWeight: '600' },
   subtitulo: { fontSize: 13, color: '#888', marginTop: 4 },
-  headerBotones: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  headerBotones: { flexDirection: 'row', gap: 8, marginTop: 12 },
   botonPerfil: { flex: 1, backgroundColor: '#16213e', borderRadius: 8, padding: 10, alignItems: 'center' },
-  botonPerfilTexto: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  botonPerfilTexto: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   botonSuscripcion: { flex: 1, backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' },
-  botonSuscripcionTexto: { color: '#FFD700', fontWeight: 'bold', fontSize: 13 },
+  botonSuscripcionTexto: { color: '#FFD700', fontWeight: 'bold', fontSize: 12 },
+  botonSalir: { flex: 1, backgroundColor: '#3a1a1a', borderRadius: 8, padding: 10, alignItems: 'center' },
+  botonSalirTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 12 },
   sinViajes: { alignItems: 'center', marginTop: 80 },
   sinViajesIcon: { fontSize: 60 },
   sinViajesTexto: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 16 },
@@ -173,7 +337,10 @@ const styles = StyleSheet.create({
   viajeRuta: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   viajeIcon: { fontSize: 14, marginRight: 10 },
   viajeTexto: { color: '#fff', fontSize: 15, flex: 1 },
-  viajePrecioRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 16, padding: 12, backgroundColor: '#0f3460', borderRadius: 10 },
+  viajePrecioRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 12, marginBottom: 16, padding: 12, backgroundColor: '#0f3460', borderRadius: 10,
+  },
   viajePrecio: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
   viajeEstado: { color: '#aaa', fontSize: 12, textTransform: 'uppercase' },
   contactoBotones: { flexDirection: 'row', gap: 8, marginBottom: 12 },
