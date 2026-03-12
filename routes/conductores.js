@@ -108,4 +108,87 @@ router.get('/todos', async (req, res) => {
   }
 });
 
+// Actualizar perfil conductor
+router.patch('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+module.exports = router;// Actualizar perfil conductor
+router.patch('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// Actualizar perfil conductor
+router.patch('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// Actualizar perfil conductor
+router.patch('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+router.patch('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

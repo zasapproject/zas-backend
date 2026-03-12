@@ -62,7 +62,12 @@ export default function ConductorScreen() {
   <TouchableOpacity 
     style={styles.botonSuscripcion} 
     onPress={() => router.push('/suscripcion')}
-  >
+  ><TouchableOpacity 
+  style={styles.botonPerfil} 
+  onPress={() => router.push('/perfil_conductor')}
+>
+  <Text style={styles.botonPerfilTexto}>👤 Mi Perfil</Text>
+</TouchableOpacity>
     <Text style={styles.botonSuscripcionTexto}>⚡ Mi Suscripción</Text>
   </TouchableOpacity>
 </View>
@@ -121,4 +126,6 @@ const styles = StyleSheet.create({
   botonAceptarTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
 botonSuscripcion: { backgroundColor: '#0f3460', borderRadius: 8, padding: 10, marginTop: 12, alignItems: 'center' },
 botonSuscripcionTexto: { color: '#FFD700', fontWeight: 'bold', fontSize: 14 },
+botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 10, marginTop: 8, alignItems: 'center' },
+botonPerfilTexto: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });

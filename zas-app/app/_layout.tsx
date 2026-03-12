@@ -23,6 +23,7 @@ export default function RootLayout() {
       <Stack.Screen name="mapa" options={{ headerShown: false }} />
       <Stack.Screen name="calificacion" options={{ headerShown: false }} />
       <Stack.Screen name="suscripcion" options={{ headerShown: false }} /> 
+      <Stack.Screen name="perfil_conductor" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
