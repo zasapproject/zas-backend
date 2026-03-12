@@ -39,9 +39,9 @@ router.patch('/estado/:id', async (req, res) => {
 
 router.get('/estado/:estado', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('viajes').select('*, usuarios(nombre, telefono, foto)').eq('estado', req.params.estado);
+    const { data, error } = await supabase.from('viajes').select('*, usuarios(nombre, telefono, foto_url)').eq('estado', req.params.estado);
     if (error) throw error;
-    const viajes = data.map(v => ({ ...v, usuario_nombre: v.usuarios?.nombre || '', usuario_telefono: v.usuarios?.telefono || '', usuario_foto: v.usuarios?.foto || '' }));
+    const viajes = data.map(v => ({ ...v, usuario_nombre: v.usuarios?.nombre || '', usuario_telefono: v.usuarios?.telefono || '', usuario_foto: v.usuarios?.foto_url || '' }));
     res.json({ ok: true, viajes });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
@@ -60,3 +60,4 @@ router.put('/:id/estado', async (req, res) => {
 });
 
 module.exports = router;
+
