@@ -1,244 +1,331 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Dimensions, Platform, Animated, Image } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
-const GOOGLE_MAPS_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const BACKEND_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const POLLING_INTERVAL = 4000;
 
-export default function MapaViajeScreen() {
+function decodificarPolyline(encoded) {
+  const poly = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let shift = 0, result = 0, byte;
+    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    shift = 0; result = 0;
+    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+    poly.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  }
+  return poly;
+}
+
+async function geocodificar(direccion) {
+  try {
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(direccion + ', Colombia')}&key=${GOOGLE_MAPS_API_KEY}`);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      const loc = data.results[0].geometry.location;
+      return { latitude: loc.lat, longitude: loc.lng };
+    }
+  } catch (e) {}
+  return null;
+}
+
+async function obtenerRuta(origen, destino) {
+  try {
+    const res = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${origen.latitude},${origen.longitude}&destination=${destino.latitude},${destino.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`);
+    const data = await res.json();
+    if (data.routes && data.routes.length > 0) return decodificarPolyline(data.routes[0].overview_polyline.points);
+  } catch (e) {}
+  return [];
+}
+
+async function actualizarUbicacionConductor(conductorId, coords) {
+  try {
+    await fetch(`${BACKEND_URL}/conductores/ubicacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conductor_id: conductorId, latitud: coords.latitude, longitud: coords.longitude }) });
+  } catch (e) {}
+}
+
+async function obtenerUbicacionConductor(conductorId) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/conductores/ubicacion/${conductorId}`);
+    const data = await res.json();
+    if (data.latitud && data.longitud) return { latitude: Number(data.latitud), longitude: Number(data.longitud) };
+  } catch (e) {}
+  return null;
+}
+
+async function obtenerEstadoViaje(viajeId) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/viajes/${viajeId}`);
+    const data = await res.json();
+    return data.estado || null;
+  } catch (e) {}
+  return null;
+}
+
+export default function MapaViaje() {
+  const params = useLocalSearchParams();
   const router = useRouter();
-  const { viaje_id, conductor_id, es_conductor } = useLocalSearchParams();
   const mapRef = useRef(null);
+  const pollingRef = useRef(null);
+  const locationSub = useRef(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const [ubicacionActual, setUbicacionActual] = useState(null);
-  const [rutaCoordenadas, setRutaCoordenadas] = useState([]);
-  const [viaje, setViaje] = useState(null);
+  const esCondutor = params.rol === 'conductor';
+  const conductorId = params.conductor_id || '';
+
+  const [miUbicacion, setMiUbicacion] = useState(null);
+  const [ubicacionConductor, setUbicacionConductor] = useState(null);
+  const [coordOrigen, setCoordOrigen] = useState(null);
+  const [coordDestino, setCoordDestino] = useState(null);
+  const [ruta, setRuta] = useState([]);
+  const [estadoViaje, setEstadoViaje] = useState('aceptado');
   const [cargando, setCargando] = useState(true);
-  const [estado, setEstado] = useState('en_camino'); // en_camino | recogiendo | en_ruta
+  const [etaTexto, setEtaTexto] = useState('Calculando...');
 
-  // Obtener ubicación actual
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permiso requerido', 'Necesitamos tu ubicación para mostrar el mapa');
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setUbicacionActual(loc.coords);
-    })();
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.3, duration: 800, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+    ])).start();
   }, []);
 
-  // Actualizar ubicación conductor cada 5 segundos
   useEffect(() => {
-    if (!es_conductor || !conductor_id) return;
-    const interval = setInterval(async () => {
-      try {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        await fetch(`${API_URL}/api/conductores/ubicacion/${conductor_id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat: loc.coords.latitude, lng: loc.coords.longitude }),
-        });
-        setUbicacionActual(loc.coords);
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [es_conductor, conductor_id]);
-
-  // Cargar viaje
-  useEffect(() => {
-    if (!viaje_id) return;
-    const cargar = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/viajes/detalle/${viaje_id}`);
-        const data = await res.json();
-        if (data.ok) setViaje(data.viaje);
-      } catch {}
-      finally { setCargando(false); }
+    inicializar();
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (locationSub.current) locationSub.current.remove();
     };
-    cargar();
-    const interval = setInterval(cargar, 8000);
-    return () => clearInterval(interval);
-  }, [viaje_id]);
+  }, []);
 
-  // Obtener ruta de Google Maps
-  useEffect(() => {
-    if (!ubicacionActual || !viaje) return;
-    obtenerRuta();
-  }, [ubicacionActual, viaje]);
-
-  const obtenerRuta = async () => {
-    if (!ubicacionActual || !viaje) return;
-    try {
-      const origen = `${ubicacionActual.latitude},${ubicacionActual.longitude}`;
-      const destino = estado === 'en_camino'
-        ? `${viaje.origen_lat},${viaje.origen_lng}`
-        : `${viaje.destino_lat},${viaje.destino_lng}`;
-
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origen}&destination=${destino}&key=${GOOGLE_MAPS_KEY}&mode=driving`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.routes?.length > 0) {
-        const puntos = decodePolyline(data.routes[0].overview_polyline.points);
-        setRutaCoordenadas(puntos);
-      }
-    } catch {}
-  };
-
-  const decodePolyline = (encoded) => {
-    const poly = [];
-    let index = 0, lat = 0, lng = 0;
-    while (index < encoded.length) {
-      let b, shift = 0, result = 0;
-      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lat += (result & 1) ? ~(result >> 1) : result >> 1;
-      shift = 0; result = 0;
-      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lng += (result & 1) ? ~(result >> 1) : result >> 1;
-      poly.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  async function inicializar() {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu ubicacion'); setCargando(false); return; }
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+    setMiUbicacion(coords);
+    if (params.origen && params.destino) {
+      const [cOrig, cDest] = await Promise.all([geocodificar(params.origen), geocodificar(params.destino)]);
+      setCoordOrigen(cOrig);
+      setCoordDestino(cDest);
     }
-    return poly;
-  };
-
-  const llegue = async () => {
-    if (estado === 'en_camino') {
-      setEstado('recogiendo');
-      Alert.alert('✅ Llegaste al usuario', 'Espera que suba a la moto');
-    } else {
-      setEstado('en_ruta');
-      await fetch(`${API_URL}/api/viajes/estado/${viaje_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'en_curso' }),
+    if (esCondutor && conductorId) {
+      locationSub.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 }, (newLoc) => {
+        const c = { latitude: newLoc.coords.latitude, longitude: newLoc.coords.longitude };
+        setMiUbicacion(c);
+        actualizarUbicacionConductor(conductorId, c);
       });
     }
-    obtenerRuta();
+    iniciarPolling(coords);
+    setCargando(false);
+  }
+
+  const actualizarRuta = useCallback(async (desde, hasta) => {
+    const pts = await obtenerRuta(desde, hasta);
+    setRuta(pts);
+    if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
+    try {
+      const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`);
+      const data = await res.json();
+      const elem = data.rows?.[0]?.elements?.[0];
+      if (elem?.status === 'OK') setEtaTexto(elem.duration.text);
+    } catch (_) {}
+  }, []);
+
+  function iniciarPolling(miCoord) {
+    pollingRef.current = setInterval(async () => {
+      if (params.viaje_id) {
+        const estado = await obtenerEstadoViaje(params.viaje_id);
+        if (estado) {
+          setEstadoViaje(estado);
+          if (estado === 'completado' || estado === 'cancelado') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            if (locationSub.current) locationSub.current.remove();
+            Alert.alert(estado === 'completado' ? 'Viaje completado!' : 'Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
+          }
+        }
+      }
+      if (!esCondutor && conductorId) {
+        const ubicCond = await obtenerUbicacionConductor(conductorId);
+        if (ubicCond) {
+          setUbicacionConductor(ubicCond);
+          if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicCond, coordOrigen);
+          else if (estadoViaje === 'en_viaje' && coordDestino) await actualizarRuta(ubicCond, coordDestino);
+        }
+      }
+      if (esCondutor) {
+        const ubicActual = miUbicacion || miCoord;
+        if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicActual, coordOrigen);
+        else if (estadoViaje === 'en_viaje' && coordDestino) await actualizarRuta(ubicActual, coordDestino);
+      }
+    }, POLLING_INTERVAL);
+  }
+
+  function llamar(tel) { if (tel) Linking.openURL(`tel:${tel.replace(/\D/g, '')}`); }
+  function whatsapp(tel) { if (tel) Linking.openURL(`whatsapp://send?phone=57${tel.replace(/\D/g, '')}`); }
+  function sms(tel) { if (tel) Linking.openURL(`sms:${tel.replace(/\D/g, '')}`); }
+
+  async function iniciarViaje() {
+    Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Iniciar', onPress: async () => {
+        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'en_viaje' }) });
+        setEstadoViaje('en_viaje');
+      }},
+    ]);
+  }
+
+  async function terminarViaje() {
+    Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Terminar', onPress: async () => {
+        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'completado' }) });
+        router.back();
+      }},
+    ]);
+  }
+
+  const regionInicial = miUbicacion ? { latitude: miUbicacion.latitude, longitude: miUbicacion.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 } : { latitude: 4.7110, longitude: -74.0721, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+
+  const etiquetaEstado = () => {
+    if (esCondutor) {
+      if (estadoViaje === 'aceptado' || estadoViaje === 'en_camino') return 'Ve hacia el usuario';
+      if (estadoViaje === 'en_viaje') return 'Lleva al pasajero al destino';
+    } else {
+      if (estadoViaje === 'aceptado' || estadoViaje === 'en_camino') return 'Mototaxi en camino';
+      if (estadoViaje === 'en_viaje') return 'En viaje al destino';
+    }
+    return '';
   };
 
-  const completarViaje = async () => {
-    await fetch(`${API_URL}/api/viajes/estado/${viaje_id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: 'completado' }),
-    });
-    Alert.alert('🎉 ¡Viaje completado!', 'Gracias por usar ZAS');
-    router.back();
-  };
+  const telefonoOtro = esCondutor ? params.usuario_telefono : params.conductor_telefono;
+  const nombreOtro = esCondutor ? params.usuario_nombre : params.conductor_nombre;
+  const fotoOtro = esCondutor ? params.usuario_foto : params.conductor_foto;
 
-  if (cargando || !ubicacionActual) {
-    return (
-      <View style={styles.centrado}>
-        <ActivityIndicator color="#FFD700" size="large" />
-        <Text style={styles.cargandoTexto}>Cargando mapa...</Text>
-      </View>
-    );
+  if (cargando) {
+    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /><Text style={styles.loadingText}>Cargando mapa...</Text></View>;
   }
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.mapa}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={{
-          latitude: ubicacionActual.latitude,
-          longitude: ubicacionActual.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-        showsUserLocation
-        showsMyLocationButton
-      >
-        {/* Ruta */}
-        {rutaCoordenadas.length > 0 && (
-          <Polyline coordinates={rutaCoordenadas} strokeColor="#FFD700" strokeWidth={4} />
-        )}
-
-        {/* Marcador conductor */}
-        {ubicacionActual && (
-          <Marker coordinate={{ latitude: ubicacionActual.latitude, longitude: ubicacionActual.longitude }} title="Tu ubicación">
-            <View style={styles.marcadorConductor}>
-              <Text style={styles.marcadorIcon}>🏍️</Text>
+      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
+        {miUbicacion && (
+          <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={esCondutor ? styles.marcadorConductor : styles.marcadorUsuario}>
+              <Text style={styles.marcadorEmoji}>{esCondutor ? 'M' : 'U'}</Text>
             </View>
           </Marker>
         )}
-
-        {/* Marcador origen (usuario) */}
-        {viaje?.origen_lat && (
-          <Marker coordinate={{ latitude: viaje.origen_lat, longitude: viaje.origen_lng }} title="Usuario" description={viaje.origen}>
-            <View style={styles.marcadorUsuario}>
-              <Text style={styles.marcadorIcon}>👤</Text>
-            </View>
+        {!esCondutor && ubicacionConductor && (
+          <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
+            <Animated.View style={[styles.marcadorMoto, { transform: [{ scale: pulseAnim }] }]}>
+              <Text style={styles.marcadorEmoji}>M</Text>
+            </Animated.View>
           </Marker>
         )}
-
-        {/* Marcador destino */}
-        {viaje?.destino_lat && (
-          <Marker coordinate={{ latitude: viaje.destino_lat, longitude: viaje.destino_lng }} title="Destino" description={viaje.destino}>
-            <View style={styles.marcadorDestino}>
-              <Text style={styles.marcadorIcon}>📍</Text>
-            </View>
-          </Marker>
-        )}
+        {coordOrigen && <Marker coordinate={coordOrigen} title="Origen" pinColor="#F5A623" />}
+        {coordDestino && <Marker coordinate={coordDestino} title="Destino" pinColor="#E53935" />}
+        {ruta.length > 1 && <Polyline coordinates={ruta} strokeColor="#F5A623" strokeWidth={4} />}
       </MapView>
 
-      {/* Panel inferior */}
-      <View style={styles.panel}>
-        <Text style={styles.panelEstado}>
-          {estado === 'en_camino' ? '🏍️ Yendo a recoger usuario' :
-           estado === 'recogiendo' ? '👤 Esperando al usuario' :
-           '🚀 En ruta al destino'}
-        </Text>
-        {viaje && (
-          <View style={styles.panelInfo}>
-            <Text style={styles.panelTexto}>📍 {estado === 'en_camino' ? viaje.origen : viaje.destino}</Text>
-            <Text style={styles.panelPrecio}>${viaje.precio?.toLocaleString()} COP</Text>
+      <View style={styles.bannerEstado}>
+        <Text style={styles.bannerTexto}>{etiquetaEstado()}</Text>
+        <Text style={styles.etaTexto}>{etaTexto}</Text>
+      </View>
+
+      <View style={styles.cardInferior}>
+        <View style={styles.infoRow}>
+          {fotoOtro ? (
+            <Image source={{ uri: fotoOtro }} style={styles.fotoCircle} />
+          ) : (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarLetra}>{nombreOtro ? nombreOtro[0].toUpperCase() : '?'}</Text>
+            </View>
+          )}
+          <View style={styles.infoTextos}>
+            <Text style={styles.nombreOtro}>{esCondutor ? 'Usuario' : 'Conductor'}</Text>
+            <Text style={styles.nombreOtroValor}>{nombreOtro || '-'}</Text>
+            {!esCondutor && params.conductor_placa ? <Text style={styles.placaTexto}>{params.conductor_modelo} - {params.conductor_placa}</Text> : null}
+          </View>
+        </View>
+
+        <View style={styles.rutaInfo}>
+          <View style={styles.rutaFila}>
+            <View style={[styles.rutaPunto, { backgroundColor: '#F5A623' }]} />
+            <Text style={styles.rutaDireccion} numberOfLines={1}>{params.origen || '-'}</Text>
+          </View>
+          <View style={styles.rutaLinea} />
+          <View style={styles.rutaFila}>
+            <View style={[styles.rutaPunto, { backgroundColor: '#E53935' }]} />
+            <Text style={styles.rutaDireccion} numberOfLines={1}>{params.destino || '-'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.botonesContacto}>
+          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#4CAF50' }]} onPress={() => llamar(telefonoOtro)}>
+            <Text style={styles.btnContactoTexto}>Llamar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#25D366' }]} onPress={() => whatsapp(telefonoOtro)}>
+            <Text style={styles.btnContactoTexto}>WhatsApp</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#2196F3' }]} onPress={() => sms(telefonoOtro)}>
+            <Text style={styles.btnContactoTexto}>SMS</Text>
+          </TouchableOpacity>
+        </View>
+
+        {esCondutor && (
+          <View>
+            {(estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && (
+              <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#F5A623' }]} onPress={iniciarViaje}>
+                <Text style={styles.btnAccionTexto}>Pasajero a bordo - Iniciar viaje</Text>
+              </TouchableOpacity>
+            )}
+            {estadoViaje === 'en_viaje' && (
+              <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#E53935' }]} onPress={terminarViaje}>
+                <Text style={styles.btnAccionTexto}>Llegamos - Terminar viaje</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
-
-        {es_conductor && estado !== 'en_ruta' && (
-          <TouchableOpacity style={styles.botonLlegue} onPress={llegue}>
-            <Text style={styles.botonTexto}>
-              {estado === 'en_camino' ? '✅ Llegué al usuario' : '🚀 Iniciar viaje'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {es_conductor && estado === 'en_ruta' && (
-          <TouchableOpacity style={styles.botonCompletar} onPress={completarViaje}>
-            <Text style={styles.botonTexto}>🎉 Completar viaje</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity style={styles.botonVolver} onPress={() => router.back()}>
-          <Text style={styles.botonVolverTexto}>← Volver</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centrado: { flex: 1, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' },
-  cargandoTexto: { color: '#888', marginTop: 16 },
-  mapa: { flex: 1 },
-  marcadorConductor: { backgroundColor: '#FFD700', borderRadius: 20, padding: 6 },
-  marcadorUsuario: { backgroundColor: '#00c853', borderRadius: 20, padding: 6 },
-  marcadorDestino: { backgroundColor: '#ff1744', borderRadius: 20, padding: 6 },
-  marcadorIcon: { fontSize: 20 },
-  panel: { backgroundColor: '#1a1a2e', padding: 20, paddingBottom: 36 },
-  panelEstado: { color: '#FFD700', fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
-  panelInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  panelTexto: { color: '#fff', fontSize: 14, flex: 1 },
-  panelPrecio: { color: '#FFD700', fontSize: 16, fontWeight: 'bold' },
-  botonLlegue: { backgroundColor: '#00c853', borderRadius: 10, padding: 14, alignItems: 'center', marginBottom: 10 },
-  botonCompletar: { backgroundColor: '#FFD700', borderRadius: 10, padding: 14, alignItems: 'center', marginBottom: 10 },
-  botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
-  botonVolver: { alignItems: 'center', padding: 8 },
-  botonVolverTexto: { color: '#888', fontSize: 13 },
+  container: { flex: 1, backgroundColor: '#1A1A2E' },
+  map: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E', gap: 12 },
+  loadingText: { color: '#F5A623', fontSize: 16, fontWeight: '600' },
+  bannerEstado: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : 40, left: 16, right: 16, backgroundColor: 'rgba(26,26,46,0.92)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 6, borderLeftWidth: 4, borderLeftColor: '#F5A623' },
+  bannerTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  etaTexto: { color: '#F5A623', fontSize: 13, fontWeight: '600' },
+  cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, elevation: 10 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  fotoCircle: { width: 52, height: 52, borderRadius: 26, marginRight: 12, borderWidth: 2, borderColor: '#F5A623' },
+  avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F5A623', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatarLetra: { color: '#1A1A2E', fontSize: 20, fontWeight: '800' },
+  infoTextos: { flex: 1 },
+  nombreOtro: { color: '#9E9E9E', fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  nombreOtroValor: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  placaTexto: { color: '#9E9E9E', fontSize: 11, marginTop: 2 },
+  rutaInfo: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, marginBottom: 14 },
+  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rutaPunto: { width: 10, height: 10, borderRadius: 5 },
+  rutaDireccion: { color: '#E0E0E0', fontSize: 13, flex: 1 },
+  rutaLinea: { width: 2, height: 10, backgroundColor: '#555', marginLeft: 4, marginVertical: 2 },
+  botonesContacto: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  btnContacto: { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  btnContactoTexto: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  btnAccion: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  btnAccionTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  marcadorConductor: { backgroundColor: '#F5A623', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff' },
+  marcadorUsuario: { backgroundColor: '#2196F3', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff' },
+  marcadorMoto: { backgroundColor: '#F5A623', borderRadius: 24, padding: 8, borderWidth: 3, borderColor: '#FFFFFF', elevation: 8 },
+  marcadorEmoji: { fontSize: 16, color: '#fff', fontWeight: 'bold' },
 });
