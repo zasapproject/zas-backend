@@ -51,4 +51,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Login conductor
+router.post('/login', async (req, res) => {
+  const { telefono, password } = req.body;
+  if (!telefono || !password) {
+    return res.status(400).json({ ok: false, error: 'Teléfono y contraseña requeridos' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('*')
+      .eq('telefono', telefono)
+      .single();
+    if (error || !data) {
+      return res.status(404).json({ ok: false, error: 'Conductor no encontrado' });
+    }
+    if (data.password !== password) {
+      return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
+    }
+    res.json({ ok: true, conductor: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;
