@@ -68,10 +68,19 @@ router.get('/estado/:estado', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('viajes')
-      .select('*')
+      .select('*, usuarios(nombre, telefono, foto)')
       .eq('estado', estado);
     if (error) throw error;
-    res.json({ ok: true, viajes: data });
+
+    // Aplanar datos del usuario en el viaje
+    const viajes = data.map(v => ({
+      ...v,
+      usuario_nombre: v.usuarios?.nombre || '',
+      usuario_telefono: v.usuarios?.telefono || '',
+      usuario_foto: v.usuarios?.foto || '',
+    }));
+
+    res.json({ ok: true, viajes });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
