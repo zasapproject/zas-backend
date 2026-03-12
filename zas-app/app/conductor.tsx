@@ -66,8 +66,7 @@ export default function ConductorScreen() {
     <Text style={styles.botonSuscripcionTexto}>⚡ Mi Suscripción</Text>
   </TouchableOpacity>
 </View>
-      </View>
-
+      
       {cargando && !refreshing ? (
         <ActivityIndicator color="#FFD700" size="large" style={{ marginTop: 40 }} />
       ) : viajes.length === 0 ? (
