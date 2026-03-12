@@ -91,9 +91,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={styles.botonMapa} onPress={() => router.push('/mapa')}>
-            <Text style={styles.botonMapaTexto}>🗺️ Seleccionar en mapa</Text>
-          </TouchableOpacity>
+          <
           <TouchableOpacity style={styles.boton} onPress={solicitarViaje} disabled={cargando}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>🏍️ Solicitar ZAS</Text>}
           </TouchableOpacity>
@@ -158,8 +156,7 @@ const styles = StyleSheet.create({
   pagoIcon: { fontSize: 20 },
   pagoTexto: { color: '#888', fontSize: 12, marginTop: 4 },
   pagoTextoActivo: { color: '#FFD700' },
-  botonMapa: { borderWidth: 1, borderColor: '#FFD700', borderRadius: 10, padding: 14, alignItems: 'center', marginBottom: 10 },
-  botonMapaTexto: { color: '#FFD700', fontSize: 14 },
+
   boton: { backgroundColor: '#FFD700', borderRadius: 10, padding: 16, alignItems: 'center' },
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   viajeActivo: { backgroundColor: '#16213e', margin: 16, borderRadius: 16, padding: 20 },
