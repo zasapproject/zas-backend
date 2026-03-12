@@ -114,7 +114,25 @@ export default function HomeScreen() {
             <Text style={styles.viajeLabel}>Estado</Text>
             <Text style={styles.viajeEstado}>{viaje.estado.toUpperCase()}</Text>
           {viaje.estado === 'aceptado' && (
-  <TouchableOpacity 
+  import { useRouter } from 'expo-router';
+const router = useRouter();
+
+// Dentro del polling, cuando detectas que el viaje fue aceptado:
+if (data.estado === 'aceptado' && !navegandoAlMapa) {
+  setNavegandoAlMapa(true); // evita navegar dos veces
+  router.push({
+    pathname: '/mapa_viaje',
+    params: {
+      viaje_id: data.id,
+      rol: 'usuario',
+      conductor_id: data.conductor_id,
+      conductor_nombre: data.conductor_nombre,
+      conductor_telefono: data.conductor_telefono,
+      origen: data.origen,
+      destino: data.destino,
+    },
+  });
+}<TouchableOpacity 
     style={styles.botonCalificar} 
     onPress={() => router.push({ pathname: '/calificacion', params: { conductor_id: viaje.conductor_id } })}
   >

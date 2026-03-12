@@ -86,4 +86,25 @@ router.get('/estado/:estado', async (req, res) => {
   }
 });
 
+// Leer un viaje por ID
+router.get('/:id', async (req, res) => {
+  const { data, error } = await supabase
+    .from('viajes')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Actualizar estado del viaje
+router.put('/:id/estado', async (req, res) => {
+  const { estado } = req.body;
+  const { error } = await supabase
+    .from('viajes')
+    .update({ estado })
+    .eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 module.exports = router;

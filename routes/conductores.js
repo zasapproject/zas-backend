@@ -191,4 +191,25 @@ router.patch('/perfil/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// Guardar ubicación del conductor
+router.post('/ubicacion', async (req, res) => {
+  const { conductor_id, latitud, longitud } = req.body;
+  const { error } = await supabase
+    .from('conductores')
+    .update({ latitud, longitud, ubicacion_actualizada: new Date() })
+    .eq('id', conductor_id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// Leer ubicación del conductor
+router.get('/ubicacion/:id', async (req, res) => {
+  const { data, error } = await supabase
+    .from('conductores')
+    .select('latitud, longitud')
+    .eq('id', req.params.id)
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
 module.exports = router;

@@ -29,20 +29,27 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#0F1120",
-          "dark": {
-            "backgroundColor": "#0F1120"
-          }
-        }
-      ]
-    ],
+  "expo-router",
+
+  [
+    "expo-location",
+    {
+      "locationAlwaysAndWhenInUsePermission": "ZAS necesita tu ubicación para mostrarte la ruta del conductor."
+    }
+  ],
+  [
+    "expo-splash-screen",
+    {
+      "image": "./assets/images/splash-icon.png",
+      "imageWidth": 200,
+      "resizeMode": "contain",
+      "backgroundColor": "#0F1120",
+      "dark": {
+        "backgroundColor": "#0F1120"
+      }
+    }
+  ]
+],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

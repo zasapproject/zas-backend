@@ -34,7 +34,26 @@ export default function ConductorScreen() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: 'aceptado', conductor_id: CONDUCTOR_ID }),
-      });
+      // Al inicio del archivo, asegúrate de tener:
+import { useRouter } from 'expo-router';
+
+// Dentro del componente:
+const router = useRouter();
+
+// Después de aceptar el viaje exitosamente:
+router.push({
+  pathname: '/mapa_viaje',
+  params: {
+    viaje_id: viaje.id,
+    rol: 'conductor',
+    conductor_id: CONDUCTOR_ID,           // tu ID fijo ya definido
+    usuario_nombre: viaje.usuario_nombre, // ajusta el nombre del campo según tu respuesta
+    usuario_telefono: viaje.usuario_telefono,
+    origen: viaje.origen,
+    destino: viaje.destino,
+  },
+});
+
       const data = await res.json();
       if (data.ok) {
         Alert.alert('¡Viaje aceptado!', 'Ve a recoger al pasajero 🏍️');
