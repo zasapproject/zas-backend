@@ -595,7 +595,7 @@
     document.getElementById('conductores-table').innerHTML = `
       <div class="loading"><div class="spinner"></div>Cargando conductores...</div>`;
     try {
-      const res = await fetch(`${API}/api/conductores`);
+      const res = await fetch(`${API}/api/conductores/todos`);
       const data = await res.json();
       conductoresData = data.conductores || data || [];
       renderConductores(conductoresData);

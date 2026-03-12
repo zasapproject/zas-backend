@@ -94,4 +94,18 @@ router.patch('/calificar/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// Obtener TODOS los conductores (para centro de operaciones)
+router.get('/todos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ ok: true, conductores: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;
