@@ -60,8 +60,14 @@ export default function HomeScreen() {
         const usuario = JSON.parse(sesion);
         setUsuarioId(usuario.id);
         setUsuarioNombre(usuario.nombre);
+      } else {
+        router.replace('/login');
+        return;
       }
-    } catch (_) {}
+    } catch (_) {
+      router.replace('/login');
+      return;
+    }
     setCargando(false);
   };
 
