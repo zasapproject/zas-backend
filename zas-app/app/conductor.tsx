@@ -57,7 +57,7 @@ export default function ConductorScreen() {
 
   const buscarViajes = async () => {
     try {
-      const res = await fetch(API_URL + '/api/viajes/estado/pendiente');
+      const res = await fetch(API_URL + '/api/viajes/estado/solicitado');
       const data = await res.json();
       if (data.ok) setViajes(data.viajes || []);
     } catch {}
