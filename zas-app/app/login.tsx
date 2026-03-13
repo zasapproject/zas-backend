@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+﻿import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -59,7 +59,6 @@ export default function LoginScreen() {
     } catch { Alert.alert("Error", "No se pudo conectar"); }
     finally { setCargando(false); }
   };
-
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
