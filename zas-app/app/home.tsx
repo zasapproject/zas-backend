@@ -25,56 +25,14 @@ export default function HomeScreen() {
         const res = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
         const data = await res.json();
         if (data.ok && data.viajes.length > 0) {
-          const viajeActual = data.viajes.find(v => v.id === viaje.id);
+const viajeActual = data.viajes.find(v => v.id === viaje.id);
           if (viajeActual) {
             setViaje(viajeActual);
             if (viajeActual.estado === 'aceptado' && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
-              router.push({
-                pathname: '/mapa_viaje',
-                params: {
-                  viaje_id: viajeActual.id,
-                  rol: 'usuario',
-                  conductor_id: viajeActual.conductor_id || '',
-                  conductor_nombre: viajeActual.conductor_nombre || '',
-                  conductor_telefono: viajeActual.conductor_telefono || '',
-                  conductor_foto: viajeActual.conductor_foto || '',
-                  conductor_placa: viajeActual.conductor_placa || '',
-                  conductor_modelo: viajeActual.conductor_modelo || '',
-                  origen: viajeActual.origen,
-                  destino: viajeActual.destino,
-                },
-              });
+              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino } });
             }
           }
-        }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [viaje, usuarioId, navegandoAlMapa]);
-
-  const cargarSesion = async () => {
-    try {
-      const sesion = await AsyncStorage.getItem('usuario_sesion');
-      if (sesion) {
-        const usuario = JSON.parse(sesion);
-        setUsuarioId(usuario.id);
-        setUsuarioNombre(usuario.nombre);
-      } else {
-        router.replace('/login');
-        return;
-      }
-    } catch (_) {
-      router.replace('/login');
-      return;
-    }
-    setCargando(false);
-  };
-
-  const solicitarViaje = async () => {
-    if (!origen || !destino) { Alert.alert('Error', 'Ingresa origen y destino'); return; }
-    setCargando(true);
-    try {
       const res = await fetch(`${API_URL}/api/viajes/nuevo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
