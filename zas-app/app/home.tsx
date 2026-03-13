@@ -45,7 +45,7 @@ const viajeActual = data.viajes.find(v => v.id === viaje.id);
       } else {
         Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
       }
-    } catch { Alert.alert('Error', 'No se pudo conectar al servidor'); }
+    } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
   };
 
