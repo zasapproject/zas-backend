@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function LoginScreen() {
@@ -44,7 +44,10 @@ export default function LoginScreen() {
         body: JSON.stringify({ telefono, password }),
       });
       const data = await res.json();
-      if (data.ok) router.push('/home');
+      if (data.ok) {
+  await AsyncStorage.setItem('usuario_sesion', JSON.stringify(data.usuario));
+  router.push('/home');
+}
       else Alert.alert('Error', data.error || 'Teléfono o contraseña incorrectos');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
@@ -61,9 +64,11 @@ export default function LoginScreen() {
         body: JSON.stringify({ nombre, telefono, email, password, foto }),
       });
       const data = await res.json();
-      if (data.ok) {
-        Alert.alert('¡Registro exitoso!', `Bienvenido a ZAS, ${data.usuario.nombre} 🚀`);
-        router.push('/home');
+     if (data.ok) {
+  await AsyncStorage.setItem('usuario_sesion', JSON.stringify(data.usuario));
+  Alert.alert('Registro exitoso', `Bienvenido a ZAS, ${data.usuario.nombre}`);
+  router.push('/home');
+}
       } else Alert.alert('Error', data.error || 'No se pudo registrar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
