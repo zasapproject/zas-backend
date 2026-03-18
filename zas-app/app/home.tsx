@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,7 +36,7 @@ export default function HomeScreen() {
             setViaje(viajeActual);
             if (viajeActual.estado === 'aceptado' && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
-              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino } });
+              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino, origen_lat: viajeActual.origen_lat || '', origen_lng: viajeActual.origen_lng || '', destino_lat: viajeActual.destino_lat || '', destino_lng: viajeActual.destino_lng || '' } });
             }
           }
         }

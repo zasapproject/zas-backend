@@ -109,7 +109,10 @@ export default function MapaViaje() {
     const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
     const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
     setMiUbicacion(coords);
-    if (params.origen && params.destino) {
+    if (params.origen_lat && params.destino_lat) {
+      setCoordOrigen({ latitude: Number(params.origen_lat), longitude: Number(params.origen_lng) });
+      setCoordDestino({ latitude: Number(params.destino_lat), longitude: Number(params.destino_lng) });
+    } else if (params.origen && params.destino) {
       const [cOrig, cDest] = await Promise.all([geocodificar(params.origen), geocodificar(params.destino)]);
       setCoordOrigen(cOrig);
       setCoordDestino(cDest);
