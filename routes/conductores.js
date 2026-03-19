@@ -113,4 +113,47 @@ router.patch('/verificar/:id', async (req, res) => {
     res.json({ ok: true, conductor: data[0] });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
+// Guardar push token del conductor
+router.patch('/push-token/:id', async (req, res) => {
+  const { push_token } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ push_token })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
+// Enviar notificaciones de vencimiento
+router.post('/notificar-vencimientos', async (req, res) => {
+  const en3dias = new Date();
+  en3dias.setDate(en3dias.getDate() + 3);
+  const { data, error } = await supabase
+    .from('conductores')
+    .select('id, nombre, push_token, suscripcion_hasta')
+    .lte('suscripcion_hasta', en3dias.toISOString())
+    .gte('suscripcion_hasta', new Date().toISOString());
+  if (error) return res.status(500).json({ error: error.message });
+  
+  let enviadas = 0;
+  for (const conductor of data) {
+    if (!conductor.push_token) continue;
+    try {
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: conductor.push_token,
+          title: 'ZAS - Suscripcion por vencer',
+          body: `Hola ${conductor.nombre}, tu suscripcion vence pronto. Renovala para seguir recibiendo viajes.`,
+          sound: 'default',
+        }),
+      });
+      enviadas++;
+    } catch (e) {}
+  }
+  res.json({ ok: true, enviadas, total: data.length });
+});
 module.exports = router;

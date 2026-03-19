@@ -100,15 +100,17 @@ export default function ConductorScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Hola, {sesion.nombre}</Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 8, padding: 8, paddingHorizontal: 14 }}>
-            <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/documentos_conductor')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 8, paddingHorizontal: 14 }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Documentos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={cerrarSesion}>
-            <Text style={styles.linkTexto}>Cerrar sesion</Text>
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ flex: 1, backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/documentos_conductor')} style={{ flex: 1, backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Documentos</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={cerrarSesion} style={{ backgroundColor: '#3a1a1a', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: 13 }}>Cerrar sesion</Text>
           </TouchableOpacity>
         </View>
       </View>
