@@ -445,6 +445,38 @@
 </head>
 <body>
 
+<div id="login-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;display:flex;justify-content:center;align-items:center;z-index:9999">
+  <div style="background:#16213e;border-radius:16px;padding:40px;width:320px;border:1px solid #FFD700">
+    <h2 style="color:#FFD700;text-align:center;margin-bottom:8px">ZAS</h2>
+    <p style="color:#888;text-align:center;margin-bottom:24px;font-size:14px">Centro de Operaciones</p>
+    <input id="login-user" type="text" placeholder="Usuario" style="width:100%;background:#0f3460;border:1px solid #0f3460;border-radius:8px;padding:12px;color:#fff;font-size:14px;margin-bottom:12px;box-sizing:border-box">
+    <input id="login-pass" type="password" placeholder="Contraseña" style="width:100%;background:#0f3460;border:1px solid #0f3460;border-radius:8px;padding:12px;color:#fff;font-size:14px;margin-bottom:16px;box-sizing:border-box">
+    <button onclick="verificarLogin()" style="width:100%;background:#FFD700;color:#1a1a2e;border:none;border-radius:8px;padding:14px;font-weight:bold;font-size:15px;cursor:pointer">Entrar</button>
+    <p id="login-error" style="color:#ff6b6b;text-align:center;margin-top:12px;font-size:13px;display:none">Usuario o contraseña incorrectos</p>
+  </div>
+</div>
+
+<script>
+  function verificarLogin() {
+    const user = document.getElementById('login-user').value;
+    const pass = document.getElementById('login-pass').value;
+    if (user === 'AdministradorZas' && pass === 'Jmja0567204**') {
+      document.getElementById('login-overlay').style.display = 'none';
+      sessionStorage.setItem('zas_admin', 'true');
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+  document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') verificarLogin();
+  });
+  if (sessionStorage.getItem('zas_admin') !== 'true') {
+    document.getElementById('login-overlay').style.display = 'flex';
+  } else {
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+</script>
+
 <div class="sidebar">
   <div class="logo">
     <div class="logo-text">⚡ ZAS</div>
