@@ -174,6 +174,9 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/conductor')}>
             <Text style={styles.botonConductorTexto}>Soy conductor</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/documentos_usuario')}>
+            <Text style={styles.botonConductorTexto}>Mis documentos</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.viajeActivo}>

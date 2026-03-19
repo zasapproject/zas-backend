@@ -24,6 +24,9 @@ export default function RootLayout() {
       <Stack.Screen name="calificacion" options={{ headerShown: false }} />
       <Stack.Screen name="suscripcion" options={{ headerShown: false }} /> 
       <Stack.Screen name="perfil_conductor" options={{ headerShown: false }} />
+      <Stack.Screen name="mapa_viaje" options={{ headerShown: false }} />
+      <Stack.Screen name="documentos_conductor" options={{ headerShown: false }} />
+      <Stack.Screen name="documentos_usuario" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

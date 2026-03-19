@@ -104,6 +104,9 @@ export default function ConductorScreen() {
           <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 8, padding: 8, paddingHorizontal: 14 }}>
             <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/documentos_conductor')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 8, paddingHorizontal: 14 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Documentos</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={cerrarSesion}>
             <Text style={styles.linkTexto}>Cerrar sesion</Text>
           </TouchableOpacity>
