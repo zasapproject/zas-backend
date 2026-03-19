@@ -86,4 +86,31 @@ router.patch('/perfil/:id', async (req, res) => {
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
 
+// Subir documentos del conductor
+router.patch('/documentos/:id', async (req, res) => {
+  const { foto_cedula, foto_licencia, fecha_vencimiento_licencia, foto_registro_moto, fecha_vencimiento_registro } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ foto_cedula, foto_licencia, fecha_vencimiento_licencia, foto_registro_moto, fecha_vencimiento_registro })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
+
+// Verificar documentos del conductor
+router.patch('/verificar/:id', async (req, res) => {
+  const { documentos_verificados } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ documentos_verificados })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
 module.exports = router;

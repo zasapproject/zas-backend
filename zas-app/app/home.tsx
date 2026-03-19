@@ -207,7 +207,7 @@ export default function HomeScreen() {
             <Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {viaje.estado === 'aceptado' && (
-            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'usuario', conductor_id: viaje.conductor_id || '', conductor_nombre: viaje.conductor_nombre || '', conductor_telefono: viaje.conductor_telefono || '', conductor_foto: viaje.conductor_foto || '', conductor_placa: viaje.conductor_placa || '', conductor_modelo: viaje.conductor_modelo || '', origen: viaje.origen, destino: viaje.destino } })}>
+            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'usuario', conductor_id: viaje.conductor_id || '', conductor_nombre: viaje.conductor_nombre || '', conductor_telefono: viaje.conductor_telefono || '', conductor_foto: viaje.conductor_foto || '', conductor_placa: viaje.conductor_placa || '', conductor_modelo: viaje.conductor_modelo || '', origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '' } })}>
               <Text style={styles.botonVerMapaTexto}>Ver en el mapa</Text>
             </TouchableOpacity>
           )}

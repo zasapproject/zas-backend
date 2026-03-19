@@ -110,12 +110,16 @@ export default function MapaViaje() {
     const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
     setMiUbicacion(coords);
     if (params.origen_lat && params.destino_lat) {
-      setCoordOrigen({ latitude: Number(params.origen_lat), longitude: Number(params.origen_lng) });
-      setCoordDestino({ latitude: Number(params.destino_lat), longitude: Number(params.destino_lng) });
+      const cOrig = { latitude: Number(params.origen_lat), longitude: Number(params.origen_lng) };
+      const cDest = { latitude: Number(params.destino_lat), longitude: Number(params.destino_lng) };
+      setCoordOrigen(cOrig);
+      setCoordDestino(cDest);
+      actualizarRuta(cOrig, cDest);
     } else if (params.origen && params.destino) {
       const [cOrig, cDest] = await Promise.all([geocodificar(params.origen), geocodificar(params.destino)]);
       setCoordOrigen(cOrig);
       setCoordDestino(cDest);
+      if (cOrig && cDest) actualizarRuta(cOrig, cDest);
     }
     if (esCondutor && conductorId) {
       locationSub.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 }, (newLoc) => {

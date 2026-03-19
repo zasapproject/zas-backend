@@ -58,4 +58,17 @@ router.get('/buscar/:telefono', async (req, res) => {
   }
 });
 
+// Subir documento del usuario
+router.patch('/documentos/:id', async (req, res) => {
+  const { foto_cedula } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ foto_cedula })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, usuario: data[0] });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
 module.exports = router;
