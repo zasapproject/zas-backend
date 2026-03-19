@@ -31,7 +31,20 @@ export default function ConductorScreen() {
   const cargarSesion = async () => {
     try {
       const data = await AsyncStorage.getItem('conductor_sesion');
-      if (data) setSesion(JSON.parse(data));
+if (data) {
+        const conductor = JSON.parse(data);
+        setSesion(conductor);
+        try {
+          const tokenData = await Notifications.getDevicePushTokenAsync();
+          if (tokenData?.data) {
+            await fetch(`${API_URL}/api/conductores/push-token/${conductor.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ push_token: tokenData.data }),
+            });
+          }
+        } catch (e) {}
+      }
     } catch {}
   };
 

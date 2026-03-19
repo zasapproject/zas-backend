@@ -21,7 +21,12 @@
           "apiKey": "AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I"
         }
       },
-      "package": "com.zasapp.zasapp"
+      "package": "com.zasapp.zasapp",
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -30,6 +35,7 @@
     },
     "plugins": [
   "expo-router",
+  "expo-notifications",
 
   [
     "expo-location",

@@ -94,4 +94,18 @@ router.get('/vencimientos', async (req, res) => {
   res.json({ conductores: data, total: data.length });
 });
 
+// Historial de pagos
+router.get('/historial', async (req, res) => {
+  const { data, error } = await supabase
+    .from('pagos_suscripcion')
+    .select('*, conductores(nombre, telefono)')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  const pagos = data.map(p => ({
+    ...p,
+    conductor_nombre: p.conductores?.nombre || '',
+    conductor_telefono: p.conductores?.telefono || '',
+  }));
+  res.json({ ok: true, pagos, total: pagos.length });
+});
 module.exports = router;

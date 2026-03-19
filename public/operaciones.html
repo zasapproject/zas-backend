@@ -463,7 +463,9 @@
     <div class="nav-item" onclick="showPage('documentos')">
       <span class="nav-icon">📋</span> Documentos
     </div>
-    <div class="nav-item" onclick="showPage('vencimientos')">
+    <div class="nav-item" onclick="showPage('vencimientos')"><div class="nav-item" onclick="showPage('pagos-suscripcion')">
+        <span class="nav-icon">$</span> Pagos Suscripcion
+      </div>
       <span class="nav-icon">⚠️</span> Vencimientos
     </div>
   </nav>
@@ -493,7 +495,14 @@
     <div id="lista-vencimientos" style="padding:20px"></div>
   </div>
 
-  <!-- CONDUCTORES -->
+  <!-- CONDUCTORES --><!-- PAGOS SUSCRIPCION -->
+  <div class="page" id="page-pagos-suscripcion">
+    <div class="topbar">
+      <div class="page-title">Pagos <span>Suscripcion</span></div>
+      <button class="refresh-btn" onclick="cargarPagosSuscripcion()">↻ Actualizar</button>
+    </div>
+    <div id="lista-pagos-suscripcion" style="padding:20px"></div>
+  </div>
   <div class="page active" id="page-conductores">
     <div class="topbar">
       <div class="page-title">Condu<span>ctores</span></div>
@@ -614,6 +623,38 @@
     if (page === 'pagos') cargarPagos();
     if (page === 'documentos') cargarDocumentos();
     if (page === 'vencimientos') cargarVencimientos();
+    if (page === 'pagos-suscripcion') cargarPagosSuscripcion();
+    cargarPagosSuscripcion();
+
+  async function cargarPagosSuscripcion() {
+    const lista = document.getElementById('lista-pagos-suscripcion');
+    try {
+      const res = await fetch('/api/suscripciones/historial');
+      const data = await res.json();
+      if (!data.ok || data.pagos.length === 0) {
+        lista.innerHTML = '<p style="color:#888">No hay pagos registrados</p>';
+        return;
+      }
+      lista.innerHTML = data.pagos.map(p => `
+        <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid #FFD700">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h4 style="color:#fff;margin:0">${p.conductor_nombre}</h4>
+              <p style="color:#888;margin:4px 0;font-size:13px">${p.conductor_telefono}</p>
+              <p style="color:#aaa;margin:0;font-size:12px">Metodo: ${p.metodo_pago}</p>
+            </div>
+            <div style="text-align:right">
+              <p style="color:#FFD700;font-weight:bold;margin:0">$${p.monto?.toLocaleString()} ${p.moneda}</p>
+              <p style="color:#888;font-size:12px;margin:4px 0">${new Date(p.created_at).toLocaleDateString('es-CO')}</p>
+              <p style="color:#aaa;font-size:11px;margin:0">Hasta: ${new Date(p.suscripcion_hasta).toLocaleDateString('es-CO')}</p>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      lista.innerHTML = '<p style="color:#888">Error al cargar pagos</p>';
+    }
+  }
   }
 
   // CONDUCTORES
