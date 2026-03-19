@@ -460,6 +460,12 @@
     <div class="nav-item" onclick="showPage('pagos')">
       <span class="nav-icon">💰</span> Pagos
     </div>
+    <div class="nav-item" onclick="showPage('documentos')">
+      <span class="nav-icon">📋</span> Documentos
+    </div>
+    <div class="nav-item" onclick="showPage('vencimientos')">
+      <span class="nav-icon">⚠️</span> Vencimientos
+    </div>
   </nav>
   <div class="sidebar-footer">
     ZAS v1.0.0<br>
@@ -468,6 +474,24 @@
 </div>
 
 <main class="main">
+
+  <!-- DOCUMENTOS -->
+  <div class="page" id="page-documentos">
+    <div class="topbar">
+      <div class="page-title">Docu<span>mentos</span></div>
+      <button class="refresh-btn" onclick="cargarDocumentos()">↻ Actualizar</button>
+    </div>
+    <div id="lista-documentos" style="padding:20px"></div>
+  </div>
+
+  <!-- VENCIMIENTOS -->
+  <div class="page" id="page-vencimientos">
+    <div class="topbar">
+      <div class="page-title">Venci<span>mientos</span></div>
+      <button class="refresh-btn" onclick="cargarVencimientos()">↻ Actualizar</button>
+    </div>
+    <div id="lista-vencimientos" style="padding:20px"></div>
+  </div>
 
   <!-- CONDUCTORES -->
   <div class="page active" id="page-conductores">
@@ -588,6 +612,8 @@
     if (page === 'conductores') cargarConductores();
     if (page === 'viajes') cargarViajes();
     if (page === 'pagos') cargarPagos();
+    if (page === 'documentos') cargarDocumentos();
+    if (page === 'vencimientos') cargarVencimientos();
   }
 
   // CONDUCTORES
