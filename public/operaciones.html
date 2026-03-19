@@ -573,6 +573,18 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- SECCION DOCUMENTOS -->
+  <div style="margin:30px 0">
+    <h2 style="color:#FFD700;margin-bottom:16px">📋 Documentos Conductores</h2>
+    <div id="lista-documentos"></div>
+  </div>
+
+  <!-- SECCION VENCIMIENTOS -->
+  <div style="margin:30px 0">
+    <h2 style="color:#FFD700;margin-bottom:16px">⚠️ Vencimientos Proximos</h2>
+    <div id="lista-vencimientos"></div>
+  </div>
+
 <script>
   const API = 'https://zas-backend-production-fb4e.up.railway.app';
   let conductoresData = [];
@@ -801,6 +813,91 @@
 
   // Cargar al inicio
   cargarConductores();
+
+  // ===== DOCUMENTOS =====
+  async function cargarDocumentos() {
+    const res = await fetch('/api/conductores/todos');
+    const data = await res.json();
+    const lista = document.getElementById('lista-documentos');
+    if (!data.ok || data.conductores.length === 0) {
+      lista.innerHTML = '<p style="color:#888">No hay conductores registrados</p>';
+      return;
+    }
+    lista.innerHTML = data.conductores.map(c => `
+      <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid ${c.documentos_verificados ? '#00c853' : '#FFD700'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <h3 style="color:#fff;margin:0">${c.nombre}</h3>
+            <p style="color:#888;margin:4px 0;font-size:13px">${c.telefono}</p>
+          </div>
+          <span style="background:${c.documentos_verificados ? '#00c853' : '#FFD700'};color:#1a1a2e;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold">
+            ${c.documentos_verificados ? 'VERIFICADO' : 'PENDIENTE'}
+          </span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          ${c.foto_cedula ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Cedula</p><img src="${c.foto_cedula}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin cedula</p>'}
+          ${c.foto_licencia ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Licencia</p><img src="${c.foto_licencia}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin licencia</p>'}
+          ${c.foto_registro_moto ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Registro</p><img src="${c.foto_registro_moto}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin registro</p>'}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="verificarConductor('${c.id}', true)" style="flex:1;background:#00c853;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">Aprobar</button>
+          <button onclick="verificarConductor('${c.id}', false)" style="flex:1;background:#e53935;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">Rechazar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function verificarConductor(id, aprobado) {
+    const res = await fetch(`/api/conductores/verificar/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentos_verificados: aprobado })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert(aprobado ? 'Conductor aprobado' : 'Conductor rechazado');
+      cargarDocumentos();
+    }
+  }
+
+  // ===== VENCIMIENTOS =====
+  async function cargarVencimientos() {
+    const res = await fetch('/api/suscripciones/vencimientos');
+    const data = await res.json();
+    const lista = document.getElementById('lista-vencimientos');
+    if (!data.conductores || data.conductores.length === 0) {
+      lista.innerHTML = '<p style="color:#888">No hay vencimientos proximos</p>';
+      return;
+    }
+    lista.innerHTML = data.conductores.map(c => `
+      <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid #FFD700">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h4 style="color:#fff;margin:0">${c.nombre}</h4>
+            <p style="color:#888;margin:4px 0;font-size:13px">${c.telefono}</p>
+          </div>
+          <span style="color:#FFD700;font-weight:bold;font-size:13px">Vence: ${new Date(c.suscripcion_hasta).toLocaleDateString('es-CO')}</span>
+        </div>
+        <button onclick="renovarSuscripcion('${c.id}')" style="width:100%;background:#FFD700;color:#1a1a2e;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold;margin-top:10px">Renovar suscripcion</button>
+      </div>
+    `).join('');
+  }
+
+  async function renovarSuscripcion(id) {
+    const res = await fetch('/api/suscripciones/activar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conductor_id: id, metodo_pago: 'efectivo', monto: 20000 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('Suscripcion renovada: ' + data.mensaje);
+      cargarVencimientos();
+    }
+  }
+
+  cargarDocumentos();
+  cargarVencimientos();
 </script>
 </body>
 </html>
