@@ -573,18 +573,6 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- SECCION DOCUMENTOS -->
-  <div style="margin:30px 0">
-    <h2 style="color:#FFD700;margin-bottom:16px">📋 Documentos Conductores</h2>
-    <div id="lista-documentos"></div>
-  </div>
-
-  <!-- SECCION VENCIMIENTOS -->
-  <div style="margin:30px 0">
-    <h2 style="color:#FFD700;margin-bottom:16px">⚠️ Vencimientos Proximos</h2>
-    <div id="lista-vencimientos"></div>
-  </div>
-
 <script>
   const API = 'https://zas-backend-production-fb4e.up.railway.app';
   let conductoresData = [];
@@ -899,5 +887,17 @@
   cargarDocumentos();
   cargarVencimientos();
 </script>
+<!-- SECCION DOCUMENTOS -->
+  <div style="margin:30px 0;padding:0 20px">
+    <h2 style="color:#FFD700;margin-bottom:16px">Documentos Conductores</h2>
+    <div id="lista-documentos"></div>
+  </div>
+
+  <!-- SECCION VENCIMIENTOS -->
+  <div style="margin:30px 0;padding:0 20px">
+    <h2 style="color:#FFD700;margin-bottom:16px">Vencimientos Proximos</h2>
+    <div id="lista-vencimientos"></div>
+  </div>
+
 </body>
 </html>
