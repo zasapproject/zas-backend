@@ -14,6 +14,7 @@ export default function ConductorScreen() {
   const [cargando, setCargando] = useState(false);
   const [viajes, setViajes] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
 
   useEffect(() => {
     cargarSesion();
@@ -97,7 +98,12 @@ if (data) {
           <Text style={styles.label}>Telefono</Text>
           <TextInput style={styles.input} placeholder="3001234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
           <Text style={styles.label}>Contrasena</Text>
-          <TextInput style={styles.input} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
+          <View style={styles.inputContenedor}>
+  <TextInput style={styles.inputFlex} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
+  <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
+    <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
+  </TouchableOpacity>
+</View>
           <TouchableOpacity style={styles.boton} onPress={login} disabled={cargando}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Entrar</Text>}
           </TouchableOpacity>
@@ -172,4 +178,7 @@ const styles = StyleSheet.create({
   botones: { flexDirection: 'row', gap: 10, marginTop: 12 },
   botonAceptar: { flex: 1, backgroundColor: '#FFD700', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonLlamar: { flex: 1, backgroundColor: '#0f3460', borderRadius: 10, padding: 12, alignItems: 'center' },
+inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
+inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
+ojo: { paddingHorizontal: 14, fontSize: 18 },
 });

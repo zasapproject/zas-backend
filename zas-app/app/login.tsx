@@ -15,6 +15,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [foto, setFoto] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
+const [verPasswordReg, setVerPasswordReg] = useState(false);
 
   const seleccionarFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -85,7 +87,12 @@ export default function LoginScreen() {
             <Text style={styles.label}>Telefono</Text>
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
-            <TextInput style={styles.input} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
+            <View style={styles.inputContenedor}>
+  <TextInput style={styles.inputFlex} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
+  <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
+    <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
+  </TouchableOpacity>
+</View>
             <TouchableOpacity style={styles.boton} onPress={iniciarSesion} disabled={cargando}>
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Entrar</Text>}
             </TouchableOpacity>
@@ -109,7 +116,12 @@ export default function LoginScreen() {
             <Text style={styles.label}>Telefono</Text>
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
-            <TextInput style={styles.input} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
+            <View style={styles.inputContenedor}>
+  <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
+  <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
+    <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
+  </TouchableOpacity>
+</View>
             <Text style={styles.label}>Email opcional</Text>
             <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" value={email} onChangeText={setEmail} />
             <TouchableOpacity style={styles.boton} onPress={registrarUsuario} disabled={cargando}>
@@ -149,4 +161,7 @@ const styles = StyleSheet.create({
   fotoBotones: { flexDirection: "row", gap: 10 },
   fotoBoton: { backgroundColor: "#16213e", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#0f3460" },
   fotoBotonTexto: { color: "#aaa", fontSize: 12 },
+  inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 0 },
+inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
+ojo: { paddingHorizontal: 14, fontSize: 18 },
 });
