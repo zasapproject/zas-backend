@@ -500,6 +500,8 @@
     </div>
     <div class="nav-item" onclick="showPage('pagos-suscripcion')">
       <span class="nav-icon">$</span> Pagos Suscripcion
+    </div><div class="nav-item" onclick="showPage('usuarios')">
+      <span class="nav-icon">U</span> Usuarios
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -535,6 +537,13 @@
       <button class="refresh-btn" onclick="cargarPagosSuscripcion()">↻ Actualizar</button>
     </div>
     <div id="lista-pagos-suscripcion" style="padding:20px"></div>
+  </div><!-- USUARIOS -->
+  <div class="page" id="page-usuarios">
+    <div class="topbar">
+      <div class="page-title">Usua<span>rios</span></div>
+      <button class="refresh-btn" onclick="cargarUsuarios()">↻ Actualizar</button>
+    </div>
+    <div id="lista-usuarios" style="padding:20px"></div>
   </div>
   <div class="page active" id="page-conductores">
     <div class="topbar">
@@ -656,7 +665,37 @@
     if (page === 'pagos') cargarPagos();
     if (page === 'documentos') cargarDocumentos();
     if (page === 'vencimientos') cargarVencimientos();
-    if (page === 'pagos-suscripcion') cargarPagosSuscripcion();
+    if (page === 'pagos-suscripcion') cargarPagosSuscripcion();cargarUsuarios();
+  if (page === 'usuarios') cargarUsuarios();
+
+  async function cargarUsuarios() {
+    const lista = document.getElementById('lista-usuarios');
+    try {
+      const res = await fetch('/api/usuarios/todos');
+      const data = await res.json();
+      if (!data.ok || data.usuarios.length === 0) {
+        lista.innerHTML = '<p style="color:#888">No hay usuarios registrados</p>';
+        return;
+      }
+      lista.innerHTML = `<p style="color:#888;margin-bottom:16px">Total: ${data.total} usuarios</p>` + 
+        data.usuarios.map(u => `
+        <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid #0f3460;display:flex;align-items:center;gap:16px">
+          ${u.foto_url ? `<img src="${u.foto_url}" style="width:48px;height:48px;border-radius:24px;object-fit:cover;border:2px solid #FFD700">` : `<div style="width:48px;height:48px;border-radius:24px;background:#FFD700;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#1a1a2e;font-size:20px">${u.nombre ? u.nombre[0].toUpperCase() : '?'}</div>`}
+          <div style="flex:1">
+            <h4 style="color:#fff;margin:0">${u.nombre}</h4>
+            <p style="color:#888;margin:4px 0;font-size:13px">${u.telefono}</p>
+            ${u.email ? `<p style="color:#888;margin:0;font-size:12px">${u.email}</p>` : ''}
+          </div>
+          <div style="text-align:right">
+            <p style="color:#aaa;font-size:11px;margin:0">${new Date(u.created_at).toLocaleDateString('es-CO')}</p>
+            ${u.foto_cedula ? '<span style="background:#00c853;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Doc ✓</span>' : '<span style="background:#555;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Sin doc</span>'}
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      lista.innerHTML = '<p style="color:#888">Error al cargar usuarios</p>';
+    }
+  }
     cargarPagosSuscripcion();
 
   async function cargarPagosSuscripcion() {
