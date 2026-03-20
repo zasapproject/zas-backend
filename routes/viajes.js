@@ -59,5 +59,24 @@ router.put('/:id/estado', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Obtener todos los viajes
+router.get('/', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('viajes')
+      .select('*, usuarios(nombre, telefono), conductores(nombre, telefono)')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    const viajes = data.map(v => ({
+      ...v,
+      usuario_nombre: v.usuarios?.nombre || '',
+      usuario_telefono: v.usuarios?.telefono || '',
+      conductor_nombre: v.conductores?.nombre || '',
+      conductor_telefono: v.conductores?.telefono || '',
+    }));
+    res.json({ ok: true, viajes });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
 module.exports = router;
 
