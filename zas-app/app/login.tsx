@@ -49,7 +49,7 @@ export default function LoginScreen() {
     if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
     setCargando(true);
     try {
-      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email, password, foto }) });
+      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto }) });
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
@@ -83,7 +83,7 @@ export default function LoginScreen() {
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Iniciar sesion</Text>
             <Text style={styles.label}>Telefono</Text>
-            <TextInput style={styles.input} placeholder="3001234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={10} />
+            <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <TextInput style={styles.input} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
             <TouchableOpacity style={styles.boton} onPress={iniciarSesion} disabled={cargando}>
@@ -107,7 +107,7 @@ export default function LoginScreen() {
             <Text style={styles.label}>Nombre completo</Text>
             <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={nombre} onChangeText={setNombre} />
             <Text style={styles.label}>Telefono</Text>
-            <TextInput style={styles.input} placeholder="3001234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={10} />
+            <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <TextInput style={styles.input} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
             <Text style={styles.label}>Email opcional</Text>

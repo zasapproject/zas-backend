@@ -95,7 +95,7 @@ if (data) {
         <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={styles.titulo}>Login Conductor</Text>
           <Text style={styles.label}>Telefono</Text>
-          <TextInput style={styles.input} placeholder="3001234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={10} />
+          <TextInput style={styles.input} placeholder="3001234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
           <Text style={styles.label}>Contrasena</Text>
           <TextInput style={styles.input} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
           <TouchableOpacity style={styles.boton} onPress={login} disabled={cargando}>
