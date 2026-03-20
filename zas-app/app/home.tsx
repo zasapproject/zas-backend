@@ -31,7 +31,8 @@ export default function HomeScreen() {
         const res = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
         const data = await res.json();
         if (data.ok && data.viajes.length > 0) {
-          const viajeActual = data.viajes.find((v: any) => v.id === viaje.id);
+          const viajeActual = data.viajes.find((v: any) => v.id === viaje.id) || 
+                    data.viajes.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           if (viajeActual) {
             setViaje(viajeActual);
             if (viajeActual.estado === 'aceptado' && !navegandoAlMapa) {
