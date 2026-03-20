@@ -116,7 +116,7 @@ export default function HomeScreen() {
                   setOrigenLat(details?.geometry?.location?.lat || null);
                   setOrigenLng(details?.geometry?.location?.lng || null);
                 }}
-                query={{ key: GOOGLE_KEY, language: 'es', components: 'country:co' }}
+                query={{ key: GOOGLE_KEY, language: 'es', components: 'country:co|country:ve' }}
                 fetchDetails={true}
                 enablePoweredByContainer={false}
                 styles={{
@@ -140,7 +140,7 @@ export default function HomeScreen() {
                   setDestinoLat(details?.geometry?.location?.lat || null);
                   setDestinoLng(details?.geometry?.location?.lng || null);
                 }}
-                query={{ key: GOOGLE_KEY, language: 'es', components: 'country:co' }}
+                query={{ key: GOOGLE_KEY, language: 'es', components: 'country:co|country:ve' }}
                 fetchDetails={true}
                 enablePoweredByContainer={false}
                 styles={{
