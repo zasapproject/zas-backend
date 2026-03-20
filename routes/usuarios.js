@@ -72,4 +72,15 @@ router.patch('/documentos/:id', async (req, res) => {
     res.json({ ok: true, usuario: data[0] });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
+// Obtener todos los usuarios
+router.get('/todos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre, telefono, email, foto_url, foto_cedula, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ ok: true, usuarios: data, total: data.length });
+  } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
+});
 module.exports = router;
