@@ -4,7 +4,8 @@ const supabase = require('../supabase');
 
 // Registrar nuevo usuario
 router.post('/registro', async (req, res) => {
-  const { nombre, telefono, email, password, foto } = req.body;
+  const { nombre, telefono, email, password, foto, foto_url } = req.body;
+const fotoFinal = foto || foto_url || null;
   try {
     // Verificar si ya existe
     const { data: existe } = await supabase
@@ -16,7 +17,7 @@ router.post('/registro', async (req, res) => {
 
     const { data, error } = await supabase
       .from('usuarios')
-      .insert([{ nombre, telefono, email, password, foto }])
+      .insert([{ nombre, telefono, email, password, foto_url: fotoFinal }])
       .select();
     if (error) throw error;
     res.json({ ok: true, usuario: data[0] });
