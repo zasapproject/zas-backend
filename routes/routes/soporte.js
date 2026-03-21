@@ -46,5 +46,4 @@ router.patch('/resolver/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
-
 module.exports = router;
