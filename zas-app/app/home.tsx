@@ -233,14 +233,16 @@ import * as ImagePicker from 'expo-image-picker';
           <TouchableOpacity style={styles.boton} onPress={solicitarViaje} disabled={cargando}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Solicitar ZAS</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/conductor')}>
-            <Text style={styles.botonConductorTexto}>Soy conductor</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/documentos_usuario')}>
-            <Text style={styles.botonConductorTexto}>Mis documentos</Text>
-          </TouchableOpacity>
+         
           <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/soporte')}>
             <Text style={styles.botonConductorTexto}>🆘 Soporte técnico</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.botonConductor, { backgroundColor: '#3a1a1a', borderColor: '#ff6b6b' }]} onPress={async () => {
+            const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+            await AsyncStorage.removeItem('usuario_sesion');
+            router.replace('/login');
+          }}>
+            <Text style={[styles.botonConductorTexto, { color: '#ff6b6b' }]}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
       ) : (

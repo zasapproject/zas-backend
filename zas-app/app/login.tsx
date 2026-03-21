@@ -127,6 +127,10 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
 </View>
             <Text style={styles.label}>Email opcional</Text>
             <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" value={email} onChangeText={setEmail} />
+            <Text style={styles.label}>Foto Cédula (opcional)</Text>
+            <TouchableOpacity style={styles.fotoBoton} onPress={() => router.push('/documentos_usuario')}>
+              <Text style={styles.fotoBotonTexto}>📄 Subir cédula</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.boton} onPress={registrarUsuario} disabled={cargando}>
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Registrarme</Text>}
             </TouchableOpacity>
@@ -187,4 +191,5 @@ const styles = StyleSheet.create({
   inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 0 },
 inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
 ojo: { paddingHorizontal: 14, fontSize: 18 },
+  fotoBoton: { backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', padding: 14, alignItems: 'center', marginBottom: 12 },
 });

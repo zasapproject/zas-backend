@@ -239,14 +239,14 @@ export default function MapaViaje() {
         {miUbicacion && (
           <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={esCondutor ? styles.marcadorConductor : styles.marcadorUsuario}>
-              <Text style={styles.marcadorEmoji}>{esCondutor ? 'M' : 'U'}</Text>
+              <Text style={styles.marcadorEmoji}>{esCondutor ? '🏍' : '🧍'}</Text>
             </View>
           </Marker>
         )}
         {!esCondutor && ubicacionConductor && (
           <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
             <Animated.View style={[styles.marcadorMoto, { transform: [{ scale: pulseAnim }] }]}>
-              <Text style={styles.marcadorEmoji}>M</Text>
+              <Text style={styles.marcadorEmoji}>🏍</Text>
             </Animated.View>
           </Marker>
         )}
