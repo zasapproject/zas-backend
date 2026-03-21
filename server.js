@@ -33,6 +33,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/conductores', conductoresRoutes);
 app.use('/api/viajes', viajesRoutes);
 app.use('/api/pagos', pagosRoutes);
+app.use('/api/suscripciones', suscripcionesRouter);
 const soporteRouter = require('./routes/soporte');
 app.use('/api/soporte', soporteRouter);
 // Iniciar en el puerto 3000
