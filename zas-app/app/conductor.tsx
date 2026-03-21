@@ -346,6 +346,9 @@ const abrirPerfil = async () => {
             </TouchableOpacity>
            
           </View>
+          <TouchableOpacity onPress={() => router.push('/soporte')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>🆘 Soporte</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={cerrarSesion} style={{ backgroundColor: '#3a1a1a', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: 13 }}>Cerrar sesion</Text>
           </TouchableOpacity>

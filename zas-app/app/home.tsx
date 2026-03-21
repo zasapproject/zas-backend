@@ -239,6 +239,9 @@ import * as ImagePicker from 'expo-image-picker';
           <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/documentos_usuario')}>
             <Text style={styles.botonConductorTexto}>Mis documentos</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/soporte')}>
+            <Text style={styles.botonConductorTexto}>🆘 Soporte técnico</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.viajeActivo}>
