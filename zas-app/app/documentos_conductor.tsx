@@ -16,37 +16,56 @@ export default function DocumentosConductor() {
   const seleccionarFoto = async (setFoto: any) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galeria'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.5, base64: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.1, base64: true });
     if (!result.canceled) setFoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
   const tomarFoto = async (setFoto: any) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu camara'); return; }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5, base64: true });
+    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.1, base64: true });
     if (!result.canceled) setFoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
+  const subirDocumento = async (foto: string, campo: string) => {
+    const sesion = await AsyncStorage.getItem('conductor_sesion');
+    if (!sesion) return false;
+    const conductor = JSON.parse(sesion);
+    try {
+      const res = await fetch(`${API_URL}/api/conductores/documentos/${conductor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: foto }),
+      });
+      const data = await res.json();
+      return data.ok;
+    } catch { return false; }
+  };
+
   const guardarDocumentos = async () => {
-    if (!fotoCedula || !fotoLicencia || !fotoRegistro) {
-      Alert.alert('Error', 'Debes subir todos los documentos');
+    if (!fotoCedula && !fotoLicencia && !fotoRegistro) {
+      Alert.alert('Error', 'Debes subir al menos un documento');
       return;
     }
     setCargando(true);
     try {
-      const sesion = await AsyncStorage.getItem('conductor_sesion');
-      if (!sesion) { Alert.alert('Error', 'No hay sesion activa'); return; }
-      const conductor = JSON.parse(sesion);
-      const res = await fetch(`${API_URL}/api/conductores/documentos/${conductor.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ foto_cedula: fotoCedula, foto_licencia: fotoLicencia, foto_registro_moto: fotoRegistro }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        Alert.alert('Exito', 'Documentos enviados para revision', [{ text: 'OK', onPress: () => router.back() }]);
+      let exito = true;
+      if (fotoCedula) {
+        const ok = await subirDocumento(fotoCedula, 'foto_cedula');
+        if (!ok) exito = false;
+      }
+      if (fotoLicencia) {
+        const ok = await subirDocumento(fotoLicencia, 'foto_licencia');
+        if (!ok) exito = false;
+      }
+      if (fotoRegistro) {
+        const ok = await subirDocumento(fotoRegistro, 'foto_registro_moto');
+        if (!ok) exito = false;
+      }
+      if (exito) {
+        Alert.alert('✅ Éxito', 'Documentos enviados para revisión', [{ text: 'OK', onPress: () => router.back() }]);
       } else {
-        Alert.alert('Error', data.error || 'No se pudieron guardar los documentos');
+        Alert.alert('Error', 'Algunos documentos no se pudieron guardar');
       }
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
