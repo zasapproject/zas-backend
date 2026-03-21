@@ -405,7 +405,7 @@ const abrirPerfil = async () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50 },
+  header: { padding: 20, paddingTop: 50 },
   titulo: { fontSize: 22, color: '#FFD700', fontWeight: 'bold', marginBottom: 4 },
   pasoTexto: { color: '#888', fontSize: 13, marginBottom: 16 },
   label: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 4 },
