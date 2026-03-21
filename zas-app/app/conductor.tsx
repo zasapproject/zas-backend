@@ -155,19 +155,43 @@ const abrirPerfil = async () => {
     finally { setGuardando(false); }
   };
 
+  const subirFotoStorage = async (base64: string) => {
+    const sesion = await AsyncStorage.getItem('conductor_sesion');
+    if (!sesion) return null;
+    const c = JSON.parse(sesion);
+    try {
+      const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, nombre: `conductor_${c.id}`, carpeta: 'conductores' }),
+      });
+      const data = await res.json();
+      if (data.ok) return data.url;
+      return null;
+    } catch { return null; }
+  };
+
   const seleccionarFotoPerfil = async () => {
     Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
       { text: 'Cámara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
-        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
+        if (!result.canceled) {
+          const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64);
+          if (url) setEditFoto(url);
+          else Alert.alert('Error', 'No se pudo subir la foto');
+        }
       }},
       { text: 'Galería', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
-        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
+        if (!result.canceled) {
+          const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64);
+          if (url) setEditFoto(url);
+          else Alert.alert('Error', 'No se pudo subir la foto');
+        }
       }},
       { text: 'Cancelar', style: 'cancel' }
     ]);
@@ -381,7 +405,11 @@ const abrirPerfil = async () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
             <Text style={styles.modalTitulo}>Editar perfil</Text>
-           
+            <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
+              {editFoto
+                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
+                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+            </TouchableOpacity>
             <Text style={styles.modalLabel}>Teléfono</Text>
             <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
             <Text style={styles.modalLabel}>Placa</Text>
