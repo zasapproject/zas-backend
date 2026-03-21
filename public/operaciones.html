@@ -500,9 +500,18 @@
     </div>
     <div class="nav-item" onclick="showPage('pagos-suscripcion')">
       <span class="nav-icon">$</span> Pagos Suscripcion
-    </div><div class="nav-item" onclick="showPage('usuarios')">
+    </div>
+    <div class="nav-item" onclick="showPage('usuarios')">
       <span class="nav-icon">U</span> Usuarios
     </div>
+    <div class="nav-item" onclick="showPage('soporte')">
+      <span class="nav-icon">🆘</span> Soporte
+    </div>
+      <span class="nav-icon">U</span> Usuarios
+    </div>
+    <div class="nav-item" onclick="showPage('soporte')">
+      <span class="nav-icon">🆘</span> Soporte
+    </div>i/soporte', soporteRouter);
   </nav>
   <div class="sidebar-footer">
     ZAS v1.0.0<br>
@@ -530,6 +539,14 @@
     <div id="lista-vencimientos" style="padding:20px"></div>
   </div>
 
+ <!-- SOPORTE -->
+  <div class="page" id="page-soporte">
+    <div class="topbar">
+      <div class="page-title">Sop<span>orte</span></div>
+      <button class="refresh-btn" onclick="cargarSoporte()">↻ Actualizar</button>
+    </div>
+    <div id="lista-soporte" style="padding:20px"></div>
+  </div>
   <!-- CONDUCTORES --><!-- PAGOS SUSCRIPCION -->
   <div class="page" id="page-pagos-suscripcion">
     <div class="topbar">
@@ -667,6 +684,7 @@
     if (page === 'vencimientos') cargarVencimientos();
     if (page === 'pagos-suscripcion') cargarPagosSuscripcion();cargarUsuarios();
   if (page === 'usuarios') cargarUsuarios();
+  if (page === 'soporte') cargarSoporte();
 
   async function cargarUsuarios() {
     const lista = document.getElementById('lista-usuarios');
@@ -1024,7 +1042,49 @@
       cargarVencimientos();
     }
   }
+async function cargarSoporte() {
+    const lista = document.getElementById('lista-soporte');
+    try {
+      const res = await fetch('/api/soporte/todos');
+      const data = await res.json();
+      if (!data.ok || data.mensajes.length === 0) {
+        lista.innerHTML = '<p style="color:#888;padding:20px">No hay mensajes de soporte</p>';
+        return;
+      }
+      lista.innerHTML = data.mensajes.map(m => `
+        <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid ${m.estado === 'resuelto' ? '#00c853' : '#FFD700'}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <h4 style="color:#fff;margin:0">${m.nombre || 'Desconocido'}</h4>
+              <p style="color:#888;margin:4px 0;font-size:13px">${m.telefono || 'Sin teléfono'} · ${m.tipo || ''}</p>
+            </div>
+            <div style="text-align:right">
+              <span style="background:${m.estado === 'resuelto' ? '#00c853' : '#FFD700'};color:#1a1a2e;padding:4px 10px;border-radius:10px;font-size:11px;font-weight:bold">${m.estado === 'resuelto' ? 'RESUELTO' : 'PENDIENTE'}</span>
+              <p style="color:#aaa;font-size:11px;margin:4px 0">${new Date(m.created_at).toLocaleDateString('es-CO')}</p>
+            </div>
+          </div>
+          <p style="color:#ddd;font-size:14px;margin:0 0 12px">${m.mensaje}</p>
+          ${m.estado !== 'resuelto' ? `
+          <div style="display:flex;gap:8px">
+            <button onclick="resolverSoporte('${m.id}')" style="flex:1;background:#00c853;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">✅ Marcar resuelto</button>
+            <button onclick="window.open('https://wa.me/${573113003100}?text=Hola%20${encodeURIComponent(m.nombre || '')},%20te%20contactamos%20desde%20ZAS%20soporte')" style="flex:1;background:#075e54;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">💬 WhatsApp</button>
+            <button onclick="window.open('tel:${573113003100}')" style="flex:1;background:#00c853;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">📞 Llamar</button>
+          </div>` : ''}
+        </div>
+      `).join('');
+    } catch (e) {
+      lista.innerHTML = '<p style="color:#888">Error al cargar mensajes</p>';
+    }
+  }
 
+  async function resolverSoporte(id) {
+    const res = await fetch(`/api/soporte/resolver/${id}`, { method: 'PATCH' });
+    const data = await res.json();
+    if (data.ok) {
+      mostrarToast('✅ Marcado como resuelto');
+      cargarSoporte();
+    }
+  }
   cargarDocumentos();
   cargarVencimientos();
 
