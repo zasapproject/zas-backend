@@ -156,7 +156,7 @@ const abrirPerfil = async () => {
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      import { View, Text, Touchabl<View style={styles.header}>
+      <View style={styles.header}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.logo}>ZAS</Text>
           <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfil}>

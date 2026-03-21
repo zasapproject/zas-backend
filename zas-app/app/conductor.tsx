@@ -1,6 +1,6 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +18,12 @@ export default function ConductorScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [verPassword, setVerPassword] = useState(false);
   const [verPasswordReg, setVerPasswordReg] = useState(false);
+  const [editandoPerfil, setEditandoPerfil] = useState(false);
+  const [editTelefono, setEditTelefono] = useState('');
+  const [editFoto, setEditFoto] = useState('');
+  const [editPlaca, setEditPlaca] = useState('');
+  const [editModelo, setEditModelo] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   // Registro paso 1
   const [regNombre, setRegNombre] = useState('');
@@ -114,7 +120,58 @@ export default function ConductorScreen() {
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
   };
+const abrirPerfil = async () => {
+    const data = await AsyncStorage.getItem('conductor_sesion');
+    if (data) {
+      const c = JSON.parse(data);
+      setEditTelefono(c.telefono || '');
+      setEditFoto(c.foto_url || '');
+      setEditPlaca(c.placa_moto || '');
+      setEditModelo(c.modelo_moto || '');
+    }
+    setEditandoPerfil(true);
+  };
 
+  const guardarPerfil = async () => {
+    const data = await AsyncStorage.getItem('conductor_sesion');
+    if (!data) return;
+    const c = JSON.parse(data);
+    setGuardando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/conductores/perfil/${c.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: editTelefono, foto_url: editFoto, placa_moto: editPlaca, modelo_moto: editModelo }),
+      });
+      const resp = await res.json();
+      if (resp.ok) {
+        const actualizado = { ...c, telefono: editTelefono, foto_url: editFoto, placa_moto: editPlaca, modelo_moto: editModelo };
+        await AsyncStorage.setItem('conductor_sesion', JSON.stringify(actualizado));
+        setSesion(actualizado);
+        setEditandoPerfil(false);
+        Alert.alert('✅ Perfil actualizado');
+      } else Alert.alert('Error', resp.error || 'No se pudo guardar');
+    } catch { Alert.alert('Error', 'No se pudo conectar'); }
+    finally { setGuardando(false); }
+  };
+
+  const seleccionarFotoPerfil = async () => {
+    Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
+      { text: 'Cámara', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Galería', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
   const cerrarSesion = async () => {
     await AsyncStorage.removeItem('conductor_sesion');
     setSesion(null);
@@ -276,7 +333,12 @@ export default function ConductorScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Hola, {sesion.nombre}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={styles.titulo}>Hola, {sesion.nombre}</Text>
+          <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfil}>
+            <Text style={styles.botonPerfilTexto}>✏️</Text>
+          </TouchableOpacity>
+        </View>
         <View style={{ gap: 8, marginTop: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ flex: 1, backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
@@ -312,6 +374,30 @@ export default function ConductorScreen() {
           ))
         )}
       </ScrollView>
+    <Modal visible={editandoPerfil} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContenido}>
+            <Text style={styles.modalTitulo}>Editar perfil</Text>
+            <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
+              {editFoto
+                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
+                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+            </TouchableOpacity>
+            <Text style={styles.modalLabel}>Teléfono</Text>
+            <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
+            <Text style={styles.modalLabel}>Placa</Text>
+            <TextInput style={styles.modalInput} value={editPlaca} onChangeText={setEditPlaca} autoCapitalize="characters" placeholderTextColor="#888" placeholder="ABC123" />
+            <Text style={styles.modalLabel}>Modelo moto</Text>
+            <TextInput style={styles.modalInput} value={editModelo} onChangeText={setEditModelo} placeholderTextColor="#888" placeholder="Honda CB 125 2020" />
+            <TouchableOpacity style={styles.boton} onPress={guardarPerfil} disabled={guardando}>
+              {guardando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar cambios</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setEditandoPerfil(false)}>
+              <Text style={styles.linkTexto}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -340,6 +426,13 @@ const styles = StyleSheet.create({
   inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
   inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
   ojo: { paddingHorizontal: 14, fontSize: 18 },
+  botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 6, borderWidth: 1, borderColor: '#FFD700' },
+  botonPerfilTexto: { color: '#FFD700', fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalContenido: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitulo: { fontSize: 20, color: '#FFD700', fontWeight: 'bold', marginBottom: 16 },
+  modalLabel: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  modalInput: { backgroundColor: '#16213e', borderRadius: 10, padding: 14, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
   fotoCirculo: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#16213e', borderWidth: 2, borderColor: '#FFD700', alignSelf: 'center', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   fotoCirculoImg: { width: 90, height: 90, borderRadius: 45 },
   fotoCirculoTexto: { color: '#FFD700', fontSize: 13 },
