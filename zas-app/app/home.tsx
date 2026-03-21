@@ -105,13 +105,13 @@ const abrirPerfil = async () => {
       { text: 'Cámara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
         if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Galería', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
         if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Cancelar', style: 'cancel' }
@@ -285,11 +285,7 @@ import * as ImagePicker from 'expo-image-picker';
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
             <Text style={styles.modalTitulo}>Editar perfil</Text>
-            <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-              {editFoto
-                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
-                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
-            </TouchableOpacity>
+            
             <Text style={styles.modalLabel}>Teléfono</Text>
             <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
             <Text style={styles.modalLabel}>Email</Text>

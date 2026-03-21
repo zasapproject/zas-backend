@@ -141,7 +141,7 @@ const abrirPerfil = async () => {
       const res = await fetch(`${API_URL}/api/conductores/perfil/${c.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono: editTelefono, foto_url: editFoto, placa_moto: editPlaca, modelo_moto: editModelo }),
+        body: JSON.stringify({ telefono: editTelefono, placa_moto: editPlaca, modelo_moto: editModelo }),
       });
       const resp = await res.json();
       if (resp.ok) {
@@ -160,13 +160,13 @@ const abrirPerfil = async () => {
       { text: 'Cámara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
         if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Galería', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.2, base64: true });
         if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Cancelar', style: 'cancel' }
@@ -378,11 +378,7 @@ const abrirPerfil = async () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
             <Text style={styles.modalTitulo}>Editar perfil</Text>
-            <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-              {editFoto
-                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
-                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
-            </TouchableOpacity>
+           
             <Text style={styles.modalLabel}>Teléfono</Text>
             <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
             <Text style={styles.modalLabel}>Placa</Text>
