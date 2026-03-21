@@ -83,4 +83,21 @@ router.get('/todos', async (req, res) => {
     res.json({ ok: true, usuarios: data, total: data.length });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
+// Reset password usuario
+router.patch('/reset-password/:id', async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 4) return res.status(400).json({ ok: false, error: 'Contraseña muy corta' });
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ password })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, usuario: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;

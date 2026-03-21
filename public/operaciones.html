@@ -690,6 +690,7 @@
             <p style="color:#aaa;font-size:11px;margin:0">${new Date(u.created_at).toLocaleDateString('es-CO')}</p>
             ${u.foto_cedula ? '<span style="background:#00c853;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Doc ✓</span>' : '<span style="background:#555;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Sin doc</span>'}
           </div>
+          <button onclick="resetPasswordUsuario('${u.id}', '${u.nombre}')" style="background:#0f3460;color:#FFD700;border:1px solid #FFD700;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px">🔑 Reset Password</button>
         </div>
       `).join('');
     } catch (e) {
@@ -786,7 +787,7 @@
             <th>Placa</th>
             <th>Suscripción</th>
             <th>Vence</th>
-            <th>Acción</th>
+            <th>Suscripción</th><th>Reset</th>
           </tr>
         </thead>
         <tbody>
@@ -800,6 +801,7 @@
                 ${c.suscripcion_hasta ? new Date(c.suscripcion_hasta).toLocaleDateString('es-CO') : '—'}
               </td>
               <td>${getBoton(c)}</td>
+              <td><button onclick="resetPasswordConductor('${c.id}', '${c.nombre}')" style="background:#0f3460;color:#FFD700;border:1px solid #FFD700;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:bold">🔑 Reset</button></td>
             </tr>
           `).join('')}
         </tbody>
@@ -1024,7 +1026,33 @@
   }
 
   cargarDocumentos();
-cargarVencimientos();
+  cargarVencimientos();
+
+  async function resetPasswordUsuario(id, nombre) {
+    const nueva = prompt('Nueva contraseña para ' + nombre + ':');
+    if (!nueva || nueva.length < 4) { alert('La contraseña debe tener mínimo 4 caracteres'); return; }
+    const res = await fetch(`${API}/api/usuarios/reset-password/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: nueva })
+    });
+    const data = await res.json();
+    if (data.ok) mostrarToast('✅ Contraseña de ' + nombre + ' actualizada');
+    else mostrarToast('❌ Error: ' + data.error);
+  }
+
+  async function resetPasswordConductor(id, nombre) {
+    const nueva = prompt('Nueva contraseña para ' + nombre + ':');
+    if (!nueva || nueva.length < 4) { alert('La contraseña debe tener mínimo 4 caracteres'); return; }
+    const res = await fetch(`${API}/api/conductores/reset-password/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: nueva })
+    });
+    const data = await res.json();
+    if (data.ok) mostrarToast('✅ Contraseña de ' + nombre + ' actualizada');
+    else mostrarToast('❌ Error: ' + data.error);
+  }
 </script>
 </body>
 </html>
