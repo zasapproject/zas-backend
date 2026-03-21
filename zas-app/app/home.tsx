@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Image, TextInput, Modal } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
@@ -21,6 +22,11 @@ export default function HomeScreen() {
   const [viaje, setViaje] = useState<any>(null);
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [navegandoAlMapa, setNavegandoAlMapa] = useState(false);
+  const [editandoPerfil, setEditandoPerfil] = useState(false);
+  const [editTelefono, setEditTelefono] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editFoto, setEditFoto] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
 
@@ -83,7 +89,56 @@ export default function HomeScreen() {
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
   };
+const abrirPerfil = async () => {
+    const sesion = await AsyncStorage.getItem('usuario_sesion');
+    if (sesion) {
+      const u = JSON.parse(sesion);
+      setEditTelefono(u.telefono || '');
+      setEditEmail(u.email || '');
+      setEditFoto(u.foto_url || '');
+    }
+    setEditandoPerfil(true);
+  };
 
+  const seleccionarFotoPerfil = async () => {
+    Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
+      { text: 'Cámara', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Galería', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        if (!result.canceled) setEditFoto('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
+
+  const guardarPerfil = async () => {
+    const sesion = await AsyncStorage.getItem('usuario_sesion');
+    if (!sesion) return;
+    const u = JSON.parse(sesion);
+    setGuardando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/usuarios/perfil/${u.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: editTelefono, email: editEmail || null, foto_url: editFoto }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const actualizado = { ...u, telefono: editTelefono, email: editEmail, foto_url: editFoto };
+        await AsyncStorage.setItem('usuario_sesion', JSON.stringify(actualizado));
+        setEditandoPerfil(false);
+        Alert.alert('✅ Perfil actualizado');
+      } else Alert.alert('Error', data.error || 'No se pudo guardar');
+    } catch { Alert.alert('Error', 'No se pudo conectar'); }
+    finally { setGuardando(false); }
+  };
   const cancelarViaje = () => {
     setViaje(null);
     setOrigen('');
@@ -101,10 +156,16 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
-        <Text style={styles.logo}>ZAS</Text>
+      import { View, Text, Touchabl<View style={styles.header}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.logo}>ZAS</Text>
+          <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfil}>
+            <Text style={styles.botonPerfilTexto}>✏️ Perfil</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.saludo}>Hola, {usuarioNombre || 'bienvenido'}</Text>
-      </View>
+      </View>eOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Image, TextInput, Modal } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
       {!viaje ? (
         <View style={styles.formulario}>
           <View style={styles.autocompleteContainer}>
@@ -220,6 +281,28 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       )}
+    <Modal visible={editandoPerfil} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContenido}>
+            <Text style={styles.modalTitulo}>Editar perfil</Text>
+            <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
+              {editFoto
+                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
+                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+            </TouchableOpacity>
+            <Text style={styles.modalLabel}>Teléfono</Text>
+            <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
+            <Text style={styles.modalLabel}>Email</Text>
+            <TextInput style={styles.modalInput} value={editEmail} onChangeText={setEditEmail} keyboardType="email-address" placeholderTextColor="#888" placeholder="tu@email.com" />
+            <TouchableOpacity style={styles.boton} onPress={guardarPerfil} disabled={guardando}>
+              {guardando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar cambios</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setEditandoPerfil(false)}>
+              <Text style={styles.linkTexto}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -270,4 +353,15 @@ const styles = StyleSheet.create({
   botonVerMapaTexto: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 14, alignItems: 'center' },
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
+  botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#FFD700' },
+  botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalContenido: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitulo: { fontSize: 20, color: '#FFD700', fontWeight: 'bold', marginBottom: 16 },
+  modalLabel: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  modalInput: { backgroundColor: '#16213e', borderRadius: 10, padding: 14, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
+  linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },
+  fotoCirculo: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#16213e', borderWidth: 2, borderColor: '#FFD700', alignSelf: 'center', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  fotoCirculoImg: { width: 90, height: 90, borderRadius: 45 },
+  fotoCirculoTexto: { color: '#FFD700', fontSize: 13 },
 });

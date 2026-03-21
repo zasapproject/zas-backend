@@ -83,6 +83,21 @@ router.get('/todos', async (req, res) => {
     res.json({ ok: true, usuarios: data, total: data.length });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
 });
+// Editar perfil usuario
+router.patch('/perfil/:id', async (req, res) => {
+  const { telefono, email, foto_url } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ telefono, email: email || null, foto_url })
+      .eq('id', req.params.id)
+      .select();
+    if (error) throw error;
+    res.json({ ok: true, usuario: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 // Reset password usuario
 router.patch('/reset-password/:id', async (req, res) => {
   const { password } = req.body;
