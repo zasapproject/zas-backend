@@ -99,6 +99,9 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
             <TouchableOpacity onPress={() => setPantalla("inicio")}>
               <Text style={styles.linkTexto}>Volver</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => setPantalla("recuperar")}>
+              <Text style={[styles.linkTexto, { color: '#FFD700' }]}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
           </View>
         )}
         {pantalla === "registro" && (
@@ -128,6 +131,26 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Registrarme</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setPantalla("inicio")}>
+              <Text style={styles.linkTexto}>Volver</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setPantalla("recuperar")}>
+              <Text style={[styles.linkTexto, { color: '#FFD700' }]}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      {pantalla === "recuperar" && (
+          <View style={styles.formulario}>
+            <Text style={styles.formTitulo}>Recuperar cuenta</Text>
+            <Text style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
+              Contacta al administrador de ZAS para restablecer tu contraseña.
+            </Text>
+            <TouchableOpacity
+              style={styles.boton}
+              onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS')}
+            >
+              <Text style={styles.botonTexto}>Contactar por WhatsApp</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setPantalla("login")}>
               <Text style={styles.linkTexto}>Volver</Text>
             </TouchableOpacity>
           </View>
