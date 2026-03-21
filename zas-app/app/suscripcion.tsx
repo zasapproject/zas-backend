@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 
 const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
-const CONDUCTOR_ID = '9fe102bb-5720-48d4-8290-95ab66c1449b';
+const CONDUCTOR_ID = '';
 
 export default function SuscripcionScreen() {
   const [estado, setEstado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
+  const [conductorId, setConductorId] = useState('');
 
   const cargarEstado = async () => {
     setCargando(true);
     try {
-      const res = await fetch(`${API_URL}/api/suscripciones/estado/${CONDUCTOR_ID}`);
+      const sesion = await AsyncStorage.getItem('conductor_sesion');
+      if (!sesion) { setCargando(false); return; }
+      const conductor = JSON.parse(sesion);
+      setConductorId(conductor.id);
+      const res = await fetch(`${API_URL}/api/suscripciones/estado/${conductor.id}`);
       const data = await res.json();
       setEstado(data);
     } catch {
@@ -22,15 +28,15 @@ export default function SuscripcionScreen() {
     }
   };
 
-  const activarSuscripcion = async () => {
+  const activarSuscripcion = async (metodoPago: string) => {
     setProcesando(true);
     try {
       const res = await fetch(`${API_URL}/api/suscripciones/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conductor_id: CONDUCTOR_ID,
-          metodo_pago: 'efectivo',
+          conductor_id: conductorId,
+          metodo_pago: metodoPago,
           monto: 20000,
         }),
       });
@@ -51,10 +57,11 @@ export default function SuscripcionScreen() {
   const confirmarActivacion = () => {
     Alert.alert(
       '⚡ Activar Suscripción',
-      'El costo es $20.000 COP por 7 días. ¿Confirmas el pago?',
+      'El costo es $20.000 COP por 7 días. ¿Cómo vas a pagar?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: activarSuscripcion },
+        { text: '💵 Efectivo', onPress: () => activarSuscripcion('efectivo') },
+        { text: '💳 Transferencia', onPress: () => activarSuscripcion('transferencia') },
       ]
     );
   };
