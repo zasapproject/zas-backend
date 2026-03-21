@@ -187,6 +187,21 @@ export default function MapaViaje() {
     ]);
   }
 
+  async function cancelarViaje() {
+    Alert.alert('Cancelar viaje', '¿Estás seguro que quieres cancelar?', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
+        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'cancelado' })
+        });
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        if (locationSub.current) locationSub.current.remove();
+        router.back();
+      }},
+    ]);
+  }
   async function terminarViaje() {
     Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
       { text: 'Cancelar', style: 'cancel' },
@@ -297,6 +312,9 @@ export default function MapaViaje() {
                 <Text style={styles.btnAccionTexto}>Llegamos - Terminar viaje</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#3a1a1a', marginTop: 8 }]} onPress={cancelarViaje}>
+              <Text style={[styles.btnAccionTexto, { color: '#ff6b6b' }]}>Cancelar viaje</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
