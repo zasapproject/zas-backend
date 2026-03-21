@@ -14,10 +14,10 @@ router.post('/subir-foto', async (req, res) => {
     const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
     const path = `${carpeta || 'general'}/${nombre}_${Date.now()}.jpg`;
     const { data, error } = await supabase.storage
-      .from('fotos')
+      .from('foto')
       .upload(path, buffer, { contentType: 'image/jpeg', upsert: true });
     if (error) throw error;
-    const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from('foto').getPublicUrl(path);
     res.json({ ok: true, url: urlData.publicUrl });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
