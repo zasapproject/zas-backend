@@ -36,6 +36,8 @@ app.use('/api/pagos', pagosRoutes);
 app.use('/api/suscripciones', suscripcionesRouter);
 const storageRouter = require('./routes/storage');
 app.use('/api/storage', storageRouter);
+const soporteRouter = require('./routes/soporte'); // v2
+app.use('/api/soporte', soporteRouter);
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
