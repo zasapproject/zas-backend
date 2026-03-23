@@ -17,7 +17,7 @@ const fotoFinal = foto || foto_url || null;
 
     const { data, error } = await supabase
       .from('usuarios')
-      .insert([{ nombre, telefono, email, password, foto_url: fotoFinal }])
+      .insert([{ nombre, telefono, email, password, foto_url: fotoFinal, foto_cedula: req.body.foto_cedula || null }])
       .select();
     if (error) throw error;
     res.json({ ok: true, usuario: data[0] });

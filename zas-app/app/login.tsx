@@ -1,6 +1,6 @@
 ﻿import { useRouter } from "expo-router";
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -14,10 +14,10 @@ export default function LoginScreen() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [foto, setFoto] = useState("");
+  const [fotoCedula, setFotoCedula] = useState("");
   const [cargando, setCargando] = useState(false);
-  const [fotoCedula, setFotoCedula] = useState('');
   const [verPassword, setVerPassword] = useState(false);
-const [verPasswordReg, setVerPasswordReg] = useState(false);
+  const [verPasswordReg, setVerPasswordReg] = useState(false);
 
   const seleccionarFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -32,23 +32,46 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
     const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true });
     if (!result.canceled) setFoto("data:image/jpeg;base64," + result.assets[0].base64);
   };
-const seleccionarCedula = async () => {
+
+  const subirCedulaStorage = async (base64: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, nombre: `cedula_${Date.now()}`, carpeta: 'cedulas' }),
+      });
+      const data = await res.json();
+      if (data.ok) return data.url;
+      return null;
+    } catch { return null; }
+  };
+
+  const seleccionarCedula = async () => {
     Alert.alert('Cédula', '¿Cómo quieres agregar la foto?', [
       { text: 'Cámara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.1, base64: true });
-        if (!result.canceled) setFotoCedula('data:image/jpeg;base64,' + result.assets[0].base64);
+        if (!result.canceled) {
+          const url = await subirCedulaStorage('data:image/jpeg;base64,' + result.assets[0].base64);
+          if (url) setFotoCedula(url);
+          else Alert.alert('Error', 'No se pudo subir la foto');
+        }
       }},
       { text: 'Galería', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.1, base64: true });
-        if (!result.canceled) setFotoCedula('data:image/jpeg;base64,' + result.assets[0].base64);
+        if (!result.canceled) {
+          const url = await subirCedulaStorage('data:image/jpeg;base64,' + result.assets[0].base64);
+          if (url) setFotoCedula(url);
+          else Alert.alert('Error', 'No se pudo subir la foto');
+        }
       }},
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
+
   const iniciarSesion = async () => {
     if (!telefono || !password) { Alert.alert("Error", "Ingresa telefono y contrasena"); return; }
     setCargando(true);
@@ -79,6 +102,7 @@ const seleccionarCedula = async () => {
     } catch { Alert.alert("Error", "No se pudo conectar"); }
     finally { setCargando(false); }
   };
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -86,6 +110,7 @@ const seleccionarCedula = async () => {
           <Text style={styles.logo}>ZAS</Text>
           <Text style={styles.titulo}>Tu mototaxi al instante</Text>
         </View>
+
         {pantalla === "inicio" && (
           <View style={styles.formulario}>
             <TouchableOpacity style={styles.boton} onPress={() => setPantalla("login")}>
@@ -99,6 +124,7 @@ const seleccionarCedula = async () => {
             </TouchableOpacity>
           </View>
         )}
+
         {pantalla === "login" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Iniciar sesion</Text>
@@ -106,11 +132,11 @@ const seleccionarCedula = async () => {
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <View style={styles.inputContenedor}>
-  <TextInput style={styles.inputFlex} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
-  <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
-    <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
-  </TouchableOpacity>
-</View>
+              <TextInput style={styles.inputFlex} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
+              <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
+                <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity style={styles.boton} onPress={iniciarSesion} disabled={cargando}>
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Entrar</Text>}
             </TouchableOpacity>
@@ -122,14 +148,15 @@ const seleccionarCedula = async () => {
             </TouchableOpacity>
           </View>
         )}
+
         {pantalla === "registro" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Crear cuenta</Text>
             <View style={styles.fotoContainer}>
               {foto ? <Image source={{ uri: foto }} style={styles.fotoPreview} /> : <View style={styles.fotoPlaceholder}><Text style={styles.fotoPlaceholderTexto}>Sin foto</Text></View>}
               <View style={styles.fotoBotones}>
-                <TouchableOpacity style={styles.fotoBoton} onPress={seleccionarFoto}><Text style={styles.fotoBotonTexto}>Galeria</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.fotoBoton} onPress={tomarFoto}><Text style={styles.fotoBotonTexto}>Camara</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.fotoBotonSmall} onPress={seleccionarFoto}><Text style={styles.fotoBotonTexto}>Galeria</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.fotoBotonSmall} onPress={tomarFoto}><Text style={styles.fotoBotonTexto}>Camara</Text></TouchableOpacity>
               </View>
             </View>
             <Text style={styles.label}>Nombre completo</Text>
@@ -138,11 +165,11 @@ const seleccionarCedula = async () => {
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <View style={styles.inputContenedor}>
-  <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
-  <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
-    <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
-  </TouchableOpacity>
-</View>
+              <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
+              <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
+                <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.label}>Email opcional</Text>
             <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" value={email} onChangeText={setEmail} />
             <Text style={styles.label}>Foto Cédula <Text style={{color:'#ff6b6b'}}>*obligatoria</Text></Text>
@@ -162,16 +189,14 @@ const seleccionarCedula = async () => {
             </TouchableOpacity>
           </View>
         )}
-      {pantalla === "recuperar" && (
+
+        {pantalla === "recuperar" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Recuperar cuenta</Text>
             <Text style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
               Contacta al administrador de ZAS para restablecer tu contraseña.
             </Text>
-            <TouchableOpacity
-              style={styles.boton}
-              onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS')}
-            >
+            <TouchableOpacity style={styles.boton} onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS')}>
               <Text style={styles.botonTexto}>Contactar por WhatsApp</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setPantalla("login")}>
@@ -179,6 +204,7 @@ const seleccionarCedula = async () => {
             </TouchableOpacity>
           </View>
         )}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -206,10 +232,10 @@ const styles = StyleSheet.create({
   fotoPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#16213e", justifyContent: "center", alignItems: "center", marginBottom: 8, borderWidth: 1, borderColor: "#0f3460" },
   fotoPlaceholderTexto: { color: "#555", fontSize: 12 },
   fotoBotones: { flexDirection: "row", gap: 10 },
-  fotoBoton: { backgroundColor: "#16213e", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#0f3460" },
+  fotoBotonSmall: { backgroundColor: "#16213e", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#0f3460" },
+  fotoBoton: { backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', padding: 14, alignItems: 'center', marginBottom: 12 },
   fotoBotonTexto: { color: "#aaa", fontSize: 12 },
   inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 0 },
-inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
-ojo: { paddingHorizontal: 14, fontSize: 18 },
-  fotoBoton: { backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', padding: 14, alignItems: 'center', marginBottom: 12 },
+  inputFlex: { flex: 1, padding: 14, color: '#fff', fontSize: 15 },
+  ojo: { paddingHorizontal: 14, fontSize: 18 },
 });
