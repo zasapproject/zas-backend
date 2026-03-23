@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [foto, setFoto] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [fotoCedula, setFotoCedula] = useState('');
   const [verPassword, setVerPassword] = useState(false);
 const [verPasswordReg, setVerPasswordReg] = useState(false);
 
@@ -31,7 +32,23 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
     const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true });
     if (!result.canceled) setFoto("data:image/jpeg;base64," + result.assets[0].base64);
   };
-
+const seleccionarCedula = async () => {
+    Alert.alert('Cédula', '¿Cómo quieres agregar la foto?', [
+      { text: 'Cámara', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.1, base64: true });
+        if (!result.canceled) setFotoCedula('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Galería', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.1, base64: true });
+        if (!result.canceled) setFotoCedula('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
   const iniciarSesion = async () => {
     if (!telefono || !password) { Alert.alert("Error", "Ingresa telefono y contrasena"); return; }
     setCargando(true);
@@ -48,10 +65,11 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
 
   const registrarUsuario = async () => {
     if (!nombre || !telefono || !password) { Alert.alert("Error", "Nombre telefono y contrasena son obligatorios"); return; }
+    if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
     if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
     setCargando(true);
     try {
-      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto }) });
+      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto, foto_cedula: fotoCedula }) });
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
@@ -127,9 +145,11 @@ const [verPasswordReg, setVerPasswordReg] = useState(false);
 </View>
             <Text style={styles.label}>Email opcional</Text>
             <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" value={email} onChangeText={setEmail} />
-            <Text style={styles.label}>Foto Cédula (opcional)</Text>
-            <TouchableOpacity style={styles.fotoBoton} onPress={() => router.push('/documentos_usuario')}>
-              <Text style={styles.fotoBotonTexto}>📄 Subir cédula</Text>
+            <Text style={styles.label}>Foto Cédula <Text style={{color:'#ff6b6b'}}>*obligatoria</Text></Text>
+            <TouchableOpacity style={[styles.fotoBoton, fotoCedula ? {borderColor: '#00c853'} : {borderColor: '#ff6b6b'}]} onPress={seleccionarCedula}>
+              {fotoCedula
+                ? <Image source={{ uri: fotoCedula }} style={{ width: '100%', height: 120, borderRadius: 8 }} />
+                : <Text style={styles.fotoBotonTexto}>📄 Tomar o subir cédula</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.boton} onPress={registrarUsuario} disabled={cargando}>
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Registrarme</Text>}

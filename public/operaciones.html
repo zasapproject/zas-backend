@@ -702,6 +702,8 @@
           <div style="text-align:right">
             <p style="color:#aaa;font-size:11px;margin:0">${new Date(u.created_at).toLocaleDateString('es-CO')}</p>
             ${u.foto_cedula ? '<span style="background:#00c853;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Doc ✓</span>' : '<span style="background:#555;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">Sin doc</span>'}
+            ${u.foto_cedula ? `<div style="margin-top:8px"><p style="color:#aaa;font-size:11px;margin:0 0 4px">Cédula</p><img src="${u.foto_cedula}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #0f3460"></div>` : ''}
+            ${u.foto_cedula ? `<div style="margin-top:8px"><p style="color:#aaa;font-size:11px;margin:0 0 4px">Cédula</p><img src="${u.foto_cedula}" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #0f3460"></div>` : ''}
           </div>
           <button onclick="resetPasswordUsuario('${u.id}', '${u.nombre}')" style="background:#0f3460;color:#FFD700;border:1px solid #FFD700;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:bold;margin-top:8px">🔑 Reset Password</button>
         </div>
