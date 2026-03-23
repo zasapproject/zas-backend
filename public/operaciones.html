@@ -958,6 +958,18 @@
   // Cargar al inicio
   cargarConductores();
 
+  // Auto-actualizar cada 30 segundos
+  setInterval(() => {
+    const paginaActiva = document.querySelector('.page.active')?.id;
+    if (paginaActiva === 'page-conductores') cargarConductores();
+    if (paginaActiva === 'page-viajes') cargarViajes();
+    if (paginaActiva === 'page-soporte') cargarSoporte();
+    if (paginaActiva === 'page-usuarios') cargarUsuarios();
+    if (paginaActiva === 'page-documentos') cargarDocumentos();
+    if (paginaActiva === 'page-vencimientos') cargarVencimientos();
+    if (paginaActiva === 'page-pagos-suscripcion') cargarPagosSuscripcion();
+  }, 30000);
+
   // ===== DOCUMENTOS =====
   async function cargarDocumentos() {
     const res = await fetch('/api/conductores/todos');
