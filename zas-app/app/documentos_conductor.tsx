@@ -32,14 +32,26 @@ export default function DocumentosConductor() {
     if (!sesion) return false;
     const conductor = JSON.parse(sesion);
     try {
+      // Primero subir a Storage
+      const resStorage = await fetch(`${API_URL}/api/storage/subir-foto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: foto, nombre: `${campo}_${conductor.id}`, carpeta: 'documentos' }),
+      });
+      const dataStorage = await resStorage.json();
+      if (!dataStorage.ok) return false;
+      const url = dataStorage.url;
+
+      // Luego guardar la URL
       const res = await fetch(`${API_URL}/api/conductores/documentos/${conductor.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [campo]: foto }),
+        body: JSON.stringify({ [campo]: url }),
       });
       const data = await res.json();
+      if (!data.ok) Alert.alert('Error guardando', data.error || 'No se guardó la URL');
       return data.ok;
-    } catch { return false; }
+    } catch (e: any) { Alert.alert('Error storage', e.message || 'Error desconocido'); return false; }
   };
 
   const guardarDocumentos = async () => {

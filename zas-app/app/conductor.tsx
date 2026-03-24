@@ -63,13 +63,13 @@ export default function ConductorScreen() {
       { text: 'Cámara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.1, base64: true });
         if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Galería', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.5, base64: true });
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.1, base64: true });
         if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
       { text: 'Cancelar', style: 'cancel' }
@@ -92,11 +92,32 @@ export default function ConductorScreen() {
 
   const registrarConductor = async () => {
     if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro) {
-      Alert.alert('Error', 'Debes subir todos los documentos');
+      Alert.alert('Error', `Faltan documentos: ${!regFotoCedula ? 'Cédula ' : ''}${!regFotoLicencia ? 'Licencia ' : ''}${!regFotoRegistro ? 'Registro' : ''}`);
       return;
     }
     setCargando(true);
     try {
+      // Subir documentos a Storage primero
+      const subirAStorage = async (base64: string, nombre: string) => {
+        try {
+          const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64, nombre, carpeta: 'documentos' }),
+          });
+          const data = await res.json();
+          if (!data.ok) { Alert.alert('Error storage', data.error || 'No subió'); return null; }
+          return data.url;
+        } catch (e: any) { Alert.alert('Error', e.message); return null; }
+      };
+
+      const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
+      if (!urlCedula) { setCargando(false); return; }
+      const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
+      if (!urlLicencia) { setCargando(false); return; }
+      const urlRegistro = await subirAStorage(regFotoRegistro, `registro_${regTelefono}`);
+      if (!urlRegistro) { setCargando(false); return; }
+
       const res = await fetch(API_URL + '/api/conductores/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,9 +128,9 @@ export default function ConductorScreen() {
           foto_url: regFoto,
           placa_moto: regPlaca,
           modelo_moto: regModelo,
-          foto_cedula: regFotoCedula,
-          foto_licencia: regFotoLicencia,
-          foto_registro_moto: regFotoRegistro,
+          foto_cedula: urlCedula,
+          foto_licencia: urlLicencia,
+          foto_registro_moto: urlRegistro,
         })
       });
       const data = await res.json();
@@ -120,7 +141,8 @@ export default function ConductorScreen() {
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
   };
-const abrirPerfil = async () => {
+
+  const abrirPerfil = async () => {
     const data = await AsyncStorage.getItem('conductor_sesion');
     if (data) {
       const c = JSON.parse(data);
@@ -218,7 +240,7 @@ const abrirPerfil = async () => {
       const data = await res.json();
       if (data.ok) {
         enviarNotificacion('Viaje aceptado', 'Vas a recoger a ' + viaje.usuario_nombre);
-        router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'conductor', conductor_id: sesion.id, usuario_nombre: viaje.usuario_nombre, usuario_telefono: viaje.usuario_telefono, usuario_foto: viaje.usuario_foto, origen: viaje.origen, destino: viaje.destino } });
+        router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'conductor', conductor_id: sesion.id, usuario_nombre: viaje.usuario_nombre, usuario_telefono: viaje.usuario_telefono, usuario_foto: viaje.usuario_foto, origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '' } });
       } else Alert.alert('Error', data.error || 'No se pudo aceptar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
   };

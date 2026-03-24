@@ -238,15 +238,13 @@ export default function MapaViaje() {
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
         {miUbicacion && (
           <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={esCondutor ? styles.marcadorConductor : styles.marcadorUsuario}>
-              <Text style={styles.marcadorEmoji}>{esCondutor ? '🏍' : '🧍'}</Text>
-            </View>
+            <Text style={{ fontSize: 28 }}>{esCondutor ? (estadoViaje === 'en_viaje' ? '🏍' : '🏍🧍') : '🧍'}</Text>
           </Marker>
         )}
         {!esCondutor && ubicacionConductor && (
           <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
-            <Animated.View style={[styles.marcadorMoto, { transform: [{ scale: pulseAnim }] }]}>
-              <Text style={styles.marcadorEmoji}>🏍</Text>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <Text style={{ fontSize: 28 }}>{estadoViaje === 'en_viaje' ? '🏍' : '🏍🧍'}</Text>
             </Animated.View>
           </Marker>
         )}
@@ -349,8 +347,8 @@ const styles = StyleSheet.create({
   btnContactoTexto: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   btnAccion: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   btnAccionTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
-  marcadorConductor: { backgroundColor: '#F5A623', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff' },
-  marcadorUsuario: { backgroundColor: '#2196F3', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff' },
-  marcadorMoto: { backgroundColor: '#F5A623', borderRadius: 24, padding: 8, borderWidth: 3, borderColor: '#FFFFFF', elevation: 8 },
+  marcadorConductor: { borderRadius: 20, padding: 4 },
+  marcadorUsuario: { borderRadius: 20, padding: 4 },
+  marcadorMoto: { borderRadius: 24, padding: 4 },
   marcadorEmoji: { fontSize: 16, color: '#fff', fontWeight: 'bold' },
 });
