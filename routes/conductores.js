@@ -3,9 +3,10 @@ const router = express.Router();
 const supabase = require('../supabase');
 
 router.post('/registro', async (req, res) => {
-  const { nombre, telefono, email, placa_moto, modelo_moto, foto_url, password } = req.body;
+  const { nombre, telefono, email, placa_moto, modelo_moto, foto_url, password, foto_cedula, foto_licencia, foto_registro_moto } = req.body;
+  console.log('Registro conductor:', { nombre, telefono, foto_cedula: foto_cedula?.substring(0, 50), foto_licencia: foto_licencia?.substring(0, 50) });
   try {
-    const { data, error } = await supabase.from('conductores').insert([{ nombre, telefono, email, placa_moto, modelo_moto, foto_url, password }]).select();
+    const { data, error } = await supabase.from('conductores').insert([{ nombre, telefono, email, placa_moto, modelo_moto, foto_url, password, foto_cedula, foto_licencia, foto_registro_moto }]).select();
     if (error) throw error;
     res.json({ ok: true, conductor: data[0] });
   } catch (error) { res.status(400).json({ ok: false, error: error.message }); }
