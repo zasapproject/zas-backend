@@ -111,9 +111,8 @@ export default function ConductorScreen() {
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
 
-      Alert.alert('Debug', `Subiendo cédula... tamaño: ${regFotoCedula.length}`);
-      const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
-      Alert.alert('Debug cedula', urlCedula || 'NULL - falló');
+            const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
+      
       if (!urlCedula) { setCargando(false); return; }
       const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
       if (!urlLicencia) { setCargando(false); return; }
@@ -136,7 +135,7 @@ export default function ConductorScreen() {
         })
       });
       const data = await res.json();
-      Alert.alert('Debug registro', JSON.stringify(data).substring(0, 200));
+      
       if (data.ok) {
         Alert.alert('¡Registro exitoso!', 'Tu cuenta está pendiente de aprobación por el administrador. Te avisaremos pronto.');
         setPantalla('login');

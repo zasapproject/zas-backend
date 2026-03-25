@@ -4,7 +4,7 @@ const supabase = require('../supabase');
 
 router.post('/registro', async (req, res) => {
   const { nombre, telefono, email, placa_moto, modelo_moto, foto_url, password, foto_cedula, foto_licencia, foto_registro_moto } = req.body;
-  console.log('Registro conductor:', { nombre, telefono, foto_cedula: foto_cedula?.substring(0, 50), foto_licencia: foto_licencia?.substring(0, 50) });
+ 
   try {
     const { data, error } = await supabase.from('conductores').insert([{ nombre, telefono, email, placa_moto, modelo_moto, foto_url, password, foto_cedula, foto_licencia, foto_registro_moto }]).select();
     if (error) throw error;
