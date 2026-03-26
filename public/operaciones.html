@@ -994,6 +994,8 @@
           ${c.foto_cedula ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Cedula</p><img src="${c.foto_cedula}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin cedula</p>'}
           ${c.foto_licencia ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Licencia</p><img src="${c.foto_licencia}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin licencia</p>'}
           ${c.foto_registro_moto ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Registro</p><img src="${c.foto_registro_moto}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin registro</p>'}
+          ${c.foto_rcv ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">RCV</p><img src="${c.foto_rcv}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin RCV</p>'}
+          ${c.foto_antecedentes ? `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">Antecedentes</p><img src="${c.foto_antecedentes}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"></div>` : '<p style="color:#555;font-size:12px">Sin antecedentes</p>'}
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="verificarConductor('${c.id}', true)" style="flex:1;background:#00c853;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-weight:bold">Aprobar</button>
