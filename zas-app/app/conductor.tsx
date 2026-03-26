@@ -39,6 +39,8 @@ export default function ConductorScreen() {
   const [regFotoCedula, setRegFotoCedula] = useState('');
   const [regFotoLicencia, setRegFotoLicencia] = useState('');
   const [regFotoRegistro, setRegFotoRegistro] = useState('');
+  const [regFotoRcv, setRegFotoRcv] = useState('');
+  const [regFotoAntecedentes, setRegFotoAntecedentes] = useState('');
 
   useEffect(() => { cargarSesion(); }, []);
 
@@ -91,8 +93,8 @@ export default function ConductorScreen() {
   };
 
   const registrarConductor = async () => {
-    if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro) {
-      Alert.alert('Error', `Faltan documentos: ${!regFotoCedula ? 'Cédula ' : ''}${!regFotoLicencia ? 'Licencia ' : ''}${!regFotoRegistro ? 'Registro' : ''}`);
+    if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro || !regFotoRcv || !regFotoAntecedentes) {
+      Alert.alert('Error', 'Debes subir todos los documentos: Cédula, Licencia, Registro, RCV y Antecedentes');
       return;
     }
     setCargando(true);
@@ -118,6 +120,10 @@ export default function ConductorScreen() {
       if (!urlLicencia) { setCargando(false); return; }
       const urlRegistro = await subirAStorage(regFotoRegistro, `registro_${regTelefono}`);
       if (!urlRegistro) { setCargando(false); return; }
+      const urlRcv = await subirAStorage(regFotoRcv, `rcv_${regTelefono}`);
+      if (!urlRcv) { setCargando(false); return; }
+      const urlAntecedentes = await subirAStorage(regFotoAntecedentes, `antecedentes_${regTelefono}`);
+      if (!urlAntecedentes) { setCargando(false); return; }
 
       const res = await fetch(API_URL + '/api/conductores/registro', {
         method: 'POST',
@@ -132,6 +138,8 @@ export default function ConductorScreen() {
           foto_cedula: urlCedula,
           foto_licencia: urlLicencia,
           foto_registro_moto: urlRegistro,
+          foto_rcv: urlRcv,
+          foto_antecedentes: urlAntecedentes,
         })
       });
       const data = await res.json();
@@ -361,6 +369,20 @@ export default function ConductorScreen() {
                 {regFotoRegistro
                   ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} />
                   : <Text style={styles.docBotonTexto}>📄 Subir registro</Text>}
+              </TouchableOpacity>
+
+              <Text style={styles.label}>RCV (Seguro de la moto)</Text>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRcv)}>
+                {regFotoRcv
+                  ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} />
+                  : <Text style={styles.docBotonTexto}>📄 Subir RCV</Text>}
+              </TouchableOpacity>
+
+              <Text style={styles.label}>Antecedentes Penales</Text>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoAntecedentes)}>
+                {regFotoAntecedentes
+                  ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} />
+                  : <Text style={styles.docBotonTexto}>📄 Subir antecedentes</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
