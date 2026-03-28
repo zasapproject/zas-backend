@@ -106,7 +106,16 @@ export default function ConductorScreen() {
           return data.url;
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
-
+let urlFotoPerfil = regFoto;
+      if (regFoto && regFoto.startsWith('data:')) {
+        const resFoto = await fetch(`${API_URL}/api/storage/subir-foto`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: regFoto, nombre: `perfil_${regTelefono}`, carpeta: 'conductores' }),
+        });
+        const dataFoto = await resFoto.json();
+        if (dataFoto.ok) urlFotoPerfil = dataFoto.url;
+      }
       const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
       if (!urlCedula) { setCargando(false); return; }
       const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
@@ -125,7 +134,7 @@ export default function ConductorScreen() {
           nombre: regNombre,
           telefono: regTelefono,
           password: regPassword,
-          foto_url: regFoto,
+          foto_url: urlFotoPerfil,
           placa_moto: regPlaca,
           modelo_moto: regModelo,
           foto_cedula: urlCedula,
@@ -239,7 +248,7 @@ export default function ConductorScreen() {
   const aceptarViaje = async (viaje: any) => {
     if (!sesion) return;
     try {
-      const res = await fetch(API_URL + '/api/viajes/' + viaje.id + '/estado', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'aceptado', conductor_id: sesion.id }) });
+      const res = await fetch(API_URL + '/api/viajes/estado/' + viaje.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'aceptado', conductor_id: sesion.id }) });
       const data = await res.json();
       if (data.ok) {
         enviarNotificacion('Viaje aceptado', 'Vas a recoger a ' + viaje.usuario_nombre);
