@@ -25,17 +25,12 @@ export default function ConductorScreen() {
   const [editModelo, setEditModelo] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  // Registro paso 1
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regFoto, setRegFoto] = useState('');
-
-  // Registro paso 2
   const [regPlaca, setRegPlaca] = useState('');
   const [regModelo, setRegModelo] = useState('');
-
-  // Registro paso 3
   const [regFotoCedula, setRegFotoCedula] = useState('');
   const [regFotoLicencia, setRegFotoLicencia] = useState('');
   const [regFotoRegistro, setRegFotoRegistro] = useState('');
@@ -94,12 +89,11 @@ export default function ConductorScreen() {
 
   const registrarConductor = async () => {
     if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro || !regFotoRcv || !regFotoAntecedentes) {
-      Alert.alert('Error', 'Debes subir todos los documentos: Cédula, Licencia, Registro, RCV y Antecedentes');
+      Alert.alert('Error', 'Debes subir todos los documentos');
       return;
     }
     setCargando(true);
     try {
-      // Subir documentos a Storage primero
       const subirAStorage = async (base64: string, nombre: string) => {
         try {
           const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
@@ -113,8 +107,7 @@ export default function ConductorScreen() {
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
 
-            const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
-      
+      const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
       if (!urlCedula) { setCargando(false); return; }
       const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
       if (!urlLicencia) { setCargando(false); return; }
@@ -143,7 +136,6 @@ export default function ConductorScreen() {
         })
       });
       const data = await res.json();
-      
       if (data.ok) {
         Alert.alert('¡Registro exitoso!', 'Tu cuenta está pendiente de aprobación por el administrador. Te avisaremos pronto.');
         setPantalla('login');
@@ -228,6 +220,7 @@ export default function ConductorScreen() {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
+
   const cerrarSesion = async () => {
     await AsyncStorage.removeItem('conductor_sesion');
     setSesion(null);
@@ -255,13 +248,11 @@ export default function ConductorScreen() {
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
   };
 
-  // ── PANTALLA LOGIN ──
   if (!sesion) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* LOGIN */}
           {pantalla === 'login' && (
             <>
               <Text style={styles.titulo}>Login Conductor</Text>
@@ -289,15 +280,12 @@ export default function ConductorScreen() {
             </>
           )}
 
-          {/* REGISTRO PASO 1 */}
           {pantalla === 'reg1' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 1/3</Text>
               <Text style={styles.pasoTexto}>Datos personales</Text>
               <TouchableOpacity onPress={() => tomarOSeleccionarFoto(setRegFoto)} style={styles.fotoCirculo}>
-                {regFoto
-                  ? <Image source={{ uri: regFoto }} style={styles.fotoCirculoImg} />
-                  : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+                {regFoto ? <Image source={{ uri: regFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Nombre completo</Text>
               <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={regNombre} onChangeText={setRegNombre} />
@@ -323,7 +311,6 @@ export default function ConductorScreen() {
             </>
           )}
 
-          {/* REGISTRO PASO 2 */}
           {pantalla === 'reg2' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 2/3</Text>
@@ -344,47 +331,30 @@ export default function ConductorScreen() {
             </>
           )}
 
-          {/* REGISTRO PASO 3 */}
           {pantalla === 'reg3' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 3/3</Text>
               <Text style={styles.pasoTexto}>Documentos</Text>
-
               <Text style={styles.label}>Foto Cédula</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoCedula)}>
-                {regFotoCedula
-                  ? <Image source={{ uri: regFotoCedula }} style={styles.docImg} />
-                  : <Text style={styles.docBotonTexto}>📄 Subir cédula</Text>}
+                {regFotoCedula ? <Image source={{ uri: regFotoCedula }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir cédula</Text>}
               </TouchableOpacity>
-
               <Text style={styles.label}>Foto Licencia</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoLicencia)}>
-                {regFotoLicencia
-                  ? <Image source={{ uri: regFotoLicencia }} style={styles.docImg} />
-                  : <Text style={styles.docBotonTexto}>📄 Subir licencia</Text>}
+                {regFotoLicencia ? <Image source={{ uri: regFotoLicencia }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir licencia</Text>}
               </TouchableOpacity>
-
               <Text style={styles.label}>Foto Registro de Moto</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRegistro)}>
-                {regFotoRegistro
-                  ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} />
-                  : <Text style={styles.docBotonTexto}>📄 Subir registro</Text>}
+                {regFotoRegistro ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir registro</Text>}
               </TouchableOpacity>
-
               <Text style={styles.label}>RCV (Seguro de la moto)</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRcv)}>
-                {regFotoRcv
-                  ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} />
-                  : <Text style={styles.docBotonTexto}>📄 Subir RCV</Text>}
+                {regFotoRcv ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir RCV</Text>}
               </TouchableOpacity>
-
               <Text style={styles.label}>Antecedentes Penales</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoAntecedentes)}>
-                {regFotoAntecedentes
-                  ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} />
-                  : <Text style={styles.docBotonTexto}>📄 Subir antecedentes</Text>}
+                {regFotoAntecedentes ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir antecedentes</Text>}
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
                 {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar solicitud</Text>}
               </TouchableOpacity>
@@ -399,7 +369,6 @@ export default function ConductorScreen() {
     );
   }
 
-  // ── PANTALLA CONDUCTOR ACTIVO ──
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -410,12 +379,9 @@ export default function ConductorScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ gap: 8, marginTop: 8 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ flex: 1, backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
-              <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
-            </TouchableOpacity>
-           
-          </View>
+          <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/soporte')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>🆘 Soporte</Text>
           </TouchableOpacity>
@@ -447,14 +413,12 @@ export default function ConductorScreen() {
           ))
         )}
       </ScrollView>
-    <Modal visible={editandoPerfil} animationType="slide" transparent>
+      <Modal visible={editandoPerfil} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
             <Text style={styles.modalTitulo}>Editar perfil</Text>
             <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-              {editFoto
-                ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} />
-                : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+              {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
             </TouchableOpacity>
             <Text style={styles.modalLabel}>Teléfono</Text>
             <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />

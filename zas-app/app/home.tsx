@@ -261,6 +261,9 @@ import * as ImagePicker from 'expo-image-picker';
           <TouchableOpacity style={styles.botonConductor} onPress={() => router.push('/soporte')}>
             <Text style={styles.botonConductorTexto}>🆘 Soporte técnico</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.botonConductor, { borderColor: '#FFD700' }]} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: 'test-123', rol: 'usuario', conductor_id: '9fe102bb-5720-48d4-8290-95ab66c1449b', conductor_nombre: 'Carlos Conductor', conductor_telefono: '3101234568', conductor_foto: '', conductor_placa: 'XYZ788', conductor_modelo: 'Honda CB1254', origen: 'Calle 170, Bogotá', destino: 'Avenida El Dorado, Bogotá', origen_lat: '4.7527', origen_lng: '-74.0508', destino_lat: '4.6891', destino_lng: '-74.1291' } })}>
+            <Text style={[styles.botonConductorTexto, { color: '#FFD700' }]}>🧪 Prueba mapa</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.botonConductor, { backgroundColor: '#3a1a1a', borderColor: '#ff6b6b' }]} onPress={async () => {
             const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
             await AsyncStorage.removeItem('usuario_sesion');

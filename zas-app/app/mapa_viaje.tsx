@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Dimensions, Platform, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Dimensions, Platform, Animated, Image, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -173,9 +173,15 @@ export default function MapaViaje() {
     }, POLLING_INTERVAL);
   }
 
-  function llamar(tel) { if (tel) Linking.openURL(`tel:${tel.replace(/\D/g, '')}`); }
-  function whatsapp(tel) { if (tel) Linking.openURL(`whatsapp://send?phone=57${tel.replace(/\D/g, '')}`); }
-  function sms(tel) { if (tel) Linking.openURL(`sms:${tel.replace(/\D/g, '')}`); }
+  function getCodigoPais(tel) {
+    if (!tel) return '57';
+    const limpio = tel.replace(/\D/g, '');
+    if (limpio.startsWith('04') || limpio.startsWith('58')) return '58';
+    return '57';
+  }
+  function llamar(tel) { if (tel) Linking.openURL(`tel:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
+  function whatsapp(tel) { if (tel) Linking.openURL(`whatsapp://send?phone=${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
+  function sms(tel) { if (tel) Linking.openURL(`sms:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
 
   async function iniciarViaje() {
     Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
@@ -259,6 +265,7 @@ export default function MapaViaje() {
       </View>
 
       <View style={styles.cardInferior}>
+        <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.infoRow}>
           {fotoOtro ? (
             <Image source={{ uri: fotoOtro }} style={styles.fotoCircle} />
@@ -315,6 +322,7 @@ export default function MapaViaje() {
             </TouchableOpacity>
           </View>
         )}
+      </ScrollView>
       </View>
     </View>
   );
@@ -328,7 +336,7 @@ const styles = StyleSheet.create({
   bannerEstado: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : 40, left: 16, right: 16, backgroundColor: 'rgba(26,26,46,0.92)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 6, borderLeftWidth: 4, borderLeftColor: '#F5A623' },
   bannerTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   etaTexto: { color: '#F5A623', fontSize: 13, fontWeight: '600' },
-  cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, elevation: 10 },
+  cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, elevation: 10, maxHeight: '70%' },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   fotoCircle: { width: 52, height: 52, borderRadius: 26, marginRight: 12, borderWidth: 2, borderColor: '#F5A623' },
   avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F5A623', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
