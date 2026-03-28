@@ -796,6 +796,7 @@
       <table>
         <thead>
           <tr>
+            <th>Foto</th>
             <th>Nombre</th>
             <th>Teléfono</th>
             <th>Placa</th>
@@ -808,6 +809,7 @@
         <tbody>
           ${lista.map(c => `
             <tr>
+              <td>${c.foto_url && c.foto_url.startsWith('http') ? `<img src="${c.foto_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #FFD700">` : `<div style="width:44px;height:44px;border-radius:50%;background:#FFD700;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#1a1a2e;font-size:18px">${c.nombre ? c.nombre[0].toUpperCase() : '?'}</div>`}</td>
               <td><strong>${c.nombre}</strong></td>
               <td style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">${c.telefono || '—'}</td>
               <td style="font-family:'Space Mono',monospace;font-size:12px;color:var(--gold)">${c.placa_moto || '—'}</td>
