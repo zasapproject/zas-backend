@@ -46,28 +46,58 @@ export default function LoginScreen() {
     } catch { return null; }
   };
 
-  const seleccionarCedula = async () => {
-    Alert.alert('Cédula', '¿Cómo quieres agregar la foto?', [
-      { text: 'Cámara', onPress: async () => {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.1, base64: true });
-        if (!result.canceled) {
-          const url = await subirCedulaStorage('data:image/jpeg;base64,' + result.assets[0].base64);
-          if (url) setFotoCedula(url);
-          else Alert.alert('Error', 'No se pudo subir la foto');
-        }
-      }},
-      { text: 'Galería', onPress: async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.1, base64: true });
-        if (!result.canceled) {
-          const url = await subirCedulaStorage('data:image/jpeg;base64,' + result.assets[0].base64);
-          if (url) setFotoCedula(url);
-          else Alert.alert('Error', 'No se pudo subir la foto');
-        }
-      }},
+  const verificarYSubirCedula = async (base64: string) => {
+  setCargando(true);
+  try {
+    // Paso 1: Verificar con Claude
+    const resVerificacion = await fetch(`${API_URL}/api/documentos/verificar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imagen: base64,
+        tipoDocumento: 'CEDULA',
+        usuarioId: 'temp',
+      }),
+    });
+    const verificacion = await resVerificacion.json();
+
+    if (!verificacion.ok) {
+      Alert.alert('Error', 'No se pudo verificar el documento');
+      return;
+    }
+
+    const { legible, aprobado, motivoRechazo, confianza, datos } = verificacion.resultado;
+
+    if (!legible) {
+      Alert.alert('Foto no legible', 'La foto no es clara. Intenta con mejor luz y enfoque.');
+      return;
+    }
+
+    if (!aprobado) {
+      Alert.alert('Documento rechazado', motivoRechazo || 'Verifica que sea tu cédula venezolana vigente.');
+      return;
+    }
+
+    if (confianza === 'BAJA') {
+      Alert.alert('Advertencia', 'La foto es poco clara, pero puedes continuar.');
+    }
+
+    // Paso 2: Si Claude aprueba, subir a Storage
+    const url = await subirCedulaStorage(base64);
+    if (url) {
+      setFotoCedula(url);
+      const nombre = datos?.nombreCompleto ? `\nNombre: ${datos.nombreCompleto}` : '';
+      Alert.alert('Cédula verificada', `Documento aprobado por ZAS.${nombre}`);
+    } else {
+      Alert.alert('Error', 'No se pudo subir la foto');
+    }
+
+  } catch {
+    Alert.alert('Error', 'No se pudo verificar el documento');
+  } finally {
+    setCargando(false);
+  }
+};
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
