@@ -36,6 +36,8 @@ app.use('/api/pagos', pagosRoutes);
 app.use('/api/suscripciones', suscripcionesRouter);
 const storageRouter = require('./routes/storage');
 app.use('/api/storage', storageRouter);
+const documentosRouter = require('./routes/documentos');
+app.use('/api/documentos', documentosRouter);
 const soporteRouter = require('./routes/soporte'); // v2
 app.use('/api/soporte', soporteRouter);
 // Iniciar en el puerto 3000
