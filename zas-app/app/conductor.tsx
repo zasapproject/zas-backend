@@ -24,6 +24,8 @@ export default function ConductorScreen() {
   const [editPlaca, setEditPlaca] = useState('');
   const [editModelo, setEditModelo] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [suscripcionActiva, setSuscripcionActiva] = useState(false);
+  const [diasRestantes, setDiasRestantes] = useState(0);
 
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
@@ -42,17 +44,33 @@ export default function ConductorScreen() {
   useEffect(() => {
     if (sesion) {
       registrarNotificaciones();
+      verificarSuscripcion(sesion.id);
       buscarViajes();
       const intervalo = setInterval(buscarViajes, 5000);
-      return () => clearInterval(intervalo);
+      const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
+      return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
     }
   }, [sesion]);
 
   const cargarSesion = async () => {
     try {
       const data = await AsyncStorage.getItem('conductor_sesion');
-      if (data) setSesion(JSON.parse(data));
+      if (data) {
+        const conductor = JSON.parse(data);
+        setSesion(conductor);
+        await verificarSuscripcion(conductor.id);
+      }
     } catch {}
+  };
+
+  const verificarSuscripcion = async (conductorId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/suscripciones/estado/${conductorId}`);
+      const data = await res.json();
+      setSuscripcionActiva(data.activo);
+      setDiasRestantes(data.dias_restantes || 0);
+      return data.activo;
+    } catch { return false; }
   };
 
   const tomarOSeleccionarFoto = async (setter: (v: string) => void) => {
@@ -82,6 +100,7 @@ export default function ConductorScreen() {
       if (data.ok) {
         await AsyncStorage.setItem('conductor_sesion', JSON.stringify(data.conductor));
         setSesion(data.conductor);
+        await verificarSuscripcion(data.conductor.id);
       } else Alert.alert('Error', data.error || 'Telefono o contrasena incorrectos');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
@@ -216,6 +235,7 @@ export default function ConductorScreen() {
     await AsyncStorage.removeItem('conductor_sesion');
     setSesion(null);
     setViajes([]);
+    setSuscripcionActiva(false);
   };
 
   const buscarViajes = async () => {
@@ -241,21 +261,22 @@ export default function ConductorScreen() {
       } else Alert.alert('Error', data.error || 'No se pudo aceptar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
   };
-const rechazarViaje = async (viaje: any) => {
-  Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
-    { text: 'No', style: 'cancel' },
-    { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
-      try {
-        await fetch(API_URL + '/api/viajes/estado/' + viaje.id, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'cancelado' }),
-        });
-        buscarViajes();
-      } catch { Alert.alert('Error', 'No se pudo rechazar el viaje'); }
-    }},
-  ]);
-};
+
+  const rechazarViaje = async (viaje: any) => {
+    Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(API_URL + '/api/viajes/estado/' + viaje.id, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'cancelado' }),
+          });
+          buscarViajes();
+        } catch { Alert.alert('Error', 'No se pudo rechazar el viaje'); }
+      }},
+    ]);
+  };
+
   if (!sesion) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -388,7 +409,9 @@ const rechazarViaje = async (viaje: any) => {
         </View>
         <View style={{ gap: 8, marginTop: 8 }}>
           <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
-            <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>Suscripcion</Text>
+            <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>
+              {suscripcionActiva ? `✅ Suscripción activa — ${diasRestantes}d` : '⚡ Ver suscripción'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/soporte')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>🆘 Soporte</Text>
@@ -399,53 +422,73 @@ const rechazarViaje = async (viaje: any) => {
         </View>
       </View>
 
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); buscarViajes(); }} />}>
-        {viajes.length === 0 ? (
-          <Text style={styles.sinViajes}>Esperando viajes...</Text>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); buscarViajes(); verificarSuscripcion(sesion.id); }} />}>
+        {!suscripcionActiva ? (
+          <View style={{ padding: 24, alignItems: 'center', marginTop: 20 }}>
+            <Text style={{ fontSize: 60, marginBottom: 16 }}>🔒</Text>
+            <Text style={{ color: '#FFD700', fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Suscripción inactiva</Text>
+            <Text style={{ color: '#888', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              Para recibir viajes necesitas activar tu suscripción.{'\n'}Acércate a la oficina ZAS para pagar.
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 12, padding: 16, alignItems: 'center', width: '100%' }}>
+              <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 }}>Ver información de suscripción</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          viajes.map(viaje => (
-            <View key={viaje.id} style={styles.card}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                {viaje.usuario_foto
-                  ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} />
-                  : <View style={[styles.foto, { backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' }]}>
-                      <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 22 }}>{viaje.usuario_nombre?.[0]?.toUpperCase() || '?'}</Text>
+          <>
+            {diasRestantes <= 3 && (
+              <View style={{ backgroundColor: '#3a2a00', margin: 12, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#FFD700' }}>
+                <Text style={{ color: '#FFD700', fontWeight: 'bold', textAlign: 'center', fontSize: 14 }}>
+                  ⚠️ Tu suscripción vence en {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}. Renuévala pronto.
+                </Text>
+              </View>
+            )}
+            {viajes.length === 0 ? (
+              <Text style={styles.sinViajes}>Esperando viajes...</Text>
+            ) : (
+              viajes.map(viaje => (
+                <View key={viaje.id} style={styles.card}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    {viaje.usuario_foto
+                      ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} />
+                      : <View style={[styles.foto, { backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 22 }}>{viaje.usuario_nombre?.[0]?.toUpperCase() || '?'}</Text>
+                        </View>
+                    }
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
+                      <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
                     </View>
-                }
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
-                  <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
-                </View>
-              </View>
-
-              <View style={{ backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#00c853', marginTop: 4, marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
-                    <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.origen}</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#00c853', marginTop: 4, marginRight: 10 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
+                        <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.origen}</Text>
+                      </View>
+                    </View>
+                    <View style={{ width: 1, height: 16, backgroundColor: '#333', marginLeft: 4, marginBottom: 4 }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#ff1744', marginTop: 4, marginRight: 10 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
+                        <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.botones}>
+                    <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
+                      <Text style={styles.botonTexto}>⚡ Aceptar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
+                      <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View style={{ width: 1, height: 16, backgroundColor: '#333', marginLeft: 4, marginBottom: 4 }} />
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#ff1744', marginTop: 4, marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
-                    <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.botones}>
-  <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-    <Text style={styles.botonTexto}>⚡ Aceptar</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
-    <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
-  </TouchableOpacity>
-</View>
-            </View>
-          ))
+              ))
+            )}
+          </>
         )}
       </ScrollView>
 
