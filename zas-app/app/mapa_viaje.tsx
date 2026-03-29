@@ -162,13 +162,13 @@ export default function MapaViaje() {
         if (ubicCond) {
           setUbicacionConductor(ubicCond);
           if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicCond, coordOrigen);
-          else if (estadoViaje === 'en_viaje' && coordDestino) await actualizarRuta(ubicCond, coordDestino);
+          else if (estadoViaje === 'en_curso' && coordDestino) await actualizarRuta(ubicCond, coordDestino);
         }
       }
       if (esCondutor) {
         const ubicActual = miUbicacion || miCoord;
         if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicActual, coordOrigen);
-        else if (estadoViaje === 'en_viaje' && coordDestino) await actualizarRuta(ubicActual, coordDestino);
+        else if (estadoViaje === 'en_curso' && coordDestino) await actualizarRuta(ubicActual, coordDestino);
       }
     }, POLLING_INTERVAL);
   }
@@ -184,49 +184,60 @@ export default function MapaViaje() {
   function sms(tel) { if (tel) Linking.openURL(`sms:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
 
   async function iniciarViaje() {
-    Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Iniciar', onPress: async () => {
-        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'en_viaje' }) });
-        setEstadoViaje('en_viaje');
-      }},
-    ]);
-  }
+  Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Iniciar', onPress: async () => {
+      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'en_curso' })
+      });
+      setEstadoViaje('en_curso');
+    }},
+  ]);
+}
 
-  async function cancelarViaje() {
-    Alert.alert('Cancelar viaje', '¿Estás seguro que quieres cancelar?', [
-      { text: 'No', style: 'cancel' },
-      { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
-        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'cancelado' })
-        });
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        if (locationSub.current) locationSub.current.remove();
-        router.back();
-      }},
-    ]);
-  }
-  async function terminarViaje() {
-    Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Terminar', onPress: async () => {
-        await fetch(`${BACKEND_URL}/viajes/${params.viaje_id}/estado`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'completado' }) });
-        router.back();
-      }},
-    ]);
-  }
+async function cancelarViaje() {
+  Alert.alert('Cancelar viaje', '¿Estás seguro?', [
+    { text: 'No', style: 'cancel' },
+    { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
+      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'cancelado' })
+      });
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (locationSub.current) locationSub.current.remove();
+      router.back();
+    }},
+  ]);
+}
+
+async function terminarViaje() {
+  Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Terminar', onPress: async () => {
+      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'completado' })
+      });
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (locationSub.current) locationSub.current.remove();
+      router.back();
+    }},
+  ]);
+}
 
   const regionInicial = miUbicacion ? { latitude: miUbicacion.latitude, longitude: miUbicacion.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 } : { latitude: 4.7110, longitude: -74.0721, latitudeDelta: 0.05, longitudeDelta: 0.05 };
 
   const etiquetaEstado = () => {
     if (esCondutor) {
       if (estadoViaje === 'aceptado' || estadoViaje === 'en_camino') return 'Ve hacia el usuario';
-      if (estadoViaje === 'en_viaje') return 'Lleva al pasajero al destino';
+      if (estadoViaje === 'en_curso') return 'Lleva al pasajero al destino';
     } else {
       if (estadoViaje === 'aceptado' || estadoViaje === 'en_camino') return 'Mototaxi en camino';
-      if (estadoViaje === 'en_viaje') return 'En viaje al destino';
+      if (estadoViaje === 'en_curso') return 'En viaje al destino';
     }
     return '';
   };
@@ -244,13 +255,13 @@ export default function MapaViaje() {
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
         {miUbicacion && (
           <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
-            <Text style={{ fontSize: 28 }}>{esCondutor ? (estadoViaje === 'en_viaje' ? '🏍' : '🏍🧍') : '🧍'}</Text>
+            <Text style={{ fontSize: 28 }}>{esCondutor ? (estadoViaje === 'en_curso' ? '🏍' : '🏍🧍') : '🧍'}</Text>
           </Marker>
         )}
         {!esCondutor && ubicacionConductor && (
           <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Text style={{ fontSize: 28 }}>{estadoViaje === 'en_viaje' ? '🏍' : '🏍🧍'}</Text>
+              <Text style={{ fontSize: 28 }}>{estadoViaje === 'en_curso' ? '🏍' : '🏍🧍'}</Text>
             </Animated.View>
           </Marker>
         )}
@@ -312,7 +323,7 @@ export default function MapaViaje() {
                 <Text style={styles.btnAccionTexto}>Pasajero a bordo - Iniciar viaje</Text>
               </TouchableOpacity>
             )}
-            {estadoViaje === 'en_viaje' && (
+            {estadoViaje === 'en_curso' && (
               <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#E53935' }]} onPress={terminarViaje}>
                 <Text style={styles.btnAccionTexto}>Llegamos - Terminar viaje</Text>
               </TouchableOpacity>

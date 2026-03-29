@@ -30,73 +30,53 @@ export default function DocumentosUsuario() {
     setCargando(true);
     try {
       const sesion = await AsyncStorage.getItem('usuario_sesion');
-    const guardarDocumentos = async () => {
-  if (!fotoCedula) { Alert.alert('Error', 'Debes subir tu cedula'); return; }
-  setCargando(true);
-  try {
-    const sesion = await AsyncStorage.getItem('usuario_sesion');
-    if (!sesion) { Alert.alert('Error', 'No hay sesion activa'); return; }
-    const usuario = JSON.parse(sesion);
-
-    // ── Paso 1: Verificar con Claude ──
-    const resVerificacion = await fetch(`${API_URL}/api/documentos/verificar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imagen: fotoCedula,
-        tipoDocumento: 'CEDULA',
-        usuarioId: usuario.id,
-      }),
-    });
-    const verificacion = await resVerificacion.json();
-
-    if (!verificacion.ok) {
-      Alert.alert('Error', 'No se pudo verificar el documento');
-      return;
+      if (!sesion) { Alert.alert('Error', 'No hay sesion activa'); return; }
+      const usuario = JSON.parse(sesion);
+      const res = await fetch(`${API_URL}/api/usuarios/documentos/${usuario.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto_cedula: fotoCedula }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        Alert.alert('Exito', 'Documento enviado para revision', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo guardar el documento');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo conectar al servidor');
+    } finally {
+      setCargando(false);
     }
+  };
 
-    const { aprobado, legible, vigente, motivoRechazo, confianza, datos } = verificacion.resultado;
-
-    // Documento ilegible
-    if (!legible) {
-      Alert.alert('Foto no legible', 'La foto no es clara. Intenta tomar la foto con mejor luz y enfoque.');
-      return;
-    }
-
-    // Documento rechazado por Claude
-    if (!aprobado) {
-      Alert.alert('Documento rechazado', motivoRechazo || 'El documento no cumple los requisitos. Verifica que sea tu cedula venezolana vigente.');
-      return;
-    }
-
-    // Confianza baja — advertir pero dejar continuar
-    if (confianza === 'BAJA') {
-      Alert.alert('Advertencia', 'La foto es poco clara. Te recomendamos subir una mejor foto, pero puedes continuar.');
-    }
-
-    // ── Paso 2: Guardar en el backend ──
-    const res = await fetch(`${API_URL}/api/usuarios/documentos/${usuario.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ foto_cedula: fotoCedula }),
-    });
-    const data = await res.json();
-
-    if (data.ok) {
-      const nombre = datos?.nombreCompleto ? `\n\nNombre detectado: ${datos.nombreCompleto}` : '';
-      Alert.alert('Documento verificado', `Tu cedula fue verificada exitosamente.${nombre}`, [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
-    } else {
-      Alert.alert('Error', data.error || 'No se pudo guardar el documento');
-    }
-
-  } catch (e) {
-    Alert.alert('Error', 'No se pudo conectar al servidor');
-  } finally {
-    setCargando(false);
-  }
-};
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.titulo}>Mi Documento</Text>
+        <Text style={styles.subtitulo}>Sube tu cedula para verificar tu cuenta</Text>
+      </View>
+      <View style={styles.seccion}>
+        <Text style={styles.seccionTitulo}>Cedula / ID</Text>
+        {fotoCedula ? <Image source={{ uri: fotoCedula }} style={styles.preview} /> : null}
+        <View style={styles.botonesFoto}>
+          <TouchableOpacity style={styles.botonFoto} onPress={seleccionarFoto}>
+            <Text style={styles.botonFotoTexto}>Galeria</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botonFoto} onPress={tomarFoto}>
+            <Text style={styles.botonFotoTexto}>Camara</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.botonGuardar} onPress={guardarDocumentos} disabled={cargando}>
+        {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonGuardarTexto}>Enviar documento</Text>}
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.botonVolver} onPress={() => router.back()}>
+        <Text style={styles.botonVolverTexto}>Volver</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
