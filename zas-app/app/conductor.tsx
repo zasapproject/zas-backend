@@ -241,7 +241,21 @@ export default function ConductorScreen() {
       } else Alert.alert('Error', data.error || 'No se pudo aceptar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
   };
-
+const rechazarViaje = async (viaje: any) => {
+  Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
+    { text: 'No', style: 'cancel' },
+    { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
+      try {
+        await fetch(API_URL + '/api/viajes/estado/' + viaje.id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'cancelado' }),
+        });
+        buscarViajes();
+      } catch { Alert.alert('Error', 'No se pudo rechazar el viaje'); }
+    }},
+  ]);
+};
   if (!sesion) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -423,13 +437,13 @@ export default function ConductorScreen() {
               </View>
 
               <View style={styles.botones}>
-                <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-                  <Text style={styles.botonTexto}>⚡ Aceptar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.botonLlamar} onPress={() => Linking.openURL('tel:' + viaje.usuario_telefono)}>
-                  <Text style={styles.botonTexto}>📞 Llamar</Text>
-                </TouchableOpacity>
-              </View>
+  <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
+    <Text style={styles.botonTexto}>⚡ Aceptar</Text>
+  </TouchableOpacity>
+  <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
+    <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
+  </TouchableOpacity>
+</View>
             </View>
           ))
         )}
