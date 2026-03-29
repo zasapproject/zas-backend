@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+const supabase = require('./supabase');
+
 
 // Importar rutas
 const usuariosRoutes = require('./routes/usuarios');
@@ -26,6 +28,22 @@ app.get('/', (req, res) => {
     mensaje: '⚡ Servidor ZAS funcionando correctamente',
     version: '1.0.0'
   });
+});
+app.get('/api/health', async (req, res) => {
+  try {
+    const { error } = await supabase.from('usuarios').select('id').limit(1);
+    const dbStatus = error ? 'error' : 'connected';
+    res.json({
+      status: 'ok',
+      version: '1.0.0',
+      db: dbStatus,
+      uptime: Math.floor(process.uptime()) + 's',
+      memoria: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ status: 'error', db: 'disconnected' });
+  }
 });
 
 // Rutas de ZAS
