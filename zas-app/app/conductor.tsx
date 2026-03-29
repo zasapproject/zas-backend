@@ -97,8 +97,7 @@ export default function ConductorScreen() {
       const subirAStorage = async (base64: string, nombre: string) => {
         try {
           const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ base64, nombre, carpeta: 'documentos' }),
           });
           const data = await res.json();
@@ -106,16 +105,17 @@ export default function ConductorScreen() {
           return data.url;
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
-let urlFotoPerfil = regFoto;
+
+      let urlFotoPerfil = regFoto;
       if (regFoto && regFoto.startsWith('data:')) {
         const resFoto = await fetch(`${API_URL}/api/storage/subir-foto`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ base64: regFoto, nombre: `perfil_${regTelefono}`, carpeta: 'conductores' }),
         });
         const dataFoto = await resFoto.json();
         if (dataFoto.ok) urlFotoPerfil = dataFoto.url;
       }
+
       const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
       if (!urlCedula) { setCargando(false); return; }
       const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
@@ -128,21 +128,8 @@ let urlFotoPerfil = regFoto;
       if (!urlAntecedentes) { setCargando(false); return; }
 
       const res = await fetch(API_URL + '/api/conductores/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: regNombre,
-          telefono: regTelefono,
-          password: regPassword,
-          foto_url: urlFotoPerfil,
-          placa_moto: regPlaca,
-          modelo_moto: regModelo,
-          foto_cedula: urlCedula,
-          foto_licencia: urlLicencia,
-          foto_registro_moto: urlRegistro,
-          foto_rcv: urlRcv,
-          foto_antecedentes: urlAntecedentes,
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: regNombre, telefono: regTelefono, password: regPassword, foto_url: urlFotoPerfil, placa_moto: regPlaca, modelo_moto: regModelo, foto_cedula: urlCedula, foto_licencia: urlLicencia, foto_registro_moto: urlRegistro, foto_rcv: urlRcv, foto_antecedentes: urlAntecedentes })
       });
       const data = await res.json();
       if (data.ok) {
@@ -172,8 +159,7 @@ let urlFotoPerfil = regFoto;
     setGuardando(true);
     try {
       const res = await fetch(`${API_URL}/api/conductores/perfil/${c.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telefono: editTelefono, placa_moto: editPlaca, modelo_moto: editModelo }),
       });
       const resp = await res.json();
@@ -194,13 +180,11 @@ let urlFotoPerfil = regFoto;
     const c = JSON.parse(sesion);
     try {
       const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64, nombre: `conductor_${c.id}`, carpeta: 'conductores' }),
       });
       const data = await res.json();
-      if (data.ok) return data.url;
-      return null;
+      return data.ok ? data.url : null;
     } catch { return null; }
   };
 
@@ -212,8 +196,7 @@ let urlFotoPerfil = regFoto;
         const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
         if (!result.canceled) {
           const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64);
-          if (url) setEditFoto(url);
-          else Alert.alert('Error', 'No se pudo subir la foto');
+          if (url) setEditFoto(url); else Alert.alert('Error', 'No se pudo subir la foto');
         }
       }},
       { text: 'Galería', onPress: async () => {
@@ -222,8 +205,7 @@ let urlFotoPerfil = regFoto;
         const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
         if (!result.canceled) {
           const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64);
-          if (url) setEditFoto(url);
-          else Alert.alert('Error', 'No se pudo subir la foto');
+          if (url) setEditFoto(url); else Alert.alert('Error', 'No se pudo subir la foto');
         }
       }},
       { text: 'Cancelar', style: 'cancel' }
@@ -248,7 +230,10 @@ let urlFotoPerfil = regFoto;
   const aceptarViaje = async (viaje: any) => {
     if (!sesion) return;
     try {
-      const res = await fetch(API_URL + '/api/viajes/estado/' + viaje.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: 'aceptado', conductor_id: sesion.id }) });
+      const res = await fetch(API_URL + '/api/viajes/estado/' + viaje.id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'aceptado', conductor_id: sesion.id })
+      });
       const data = await res.json();
       if (data.ok) {
         enviarNotificacion('Viaje aceptado', 'Vas a recoger a ' + viaje.usuario_nombre);
@@ -399,29 +384,57 @@ let urlFotoPerfil = regFoto;
           </TouchableOpacity>
         </View>
       </View>
+
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); buscarViajes(); }} />}>
         {viajes.length === 0 ? (
           <Text style={styles.sinViajes}>Esperando viajes...</Text>
         ) : (
           viajes.map(viaje => (
             <View key={viaje.id} style={styles.card}>
-              {viaje.usuario_foto ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} /> : null}
-              <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
-              <Text style={styles.cardTexto}>Origen: {viaje.origen}</Text>
-              <Text style={styles.cardTexto}>Destino: {viaje.destino}</Text>
-              <Text style={styles.cardTexto}>Precio: ${viaje.precio}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                {viaje.usuario_foto
+                  ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} />
+                  : <View style={[styles.foto, { backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 22 }}>{viaje.usuario_nombre?.[0]?.toUpperCase() || '?'}</Text>
+                    </View>
+                }
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
+                  <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
+                </View>
+              </View>
+
+              <View style={{ backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#00c853', marginTop: 4, marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
+                    <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.origen}</Text>
+                  </View>
+                </View>
+                <View style={{ width: 1, height: 16, backgroundColor: '#333', marginLeft: 4, marginBottom: 4 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#ff1744', marginTop: 4, marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
+                    <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino}</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.botones}>
                 <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-                  <Text style={styles.botonTexto}>Aceptar</Text>
+                  <Text style={styles.botonTexto}>⚡ Aceptar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.botonLlamar} onPress={() => Linking.openURL('tel:' + viaje.usuario_telefono)}>
-                  <Text style={styles.botonTexto}>Llamar</Text>
+                  <Text style={styles.botonTexto}>📞 Llamar</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ))
         )}
       </ScrollView>
+
       <Modal visible={editandoPerfil} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
@@ -463,10 +476,9 @@ const styles = StyleSheet.create({
   linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },
   sinViajes: { color: '#888', textAlign: 'center', marginTop: 40, fontSize: 16 },
   card: { backgroundColor: '#16213e', borderRadius: 12, padding: 16, margin: 12, borderWidth: 1, borderColor: '#0f3460' },
-  cardTitulo: { color: '#FFD700', fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
-  cardTexto: { color: '#aaa', fontSize: 14, marginBottom: 4 },
-  foto: { width: 60, height: 60, borderRadius: 30, marginBottom: 10, borderWidth: 2, borderColor: '#FFD700' },
-  botones: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  cardTitulo: { color: '#FFD700', fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+  foto: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: '#FFD700' },
+  botones: { flexDirection: 'row', gap: 10, marginTop: 4 },
   botonAceptar: { flex: 1, backgroundColor: '#FFD700', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonLlamar: { flex: 1, backgroundColor: '#0f3460', borderRadius: 10, padding: 12, alignItems: 'center' },
   inputContenedor: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16213e', borderRadius: 10, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
