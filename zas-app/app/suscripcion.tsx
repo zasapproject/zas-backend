@@ -28,17 +28,32 @@ export default function SuscripcionScreen() {
     }
   };
 
+  const registrarPagoEfectivo = async () => {
+    setProcesando(true);
+    try {
+      await fetch(`${API_URL}/api/suscripciones/registrar-solicitud`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conductor_id: conductorId, metodo_pago: 'efectivo', monto: 20000 }),
+      });
+      Alert.alert(
+        '📋 Solicitud registrada',
+        'Acércate a la oficina ZAS con tu pago de $20.000 COP. El administrador activará tu suscripción.',
+      );
+    } catch {
+      Alert.alert('Error', 'No se pudo registrar la solicitud');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   const activarSuscripcion = async (metodoPago: string) => {
     setProcesando(true);
     try {
       const res = await fetch(`${API_URL}/api/suscripciones/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conductor_id: conductorId,
-          metodo_pago: metodoPago,
-          monto: 20000,
-        }),
+        body: JSON.stringify({ conductor_id: conductorId, metodo_pago: metodoPago, monto: 20000 }),
       });
       const data = await res.json();
       if (data.success) {
@@ -60,7 +75,7 @@ export default function SuscripcionScreen() {
       'El costo es $20.000 COP por 7 días. ¿Cómo vas a pagar?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: '💵 Efectivo', onPress: () => activarSuscripcion('efectivo') },
+        { text: '💵 Efectivo', onPress: () => registrarPagoEfectivo() },
         { text: '💳 Transferencia', onPress: () => activarSuscripcion('transferencia') },
       ]
     );
