@@ -422,7 +422,7 @@
       const res = await fetch(`${API}/api/suscripciones/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conductor_id: conductorSeleccionado, metodo_pago: 'efectivo', monto: 20000 })
+      body: JSON.stringify({ conductor_id: conductorSeleccionado, metodo_pago: 'efectivo', monto: 20000 })  
       });
       const data = await res.json();
       if (data.success) { mostrarToast('✅ ' + data.mensaje); cargarConductores(); }
