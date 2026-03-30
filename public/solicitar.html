@@ -148,6 +148,7 @@
       <p id="origen-tag-texto"></p>
     </div>
   </div>
+  <button id="btn-mi-ubicacion" onclick="irAMiUbicacion()" style="position:absolute;bottom:100px;right:16px;z-index:10;width:48px;height:48px;border-radius:50%;background:#1a1a2e;border:2px solid #FFD700;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">🎯</button>
   <div class="map-footer">
     <button class="btn-confirmar" id="btn-confirmar" onclick="confirmarPunto()">✅ Confirmar origen</button>
     <button class="btn-texto-rojo" onclick="cerrarSesion()">Cerrar sesión</button>
@@ -157,6 +158,15 @@
 <div class="screen" id="screen-confirmar">
   <div class="confirmar-header">
     <button class="btn-back" onclick="volverAlMapa()">←</button>
+    function irAMiUbicacion() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      pinCoord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      map.setCenter(pinCoord);
+      map.setZoom(17);
+    }, () => mostrarToast('No se pudo obtener tu ubicación', '#ff1744'));
+  }
+}
     <div style="font-size:22px;font-weight:700">Confirma tu viaje</div>
   </div>
   <div class="card">
