@@ -337,6 +337,8 @@ function iniciarMapa() {
       map.setCenter(pinCoord);
     });
   }
+  autocompleteService = new google.maps.places.AutocompleteService();
+  placesService = new google.maps.places.PlacesService(map);
   actualizarPaso();
 }
 
@@ -394,50 +396,39 @@ async function confirmarPunto() {
 }
 
 // ── BÚSQUEDA ──
-let searchTimeout = null;
+let autocompleteService, placesService;
+
 function onBusqueda(texto) {
   if (searchTimeout) clearTimeout(searchTimeout);
   const sug = document.getElementById('sugerencias');
   if (texto.length < 3) { sug.style.display = 'none'; return; }
   document.getElementById('search-spin').style.display = 'block';
-  searchTimeout = setTimeout(async () => {
-    try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(texto)}&key=${GKEY}&language=es&components=country:ve|country:co`);
-      const data = await res.json();
-      const preds = data.predictions || [];
-      if (!preds.length) { sug.style.display = 'none'; return; }
-      sug.innerHTML = preds.slice(0, 4).map(p => `<div class="sug-item" onclick="seleccionarSugerencia('${p.place_id}','${p.description.replace(/'/g,"\\'")}')">📍 ${p.description}</div>`).join('');
-      sug.style.display = 'block';
-    } catch {}
-    document.getElementById('search-spin').style.display = 'none';
-  }, 600);
+  searchTimeout = setTimeout(() => {
+    if (!autocompleteService) { document.getElementById('search-spin').style.display = 'none'; return; }
+    autocompleteService.getPlacePredictions(
+      { input: texto, componentRestrictions: { country: ['ve', 'co'] } },
+      (predictions, status) => {
+        document.getElementById('search-spin').style.display = 'none';
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) { sug.style.display = 'none'; return; }
+        sug.innerHTML = predictions.slice(0, 4).map(p => `<div class="sug-item" onclick="seleccionarSugerencia('${p.place_id}','${p.description.replace(/'/g,"\\'")}')">📍 ${p.description}</div>`).join('');
+        sug.style.display = 'block';
+      }
+    );
+  }, 400);
 }
-
-async function seleccionarSugerencia(placeId, desc) {
+function seleccionarSugerencia(placeId, desc) {
   document.getElementById('sugerencias').style.display = 'none';
   document.getElementById('search-input').value = '';
-  try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GKEY}`);
-    const data = await res.json();
-    const loc = data.result?.geometry?.location;
-    if (loc) {
-      pinCoord = { lat: loc.lat, lng: loc.lng };
+  if (!placesService) return;
+  placesService.getDetails({ placeId, fields: ['geometry'] }, (place, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK) {
+      pinCoord = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
       map.setCenter(pinCoord);
       map.setZoom(17);
-      if (paso === 'origen') {
-        coordOrigen = { ...pinCoord };
-        nombreOrigen = desc;
-        paso = 'destino';
-        actualizarPaso();
-      } else {
-        coordDestino = { ...pinCoord };
-        nombreDestino = desc;
-        document.getElementById('conf-origen').textContent = nombreOrigen;
-        document.getElementById('conf-destino').textContent = nombreDestino;
-        showScreen('confirmar');
-      }
+      if (paso === 'origen') { coordOrigen = {...pinCoord}; nombreOrigen = desc; paso = 'destino'; actualizarPaso(); }
+      else { coordDestino = {...pinCoord}; nombreDestino = desc; document.getElementById('conf-origen').textContent = nombreOrigen; document.getElementById('conf-destino').textContent = nombreDestino; showScreen('confirmar'); }
     }
-  } catch {}
+  });
 }
 
 function volverAlMapa() {
@@ -566,6 +557,6 @@ window.addEventListener('load', () => {
 });
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I&libraries=places&callback=Function.prototype" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I&libraries=places" async defer></script>
 </body>
 </html>
