@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ZAS — Solicita tu mototaxi</title>
+  <style>
+    :root {
+      --bg: #1a1a2e; --surface: #16213e; --surface2: #0f3460;
+      --gold: #FFD700; --gold2: #ffec6e; --green: #00c853;
+      --red: #ff1744; --text: #ffffff; --muted: #888888;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; overflow-x: hidden; }
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+    #screen-loading { align-items: center; justify-content: center; }
+    .spin { width: 48px; height: 48px; border: 4px solid #333; border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #screen-auth { align-items: center; justify-content: center; padding: 24px; }
+    .auth-box { background: var(--surface); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 400px; border: 1px solid var(--surface2); }
+    .auth-logo { font-size: 40px; font-weight: 800; color: var(--gold); text-align: center; margin-bottom: 4px; }
+    .auth-sub { color: var(--muted); text-align: center; font-size: 14px; margin-bottom: 28px; }
+    .auth-tabs { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); border: none; background: transparent; transition: all 0.2s; }
+    .auth-tab.active { background: var(--gold); color: var(--bg); }
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+    .input-group input { width: 100%; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; padding: 14px 16px; color: var(--text); font-size: 16px; outline: none; transition: border-color 0.2s; }
+    .input-group input:focus { border-color: var(--gold); }
+    .input-group input::placeholder { color: var(--muted); }
+    .btn-primary { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error-msg { background: rgba(255,23,68,0.1); border: 1px solid rgba(255,23,68,0.3); color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
+    #screen-mapa { position: relative; }
+    #map { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-header { position: absolute; top: 0; left: 0; right: 0; z-index: 10; background: rgba(26,26,46,0.97); padding: 12px 16px 12px; padding-top: max(12px, env(safe-area-inset-top)); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+    .map-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .map-logo { font-size: 16px; font-weight: 800; color: var(--gold); }
+    .btn-logout { background: transparent; border: 1px solid #333; color: var(--muted); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+    .progress-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .progress-step { flex: 1; text-align: center; padding: 8px; border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600; transition: all 0.2s; }
+    .progress-step.active { background: var(--gold); color: var(--bg); }
+    .progress-line { width: 20px; height: 2px; background: #333; flex-shrink: 0; }
+    .instruccion { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 10px; }
+    .search-bar { display: flex; align-items: center; background: var(--surface); border-radius: 12px; padding: 0 12px; border: 1px solid var(--surface2); }
+    .search-bar input { flex: 1; background: transparent; border: none; outline: none; padding: 12px 8px; color: var(--text); font-size: 14px; }
+    .search-bar input::placeholder { color: var(--muted); }
+    .sugerencias { background: var(--surface); border-radius: 12px; margin-top: 6px; overflow: hidden; border: 1px solid var(--surface2); display: none; }
+    .sug-item { padding: 12px 16px; border-bottom: 1px solid var(--surface2); cursor: pointer; font-size: 14px; }
+    .sug-item:last-child { border-bottom: none; }
+    .origen-tag { background: rgba(0,200,83,0.1); border: 1px solid var(--green); border-radius: 8px; padding: 8px 12px; margin-top: 8px; display: none; }
+    .origen-tag span { color: var(--green); font-size: 11px; font-weight: 700; display: block; }
+    .origen-tag p { color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pin-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 5; pointer-events: none; font-size: 40px; }
+    .map-footer { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; background: rgba(26,26,46,0.97); padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); border-top-left-radius: 20px; border-top-right-radius: 20px; }
+    .btn-confirmar { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .btn-texto-rojo { width: 100%; background: transparent; color: var(--red); border: none; padding: 10px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+    #screen-confirmar { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
+    .confirmar-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .btn-back { background: var(--surface); border: none; color: var(--text); width: 40px; height: 40px; border-radius: 10px; font-size: 20px; cursor: pointer; }
+    .card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .ruta-punto { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .ruta-punto:last-child { margin-bottom: 0; }
+    .ruta-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .ruta-dot.o { background: var(--green); }
+    .ruta-dot.d { background: var(--red); border-radius: 2px; }
+    .ruta-linea { width: 2px; height: 16px; background: #333; margin-left: 5px; margin-bottom: 6px; }
+    .lbl { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+    .val { font-size: 14px; }
+    .precio-row { display: flex; justify-content: space-between; align-items: center; }
+    .precio-num { color: var(--gold); font-size: 26px; font-weight: 700; }
+    .pago-ops { display: flex; gap: 10px; margin-top: 12px; }
+    .pago-op { flex: 1; padding: 12px; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .pago-op.active { border-color: var(--gold); color: var(--gold); }
+    #screen-viaje { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
+    .viaje-titulo { font-size: 22px; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 4px; }
+    .viaje-sub { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
+    .conductor-card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--gold); display: flex; align-items: center; gap: 14px; }
+    .c-avatar { width: 64px; height: 64px; border-radius: 32px; background: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: var(--bg); flex-shrink: 0; overflow: hidden; }
+    .c-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .c-nombre { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .c-detalle { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .c-eta { color: var(--gold); font-size: 12px; font-weight: 600; }
+    .buscando { text-align: center; padding: 32px 0; }
+    .buscando-icon { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
+    .btn-cancelar { width: 100%; background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.3); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; display: none; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+<div class="screen active" id="screen-loading">
+  <div style="text-align:center">
+    <div class="spin"></div>
+    <p style="color:var(--muted);font-size:14px">Cargando ZAS...</p>
+  </div>
+</div>
+
+<div class="screen" id="screen-auth">
+  <div class="auth-box">
+    <div class="auth-logo">⚡ ZAS</div>
+    <div class="auth-sub">Tu mototaxi al instante</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Iniciar sesión</button>
+      <button class="auth-tab" onclick="switchTab('registro')">Crear cuenta</button>
+    </div>
+    <div id="form-login">
+      <div class="input-group"><label>Teléfono</label><input type="tel" id="login-tel" placeholder="04121234567" maxlength="11" /></div>
+      <div class="input-group"><label>Contraseña</label><input type="password" id="login-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()" /></div>
+      <button class="btn-primary" onclick="iniciarSesion()" id="btn-login">Entrar</button>
+      <div class="error-msg" id="login-error">Teléfono o contraseña incorrectos</div>
+    </div>
+    <div id="form-registro" style="display:none">
+      <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre" /></div>
+      <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
+      <div class="input-group"><label>Contraseña</label><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /></div>
+      <div class="input-group"><label>Email (opcional)</label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
+      <button class="btn-primary" onclick="registrarUsuario()" id="btn-registro">Crear cuenta</button>
+      <div class="error-msg" id="registro-error"></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-mapa">
+  <div id="map"></div>
+  <div class="pin-center">📍</div>
+  <div class="map-header">
+    <div class="map-header-top">
+      <div class="map-logo">⚡ ZAS — <span id="header-nombre" style="font-size:13px;font-weight:400;color:var(--muted)"></span></div>
+      <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-step active" id="step-1">1. Origen</div>
+      <div class="progress-line"></div>
+      <div class="progress-step" id="step-2">2. Destino</div>
+    </div>
+    <div class="instruccion" id="instruccion">📍 Mueve el mapa a tu ubicación de origen</div>
+    <div class="search-bar">
+      <span style="font-size:16px;margin-right:4px">🔍</span>
+      <input type="text" id="search-input" placeholder="Buscar dirección..." oninput="onBusqueda(this.value)" autocomplete="off" />
+      <div id="search-spin" style="display:none"><div class="spin" style="width:18px;height:18px;border-width:2px;margin:0"></div></div>
+    </div>
+    <div class="sugerencias" id="sugerencias"></div>
+    <div class="origen-tag" id="origen-tag">
+      <span>✅ Origen confirmado</span>
+      <p id="origen-tag-texto"></p>
+    </div>
+  </div>
+  <div class="map-footer">
+    <button class="btn-confirmar" id="btn-confirmar" onclick="confirmarPunto()">✅ Confirmar origen</button>
+    <button class="btn-texto-rojo" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-confirmar">
+  <div class="confirmar-header">
+    <button class="btn-back" onclick="volverAlMapa()">←</button>
+    <div style="font-size:22px;font-weight:700">Confirma tu viaje</div>
+  </div>
+  <div class="card">
+    <div class="ruta-punto"><div class="ruta-dot o"></div><div><div class="lbl">Origen</div><div class="val" id="conf-origen">—</div></div></div>
+    <div class="ruta-linea"></div>
+    <div class="ruta-punto"><div class="ruta-dot d"></div><div><div class="lbl">Destino</div><div class="val" id="conf-destino">—</div></div></div>
+  </div>
+  <div class="card precio-row">
+    <div style="color:var(--muted);font-size:14px">Precio del viaje</div>
+    <div class="precio-num">$4.000 COP</div>
+  </div>
+  <div class="card">
+    <div class="lbl">Método de pago</div>
+    <div class="pago-ops">
+      <div class="pago-op active" onclick="selectPago('efectivo',this)">💵 Efectivo</div>
+      <div class="pago-op" onclick="selectPago('transferencia',this)">💳 Transferencia</div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="solicitarViaje()" id="btn-solicitar">⚡ Solicitar ZAS</button>
+</div>
+
+<div class="screen" id="screen-viaje">
+  <div class="viaje-titulo" id="viaje-titulo">Buscando conductor...</div>
+  <div class="viaje-sub" id="viaje-sub">ZAS está buscando el conductor más cercano</div>
+  <div class="buscando" id="buscando-anim">
+    <div class="buscando-icon">🏍️</div>
+    <p style="color:var(--muted);margin-top:16px;font-size:15px">Buscando conductor cercano...</p>
+  </div>
+  <div id="conductor-info" style="display:none">
+    <div class="conductor-card">
+      <div class="c-avatar" id="c-avatar">?</div>
+      <div>
+        <div class="c-nombre" id="c-nombre">—</div>
+        <div class="c-detalle" id="c-detalle">—</div>
+        <div class="c-eta">Va en camino hacia ti</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="lbl">Desde</div><div class="val" id="v-origen">—</div>
+    <div class="lbl" style="margin-top:10px">Hasta</div><div class="val" id="v-destino">—</div>
+    <div class="lbl" style="margin-top:10px">Estado</div><div style="color:var(--gold);font-size:15px;font-weight:700" id="v-estado">—</div>
+  </div>
+  <button class="btn-cancelar" onclick="cancelarViaje()">Cancelar viaje</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://zas-backend-production-fb4e.up.railway.app';
+const GKEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+let map, pinCoord = { lat: 7.7633, lng: -72.2249 };
+let paso = 'origen';
+let coordOrigen = null, coordDestino = null;
+let nombreOrigen = '', nombreDestino = '';
+let usuarioId = '', metodoPago = 'efectivo';
+let viajeActivo = null, pollingInterval = null;
+let busquedaTimeout = null;
+
+// ── UTILS ──
+function mostrarToast(msg, color='#00c853') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = color;
+  t.style.color = color;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function setLoading(btnId, loading, texto) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Cargando...' : texto;
+}
+
+// ── AUTH ──
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('form-registro').style.display = tab === 'registro' ? 'block' : 'none';
+  event.target.classList.add('active');
+}
+
+async function iniciarSesion() {
+  const tel = document.getElementById('login-tel').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!tel || !pass) { mostrarToast('Ingresa teléfono y contraseña', '#ff1744'); return; }
+  setLoading('btn-login', true, 'Entrar');
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const res = await fetch(`${API}/api/usuarios/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telefono: tel, password: pass }) });
+    const data = await res.json();
+    if (data.ok) {
+      usuarioId = data.usuario.id;
+      localStorage.setItem('zas_usuario', JSON.stringify(data.usuario));
+      document.getElementById('header-nombre').textContent = data.usuario.nombre;
+      showScreen('mapa');
+      iniciarMapa();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-login', false, 'Entrar');
+}
+
+async function registrarUsuario() {
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const tel = document.getElementById('reg-tel').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const email = document.getElementById('reg-email').value.trim();
+  const errEl = document.getElementById('registro-error');
+  if (!nombre || !tel || !pass) { errEl.textContent = 'Nombre, teléfono y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
+  if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener mínimo 4 caracteres'; errEl.style.display = 'block'; return; }
+  setLoading('btn-registro', true, 'Crear cuenta');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch(`${API}/api/usuarios/registro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono: tel, password: pass, email: email || null }) });
+    const data = await res.json();
+    if (data.ok) {
+      usuarioId = data.usuario.id;
+      localStorage.setItem('zas_usuario', JSON.stringify(data.usuario));
+      document.getElementById('header-nombre').textContent = data.usuario.nombre;
+      mostrarToast('¡Cuenta creada! Bienvenido a ZAS');
+      showScreen('mapa');
+      iniciarMapa();
+    } else {
+      errEl.textContent = data.error || 'No se pudo crear la cuenta';
+      errEl.style.display = 'block';
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-registro', false, 'Crear cuenta');
+}
+
+function cerrarSesion() {
+  localStorage.removeItem('zas_usuario');
+  if (pollingInterval) clearInterval(pollingInterval);
+  viajeActivo = null;
+  usuarioId = '';
+  paso = 'origen';
+  coordOrigen = null; coordDestino = null;
+  nombreOrigen = ''; nombreDestino = '';
+  showScreen('auth');
+}
+
+// ── MAPA ──
+function iniciarMapa() {
+  if (map) {
+    actualizarPaso();
+    return;
+  }
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: pinCoord,
+    zoom: 16,
+    disableDefaultUI: true,
+    zoomControl: true,
+    styles: [
+      { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#aaaaaa' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
+      { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#16213e' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    ]
+  });
+  map.addListener('center_changed', () => {
+    const c = map.getCenter();
+    pinCoord = { lat: c.lat(), lng: c.lng() };
+  });
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      pinCoord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      map.setCenter(pinCoord);
+    });
+  }
+  actualizarPaso();
+}
+
+function actualizarPaso() {
+  const btn = document.getElementById('btn-confirmar');
+  const instr = document.getElementById('instruccion');
+  const s1 = document.getElementById('step-1');
+  const s2 = document.getElementById('step-2');
+  const search = document.getElementById('search-input');
+  if (paso === 'origen') {
+    btn.textContent = '✅ Confirmar origen';
+    instr.textContent = '📍 Mueve el mapa a tu ubicación de origen';
+    s1.classList.add('active'); s2.classList.remove('active');
+    search.placeholder = 'Buscar origen...';
+    document.getElementById('origen-tag').style.display = 'none';
+  } else {
+    btn.textContent = '✅ Confirmar destino';
+    instr.textContent = '🏁 Mueve el mapa a tu destino';
+    s1.classList.remove('active'); s2.classList.add('active');
+    search.placeholder = 'Buscar destino...';
+    document.getElementById('origen-tag').style.display = 'block';
+    document.getElementById('origen-tag-texto').textContent = nombreOrigen;
+  }
+}
+
+async function geocodificarInverso(lat, lng) {
+  try {
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GKEY}&language=es`);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) return data.results[0].formatted_address;
+  } catch {}
+  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+}
+
+async function confirmarPunto() {
+  const btn = document.getElementById('btn-confirmar');
+  btn.disabled = true;
+  btn.textContent = 'Detectando ubicación...';
+  const nombre = await geocodificarInverso(pinCoord.lat, pinCoord.lng);
+  btn.disabled = false;
+  if (paso === 'origen') {
+    coordOrigen = { ...pinCoord };
+    nombreOrigen = nombre;
+    paso = 'destino';
+    document.getElementById('search-input').value = '';
+    document.getElementById('sugerencias').style.display = 'none';
+    actualizarPaso();
+  } else {
+    coordDestino = { ...pinCoord };
+    nombreDestino = nombre;
+    document.getElementById('conf-origen').textContent = nombreOrigen;
+    document.getElementById('conf-destino').textContent = nombreDestino;
+    showScreen('confirmar');
+  }
+}
+
+// ── BÚSQUEDA ──
+let searchTimeout = null;
+function onBusqueda(texto) {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  const sug = document.getElementById('sugerencias');
+  if (texto.length < 3) { sug.style.display = 'none'; return; }
+  document.getElementById('search-spin').style.display = 'block';
+  searchTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(texto)}&key=${GKEY}&language=es&components=country:ve|country:co`);
+      const data = await res.json();
+      const preds = data.predictions || [];
+      if (!preds.length) { sug.style.display = 'none'; return; }
+      sug.innerHTML = preds.slice(0, 4).map(p => `<div class="sug-item" onclick="seleccionarSugerencia('${p.place_id}','${p.description.replace(/'/g,"\\'")}')">📍 ${p.description}</div>`).join('');
+      sug.style.display = 'block';
+    } catch {}
+    document.getElementById('search-spin').style.display = 'none';
+  }, 600);
+}
+
+async function seleccionarSugerencia(placeId, desc) {
+  document.getElementById('sugerencias').style.display = 'none';
+  document.getElementById('search-input').value = '';
+  try {
+    const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GKEY}`);
+    const data = await res.json();
+    const loc = data.result?.geometry?.location;
+    if (loc) {
+      pinCoord = { lat: loc.lat, lng: loc.lng };
+      map.setCenter(pinCoord);
+      map.setZoom(17);
+      if (paso === 'origen') {
+        coordOrigen = { ...pinCoord };
+        nombreOrigen = desc;
+        paso = 'destino';
+        actualizarPaso();
+      } else {
+        coordDestino = { ...pinCoord };
+        nombreDestino = desc;
+        document.getElementById('conf-origen').textContent = nombreOrigen;
+        document.getElementById('conf-destino').textContent = nombreDestino;
+        showScreen('confirmar');
+      }
+    }
+  } catch {}
+}
+
+function volverAlMapa() {
+  paso = 'destino';
+  showScreen('mapa');
+  actualizarPaso();
+}
+
+// ── PAGO ──
+function selectPago(metodo, el) {
+  metodoPago = metodo;
+  document.querySelectorAll('.pago-op').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── SOLICITAR VIAJE ──
+async function solicitarViaje() {
+  setLoading('btn-solicitar', true, '⚡ Solicitar ZAS');
+  try {
+    const res = await fetch(`${API}/api/viajes/nuevo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: usuarioId,
+        origen: nombreOrigen, destino: nombreDestino,
+        origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
+        destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
+        precio: 4000
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      viajeActivo = data.viaje;
+      mostrarViaje(viajeActivo);
+      showScreen('viaje');
+      iniciarPolling();
+    } else {
+      mostrarToast(data.error || 'No se pudo solicitar el viaje', '#ff1744');
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-solicitar', false, '⚡ Solicitar ZAS');
+}
+
+function mostrarViaje(v) {
+  document.getElementById('v-origen').textContent = v.origen || '—';
+  document.getElementById('v-destino').textContent = v.destino || '—';
+  document.getElementById('v-estado').textContent = (v.estado || '—').toUpperCase();
+  const esAceptado = v.estado === 'aceptado' || v.estado === 'en_curso';
+  document.getElementById('buscando-anim').style.display = esAceptado ? 'none' : 'block';
+  document.getElementById('conductor-info').style.display = esAceptado ? 'block' : 'none';
+  if (esAceptado) {
+    document.getElementById('viaje-titulo').textContent = 'Conductor en camino';
+    document.getElementById('viaje-sub').textContent = 'Tu conductor va hacia ti';
+    document.getElementById('c-nombre').textContent = v.conductor_nombre || 'Conductor';
+    document.getElementById('c-detalle').textContent = v.conductor_modelo && v.conductor_placa ? `${v.conductor_modelo} · ${v.conductor_placa}` : '';
+    const avatarEl = document.getElementById('c-avatar');
+    if (v.conductor_foto) {
+      avatarEl.innerHTML = `<img src="${v.conductor_foto}" alt="foto" />`;
+    } else {
+      avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
+    }
+  } else {
+    document.getElementById('viaje-titulo').textContent = 'Buscando conductor...';
+    document.getElementById('viaje-sub').textContent = 'ZAS está buscando el conductor más cercano';
+  }
+}
+
+function iniciarPolling() {
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(async () => {
+    if (!viajeActivo) { clearInterval(pollingInterval); return; }
+    try {
+      const res = await fetch(`${API}/api/viajes/usuario/${usuarioId}`);
+      const data = await res.json();
+      if (data.ok && data.viajes.length > 0) {
+        const v = data.viajes.find(x => x.id === viajeActivo.id) || data.viajes[0];
+        if (v) {
+          viajeActivo = v;
+          mostrarViaje(v);
+          if (v.estado === 'completado' || v.estado === 'cancelado') {
+            clearInterval(pollingInterval);
+            mostrarToast(v.estado === 'completado' ? '✅ Viaje completado' : 'Viaje cancelado', v.estado === 'completado' ? '#00c853' : '#ff1744');
+            setTimeout(() => {
+              viajeActivo = null;
+              paso = 'origen';
+              coordOrigen = null; coordDestino = null;
+              nombreOrigen = ''; nombreDestino = '';
+              showScreen('mapa');
+              actualizarPaso();
+            }, 2000);
+          }
+        }
+      }
+    } catch {}
+  }, 5000);
+}
+
+async function cancelarViaje() {
+  if (!viajeActivo) return;
+  try {
+    await fetch(`${API}/api/viajes/estado/${viajeActivo.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'cancelado' })
+    });
+  } catch {}
+  if (pollingInterval) clearInterval(pollingInterval);
+  viajeActivo = null;
+  paso = 'origen';
+  coordOrigen = null; coordDestino = null;
+  nombreOrigen = ''; nombreDestino = '';
+  showScreen('mapa');
+  actualizarPaso();
+}
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  const sesion = localStorage.getItem('zas_usuario');
+  if (sesion) {
+    const u = JSON.parse(sesion);
+    usuarioId = u.id;
+    document.getElementById('header-nombre').textContent = u.nombre;
+    showScreen('mapa');
+    iniciarMapa();
+  } else {
+    showScreen('auth');
+  }
+});
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I&libraries=places&callback=Function.prototype" async defer></script>
+</body>
+</html>
