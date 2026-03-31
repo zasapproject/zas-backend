@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "zas-backend",
+    "slug": "zas-backend",
+    "version": "1.0.0",
+    "description": "",
+    "sdkVersion": "49.0.0",
+    "platforms": [],
+    "android": {
+      "package": "com.zasapp.zasapp"
+    }
+  }
+}
