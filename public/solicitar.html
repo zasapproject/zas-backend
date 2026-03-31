@@ -490,8 +490,8 @@ function mostrarViaje(v) {
   document.getElementById('buscando-anim').style.display = esAceptado ? 'none' : 'block';
   document.getElementById('conductor-info').style.display = esAceptado ? 'block' : 'none';
   if (esAceptado) {
-    document.getElementById('viaje-titulo').textContent = 'Conductor en camino';
-    document.getElementById('viaje-sub').textContent = 'Tu conductor va hacia ti';
+    document.getElementById('viaje-titulo').textContent = v.estado === 'en_curso' ? '🏍️ Viaje en curso' : 'Conductor en camino';
+    document.getElementById('viaje-sub').textContent = v.estado === 'en_curso' ? 'El conductor está llevando al pasajero' : 'Tu conductor va hacia ti';
     document.getElementById('c-nombre').textContent = v.conductor_nombre || 'Conductor';
     document.getElementById('c-detalle').textContent = v.conductor_modelo && v.conductor_placa ? `${v.conductor_modelo} · ${v.conductor_placa}` : '';
     const avatarEl = document.getElementById('c-avatar');
