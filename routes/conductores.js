@@ -138,7 +138,8 @@ router.get('/todos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes')
+      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta')
+      
       .order('created_at', { ascending: false });
 
     if (error) throw error;
