@@ -93,7 +93,17 @@ export default function LoginScreen() {
   if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
     setCargando(true);
     try {
-      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto, foto_cedula: fotoCedula }) });
+      let fotoUrl = foto;
+      if (foto && foto.startsWith('data:')) {
+        const resFoto = await fetch(`${API_URL}/api/storage/subir-foto`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: foto, nombre: `usuario_${Date.now()}`, carpeta: 'usuarios' }),
+        });
+        const dataFoto = await resFoto.json();
+        if (dataFoto.ok) fotoUrl = dataFoto.url;
+      }
+      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, foto_cedula: fotoCedula }) });
+
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
