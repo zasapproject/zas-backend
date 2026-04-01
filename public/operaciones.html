@@ -203,7 +203,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const API = 'https://zas-backend-production-fb4e.up.railway.app';
+  const API = 'https://zasapps.com';
   let conductoresData = [];
   let conductorSeleccionado = null;
 
@@ -341,6 +341,12 @@
     const idParaActivar = conductorSeleccionado;
     cerrarModal();
     try {
+      const check = await fetch(`${API}/api/suscripciones/estado/${idParaActivar}`);
+      const estado = await check.json();
+      if (estado.activo && estado.dias_restantes > 5) {
+        mostrarToast('⚠️ Este conductor ya tiene suscripción activa (' + estado.dias_restantes + ' días restantes)');
+        return;
+      }
       const res = await fetch(`${API}/api/suscripciones/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -560,7 +566,7 @@
     if (activa === 'page-documentos') cargarDocumentos();
     if (activa === 'page-vencimientos') cargarVencimientos();
     if (activa === 'page-pagos-suscripcion') cargarPagosSuscripcion();
-  }, 30000);
+  }, 10000);
 
   if (sessionStorage.getItem('zas_admin') === 'true') cargarConductores();
 </script>
