@@ -27,10 +27,7 @@ app.get('/solicitar', (req, res) => {
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({
-    mensaje: '⚡ Servidor ZAS funcionando correctamente',
-    version: '1.0.0'
-  });
+  res.sendFile(__dirname + '/public/solicitar.html');
 });
 app.get('/api/health', async (req, res) => {
   try {
