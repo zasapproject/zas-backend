@@ -117,6 +117,11 @@
       <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
       <div class="input-group"><label>Contraseña</label><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /></div>
       <div class="input-group"><label>Email (opcional)</label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
+      <div class="input-group">
+  <label>Foto de perfil <span style="color:#ff1744">*obligatoria</span></label>
+  <input type="file" id="reg-foto" accept="image/*" capture="user" style="width:100%;background:var(--bg);border:1px solid var(--surface2);border-radius:10px;padding:12px;color:var(--text);font-size:14px;" />
+  <img id="reg-foto-preview" style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover;margin-top:8px;border:2px solid var(--gold);" />
+</div>
       <button class="btn-primary" onclick="registrarUsuario()" id="btn-registro">Crear cuenta</button>
       <div class="error-msg" id="registro-error"></div>
     </div>
@@ -208,7 +213,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://zas-backend-production-fb4e.up.railway.app';
+const API = 'https://zasapps.com';
 const GKEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 let map, pinCoord = { lat: 7.7633, lng: -72.2249 };
 let paso = 'origen';
@@ -218,6 +223,25 @@ let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
 let busquedaTimeout = null;
 let searchTimeout = null;
+let fotoBase64 = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const fotoInput = document.getElementById('reg-foto');
+  if (fotoInput) {
+    fotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        fotoBase64 = ev.target.result;
+        const preview = document.getElementById('reg-foto-preview');
+        preview.src = fotoBase64;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+});
 
 // ── UTILS ──
 function mostrarToast(msg, color='#00c853') {
@@ -278,10 +302,11 @@ async function registrarUsuario() {
   const errEl = document.getElementById('registro-error');
   if (!nombre || !tel || !pass) { errEl.textContent = 'Nombre, teléfono y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
   if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener mínimo 4 caracteres'; errEl.style.display = 'block'; return; }
+  if (!fotoBase64) { errEl.textContent = 'La foto de perfil es obligatoria'; errEl.style.display = 'block'; return; }
   setLoading('btn-registro', true, 'Crear cuenta');
   errEl.style.display = 'none';
   try {
-    const res = await fetch(`${API}/api/usuarios/registro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono: tel, password: pass, email: email || null }) });
+    const res = await fetch(`${API}/api/usuarios/registro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono: tel, password: pass, email: email || null, foto: fotoBase64 }) });
     const data = await res.json();
     if (data.ok) {
       usuarioId = data.usuario.id;

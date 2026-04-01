@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 
 type Coord = { latitude: number; longitude: number };

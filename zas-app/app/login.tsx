@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "https://zas-backend-production-fb4e.up.railway.app";
+const API_URL = "https://zasapps.com";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -88,10 +88,16 @@ export default function LoginScreen() {
 
   const registrarUsuario = async () => {
     if (!nombre || !telefono || !password) { Alert.alert("Error", "Nombre telefono y contrasena son obligatorios"); return; }
+    if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }
     if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
     if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
     setCargando(true);
     try {
+```
+
+La única línea nueva es:
+```
+if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }  try {
       const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto, foto_cedula: fotoCedula }) });
       const data = await res.json();
       if (data.ok) {

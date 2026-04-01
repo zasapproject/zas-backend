@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
-const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const API_URL = 'https://zasapps.com';
 
 export default function ConductorScreen() {
   const router = useRouter();
@@ -329,6 +329,7 @@ export default function ConductorScreen() {
               </View>
               <TouchableOpacity style={styles.boton} onPress={() => {
                 if (!regNombre || !regTelefono || !regPassword) { Alert.alert('Error', 'Todos los campos son obligatorios'); return; }
+if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
                 if (regPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
                 setPantalla('reg2');
               }}>
