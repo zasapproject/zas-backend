@@ -108,14 +108,15 @@
     </div>
     <div id="form-login">
       <div class="input-group"><label>Teléfono</label><input type="tel" id="login-tel" placeholder="04121234567" maxlength="11" /></div>
-      <div class="input-group"><label>Contraseña</label><input type="password" id="login-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()" /></div>
+      <div class="input-group"><label>Contraseña</label><div style="position:relative"><input type="password" id="login-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()" /><span onclick="togglePass('login-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span></div></div>
       <button class="btn-primary" onclick="iniciarSesion()" id="btn-login">Entrar</button>
       <div class="error-msg" id="login-error">Teléfono o contraseña incorrectos</div>
+      <p style="text-align:center;margin-top:12px"><a href="https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS" style="color:var(--gold);font-size:13px;text-decoration:none">¿Olvidaste tu contraseña?</a></p>
     </div>
     <div id="form-registro" style="display:none">
       <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre" /></div>
       <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
-      <div class="input-group"><label>Contraseña</label><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /></div>
+      <div class="input-group"><label>Contraseña</label><div style="position:relative"><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /><span onclick="togglePass('reg-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span></div></div>
       <div class="input-group"><label>Email (opcional)</label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
       <div class="input-group">
   <label>Foto de perfil <span style="color:#ff1744">*obligatoria</span></label>
@@ -223,6 +224,11 @@ let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
 let busquedaTimeout = null;
 let searchTimeout = null;
+function togglePass(id, el) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; el.textContent = '🙈'; }
+  else { inp.type = 'password'; el.textContent = '👁️'; }
+}
 let fotoBase64 = '';
 
 document.addEventListener('DOMContentLoaded', () => {
