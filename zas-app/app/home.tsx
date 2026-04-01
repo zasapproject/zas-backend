@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
-  ScrollView, Image, TextInput, Modal, Platform
+  ScrollView, Image, TextInput, Modal, Platform, BackHandler
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -73,6 +73,24 @@ export default function HomeScreen() {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
+  useEffect(() => {
+  const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+    if (viaje) {
+      BackHandler.exitApp();
+      return true;
+    }
+    if (paso === 'destino') {
+      setPaso('origen');
+      return true;
+    }
+    if (paso === 'confirmar') {
+      setPaso('destino');
+      return true;
+    }
+    return false;
+  });
+  return () => backHandler.remove();
+}, [viaje, paso]);
 
   useEffect(() => {
     if (!viaje || !usuarioId) return;

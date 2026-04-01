@@ -1,6 +1,6 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image, Modal, BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,7 +40,16 @@ export default function ConductorScreen() {
   const [regFotoAntecedentes, setRegFotoAntecedentes] = useState('');
 
   useEffect(() => { cargarSesion(); }, []);
-
+useEffect(() => {
+  const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+    if (sesion) {
+      BackHandler.exitApp();
+      return true;
+    }
+    return false;
+  });
+  return () => backHandler.remove();
+}, [sesion]);
   useEffect(() => {
     if (sesion) {
       registrarNotificaciones();
