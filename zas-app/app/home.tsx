@@ -8,7 +8,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { registrarNotificaciones } from '../notificaciones';
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 
@@ -74,6 +74,19 @@ export default function HomeScreen() {
 
   useEffect(() => { cargarSesion(); }, []);
   useEffect(() => {
+    useEffect(() => {
+    if (usuarioId) {
+      (async () => {
+        const token = await registrarNotificaciones();
+        if (token) {
+          await fetch(`${API_URL}/api/usuarios/push-token/${usuarioId}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ push_token: token })
+          });
+        }
+      })();
+    }
+  }, [usuarioId]);
   const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
     if (viaje) {
       BackHandler.exitApp();

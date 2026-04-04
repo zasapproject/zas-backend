@@ -53,7 +53,15 @@ useEffect(() => {
 }, [sesion]);
   useEffect(() => {
     if (sesion) {
-      registrarNotificaciones();
+      (async () => {
+        const token = await registrarNotificaciones();
+        if (token) {
+          await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ push_token: token })
+          });
+        }
+      })();
       verificarSuscripcion(sesion.id);
       buscarViajes();
       const intervalo = setInterval(buscarViajes, 5000);

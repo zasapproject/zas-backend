@@ -226,5 +226,22 @@ router.patch('/reset-password/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Guardar push token usuario
+// ─────────────────────────────────────────────
+router.patch('/push-token/:id', async (req, res) => {
+  const { push_token } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ push_token })
+      .eq('id', req.params.id)
+      .select('id, nombre, push_token');
 
+    if (error) throw error;
+    res.json({ ok: true, usuario: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;
