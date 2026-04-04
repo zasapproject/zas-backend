@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-const BACKEND_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const BACKEND_URL = 'https://zasapps.com';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 const POLLING_INTERVAL = 4000;
 
@@ -153,7 +153,19 @@ export default function MapaViaje() {
           if (estado === 'completado' || estado === 'cancelado') {
             if (pollingRef.current) clearInterval(pollingRef.current);
             if (locationSub.current) locationSub.current.remove();
-            Alert.alert(estado === 'completado' ? 'Viaje completado!' : 'Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
+            if (estado === 'cancelado') {
+              Alert.alert('Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
+            } else if (!esCondutor) {
+              Alert.alert('¿Cómo fue tu conductor?', 'Califica de 1 a 5 estrellas', [
+                { text: '⭐ 1', onPress: () => calificar(1) },
+                { text: '⭐⭐ 2', onPress: () => calificar(2) },
+                { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
+                { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
+                { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
+              ]);
+            } else {
+              Alert.alert('Viaje completado!', '', [{ text: 'OK', onPress: () => router.back() }]);
+            }
           }
         }
       }
@@ -212,7 +224,18 @@ async function cancelarViaje() {
     }},
   ]);
 }
-
+async function calificar(estrellas) {
+    try {
+      const idCalificar = esCondutor ? params.usuario_id : params.conductor_id;
+      const ruta = esCondutor ? 'usuarios' : 'conductores';
+      await fetch(`${BACKEND_URL}/api/${ruta}/calificar/${idCalificar}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calificacion: estrellas })
+      });
+    } catch {}
+    router.back();
+  }
 async function terminarViaje() {
   Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
     { text: 'Cancelar', style: 'cancel' },
@@ -224,7 +247,13 @@ async function terminarViaje() {
       });
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (locationSub.current) locationSub.current.remove();
-      router.back();
+      Alert.alert('¿Cómo fue el usuario?', 'Califica de 1 a 5 estrellas', [
+        { text: '⭐ 1', onPress: () => calificar(1) },
+        { text: '⭐⭐ 2', onPress: () => calificar(2) },
+        { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
+        { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
+        { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
+      ]);
     }},
   ]);
 }
