@@ -58,6 +58,8 @@ const documentosRouter = require('./routes/documentos');
 app.use('/api/documentos', documentosRouter);
 const soporteRouter = require('./routes/soporte'); // v2
 app.use('/api/soporte', soporteRouter);
+const adminRouter = require('./routes/admin');
+app.use('/api/admin', adminRouter);
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {

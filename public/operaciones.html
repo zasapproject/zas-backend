@@ -208,15 +208,34 @@
   let conductoresData = [];
   let conductorSeleccionado = null;
 
-  function verificarLogin() {
+  async function verificarLogin() {
     const user = document.getElementById('login-user').value;
     const pass = document.getElementById('login-pass').value;
-    if (user === 'AdministradorZas' && pass === 'Jmja0567204**') {
-      document.getElementById('login-overlay').style.display = 'none';
-      sessionStorage.setItem('zas_admin', 'true');
-      cargarConductores();
-    } else {
+    const btnEntrar = document.querySelector('#login-overlay button');
+    btnEntrar.textContent = 'Entrando...';
+    btnEntrar.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario: user, password: pass })
+      });
+      const data = await res.json();
+      if (data.ok && data.token) {
+        document.getElementById('login-overlay').style.display = 'none';
+        sessionStorage.setItem('zas_admin', 'true');
+        sessionStorage.setItem('zas_token', data.token);
+        cargarConductores();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+        btnEntrar.textContent = 'Entrar';
+        btnEntrar.disabled = false;
+      }
+    } catch {
+      document.getElementById('login-error').textContent = 'Error de conexión';
       document.getElementById('login-error').style.display = 'block';
+      btnEntrar.textContent = 'Entrar';
+      btnEntrar.disabled = false;
     }
   }
   document.addEventListener('keypress', e => { if (e.key === 'Enter') verificarLogin(); });
