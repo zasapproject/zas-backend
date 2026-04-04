@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const GOOGLE_KEY = 'const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 
 type Coord = { latitude: number; longitude: number };
 
