@@ -218,5 +218,47 @@ router.get('/', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Viajes solicitados cerca del conductor (5km)
+// ─────────────────────────────────────────────
+router.get('/cercanos/:lat/:lng', async (req, res) => {
+  const lat = parseFloat(req.params.lat);
+  const lng = parseFloat(req.params.lng);
+  const radioKm = 5;
 
+  if (!lat || !lng) {
+    return res.status(400).json({ ok: false, error: 'Latitud y longitud son obligatorios' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('viajes')
+      .select('*, usuarios(nombre, telefono, foto_url)')
+      .eq('estado', 'solicitado')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const viajesCercanos = data.filter(v => {
+      if (!v.origen_lat || !v.origen_lng) return true;
+      const dLat = (v.origen_lat - lat) * Math.PI / 180;
+      const dLng = (v.origen_lng - lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat * Math.PI / 180) * Math.cos(v.origen_lat * Math.PI / 180) *
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+      const distancia = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return distancia <= radioKm;
+    }).map(v => ({
+      ...v,
+      usuario_nombre: v.usuarios?.nombre || '',
+      usuario_telefono: v.usuarios?.telefono || '',
+      usuario_foto: v.usuarios?.foto_url || '',
+      usuarios: undefined,
+    }));
+
+    res.json({ ok: true, viajes: viajesCercanos, total: viajesCercanos.length });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Scr
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 const API_URL = 'https://zasapps.com';
 
@@ -60,7 +61,12 @@ useEffect(() => {
       return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
     }
   }, [sesion]);
-
+useEffect(() => { cargarSesion(); }, []);
+useEffect(() => {
+    (async () => {
+      await Location.requestForegroundPermissionsAsync();
+    })();
+  }, []);
   const cargarSesion = async () => {
     try {
       const data = await AsyncStorage.getItem('conductor_sesion');
@@ -249,7 +255,12 @@ useEffect(() => {
 
   const buscarViajes = async () => {
     try {
-      const res = await fetch(API_URL + '/api/viajes/estado/solicitado');
+      let url = API_URL + '/api/viajes/estado/solicitado';
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        url = `${API_URL}/api/viajes/cercanos/${loc.coords.latitude}/${loc.coords.longitude}`;
+      } catch {}
+      const res = await fetch(url);
       const data = await res.json();
       if (data.ok) setViajes(data.viajes || []);
     } catch {}
