@@ -32,20 +32,9 @@ router.post('/nuevo', async (req, res) => {
       }])
       .select();
 
-    if (error) throw error;
-   notificarConductoresCercanos(origen_lat, origen_lng, '🏍️ Nuevo viaje disponible', `De: ${origen} → A: ${destino}`);
-    const viaje = data[0];
-    if (estado === 'aceptado' && viaje.usuario_id) {
-      notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
-    }
-    if (estado === 'cancelado') {
-      if (conductor_id && viaje.usuario_id) notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje. Solicita otro.');
-      if (!conductor_id && viaje.conductor_id) notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
-    }
-    if (estado === 'completado' && viaje.usuario_id) {
-      notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
-    }
-    res.json({ ok: true, viaje });
+ if (error) throw error;
+    notificarConductoresCercanos(origen_lat, origen_lng, '🏍️ Nuevo viaje disponible', `De: ${origen} → A: ${destino}`);
+    res.json({ ok: true, viaje: data[0] });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -135,7 +124,18 @@ router.patch('/estado/:id', async (req, res) => {
     if (!data || data.length === 0) {
       return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
     }
-    res.json({ ok: true, viaje: data[0] });
+    const viaje = data[0];
+    if (estado === 'aceptado' && viaje.usuario_id) {
+      notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
+    }
+    if (estado === 'cancelado') {
+      if (conductor_id && viaje.usuario_id) notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje. Solicita otro.');
+      if (!conductor_id && viaje.conductor_id) notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
+    }
+    if (estado === 'completado' && viaje.usuario_id) {
+      notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
+    }
+    res.json({ ok: true, viaje });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
