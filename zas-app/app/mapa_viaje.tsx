@@ -46,13 +46,13 @@ async function obtenerRuta(origen, destino) {
 
 async function actualizarUbicacionConductor(conductorId, coords) {
   try {
-    await fetch(`${BACKEND_URL}/conductores/ubicacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conductor_id: conductorId, latitud: coords.latitude, longitud: coords.longitude }) });
+    await fetch(`${BACKEND_URL}/api/conductores/ubicacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conductor_id: conductorId, latitud: coords.latitude, longitud: coords.longitude }) });
   } catch (e) {}
 }
 
 async function obtenerUbicacionConductor(conductorId) {
   try {
-    const res = await fetch(`${BACKEND_URL}/conductores/ubicacion/${conductorId}`);
+    const res = await fetch(`${BACKEND_URL}/api/conductores/ubicacion/${conductorId}`);
     const data = await res.json();
     if (data.latitud && data.longitud) return { latitude: Number(data.latitud), longitude: Number(data.longitud) };
   } catch (e) {}
@@ -61,9 +61,9 @@ async function obtenerUbicacionConductor(conductorId) {
 
 async function obtenerEstadoViaje(viajeId) {
   try {
-    const res = await fetch(`${BACKEND_URL}/viajes/${viajeId}`);
+    const res = await fetch(`${BACKEND_URL}/api/viajes/${viajeId}`);
     const data = await res.json();
-    return data.estado || null;
+    return data.viaje?.estado || data.estado || null;
   } catch (e) {}
   return null;
 }

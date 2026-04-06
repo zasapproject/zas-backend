@@ -43,10 +43,6 @@ export default function ConductorScreen() {
   useEffect(() => { cargarSesion(); }, []);
 useEffect(() => {
   const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-    if (sesion) {
-      BackHandler.exitApp();
-      return true;
-    }
     return false;
   });
   return () => backHandler.remove();
@@ -69,7 +65,6 @@ useEffect(() => {
       return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
     }
   }, [sesion]);
-useEffect(() => { cargarSesion(); }, []);
 useEffect(() => {
     (async () => {
       await Location.requestForegroundPermissionsAsync();
