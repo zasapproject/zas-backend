@@ -86,7 +86,7 @@
     .buscando-icon { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
     .btn-cancelar { width: 100%; background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.3); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-     #viaje-mapa { width: 100%; height: 220px; border-radius: 16px; margin-bottom: 16px; overflow: hidden; display: none; } bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; display: none; white-space: nowrap; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; display: none; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -187,7 +187,6 @@
 </div>
 
 <div class="screen" id="screen-viaje">
-  <div id="viaje-mapa"></div>
   <div class="viaje-titulo" id="viaje-titulo">Buscando conductor...</div>
   <div class="viaje-sub" id="viaje-sub">ZAS está buscando el conductor más cercano</div>
   <div class="buscando" id="buscando-anim">
@@ -223,7 +222,6 @@ let coordOrigen = null, coordDestino = null;
 let nombreOrigen = '', nombreDestino = '';
 let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
-let viajeMap = null, conductorMarker = null, usuarioMarker = null;
 let busquedaTimeout = null;
 let searchTimeout = null;
 function togglePass(id, el) {
@@ -516,70 +514,6 @@ async function solicitarViaje() {
 }
 
 function mostrarViaje(v) {
-  document.getElementById('v-origen').textContent = v.origen || '—';
-  document.getElementById('v-destino').textContent = v.destino || '—';
-  document.getElementById('v-estado').textContent = (v.estado || '—').toUpperCase();
-  const esAceptado = v.estado === 'aceptado' || v.estado === 'en_curso';
-  document.getElementById('buscando-anim').style.display = esAceptado ? 'none' : 'block';
-  document.getElementById('conductor-info').style.display = esAceptado ? 'block' : 'none';
-  document.getElementById('viaje-mapa').style.display = esAceptado ? 'block' : 'none';
-  if (esAceptado) {
-    document.getElementById('viaje-titulo').textContent = v.estado === 'en_curso' ? '🏍️ Viaje en curso' : 'Conductor en camino';
-    document.getElementById('viaje-sub').textContent = v.estado === 'en_curso' ? 'El conductor está llevando al pasajero' : 'Tu conductor va hacia ti';
-    document.getElementById('c-nombre').textContent = v.conductor_nombre || 'Conductor';
-    document.getElementById('c-detalle').textContent = v.conductor_modelo && v.conductor_placa ? `${v.conductor_modelo} · ${v.conductor_placa}` : '';
-    const avatarEl = document.getElementById('c-avatar');
-    if (v.conductor_foto) {
-      avatarEl.innerHTML = `<img src="${v.conductor_foto}" alt="foto" />`;
-    } else {
-      avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
-    }
-    if (v.conductor_id) actualizarMapaViaje(v);
-  } else {
-    document.getElementById('viaje-titulo').textContent = 'Buscando conductor...';
-    document.getElementById('viaje-sub').textContent = 'ZAS está buscando el conductor más cercano';
-  }
-}
-
-async function actualizarMapaViaje(v) {
-  try {
-    const res = await fetch(`${API}/api/conductores/ubicacion/${v.conductor_id}`);
-    const data = await res.json();
-    if (!data.latitud || !data.longitud) return;
-    const condCoord = { lat: Number(data.latitud), lng: Number(data.longitud) };
-    const mapaEl = document.getElementById('viaje-mapa');
-    if (!viajeMap) {
-      viajeMap = new google.maps.Map(mapaEl, {
-        center: condCoord, zoom: 15, disableDefaultUI: true,
-        styles: [
-          { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#aaaaaa' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
-          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        ]
-      });
-    }
-    if (!conductorMarker) {
-      conductorMarker = new google.maps.Marker({
-        position: condCoord, map: viajeMap,
-        label: { text: '🏍️', fontSize: '24px' },
-        title: 'Conductor'
-      });
-    } else {
-      conductorMarker.setPosition(condCoord);
-    }
-    if (coordOrigen && !usuarioMarker) {
-      usuarioMarker = new google.maps.Marker({
-        position: { lat: coordOrigen.lat, lng: coordOrigen.lng },
-        map: viajeMap,
-        label: { text: '🧍', fontSize: '24px' },
-        title: 'Tu ubicación'
-      });
-    }
-    viajeMap.setCenter(condCoord);
-  } catch {}
-}
   document.getElementById('v-origen').textContent = v.origen || '—';
   document.getElementById('v-destino').textContent = v.destino || '—';
   document.getElementById('v-estado').textContent = (v.estado || '—').toUpperCase();
