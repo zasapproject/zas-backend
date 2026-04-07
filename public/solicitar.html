@@ -187,6 +187,7 @@
 </div>
 
 <div class="screen" id="screen-viaje">
+  <div id="viaje-mapa" style="width:100%;height:220px;border-radius:16px;margin-bottom:16px;display:none;"></div>
   <div class="viaje-titulo" id="viaje-titulo">Buscando conductor...</div>
   <div class="viaje-sub" id="viaje-sub">ZAS está buscando el conductor más cercano</div>
   <div class="buscando" id="buscando-anim">
@@ -222,7 +223,7 @@ let coordOrigen = null, coordDestino = null;
 let nombreOrigen = '', nombreDestino = '';
 let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
-let conductorMarker = null;
+let conductorMarker = null, viajeMap = null;
 let busquedaTimeout = null;
 let searchTimeout = null;
 function togglePass(id, el) {
@@ -576,17 +577,28 @@ async function actualizarConductorEnMapa(conductorId) {
     const data = await res.json();
     if (!data.latitud || !data.longitud) return;
     const pos = { lat: Number(data.latitud), lng: Number(data.longitud) };
+    const mapaEl = document.getElementById('viaje-mapa');
+    mapaEl.style.display = 'block';
+    if (!viajeMap) {
+      viajeMap = new google.maps.Map(mapaEl, {
+        center: pos, zoom: 15, disableDefaultUI: true,
+        styles: [
+          { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#aaaaaa' }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
+        ]
+      });
+    }
     if (!conductorMarker) {
       conductorMarker = new google.maps.Marker({
-        position: pos,
-        map: map,
-        title: 'Conductor',
-        icon: { url: 'https://maps.google.com/mapfiles/ms/icons/motorcycling.png', scaledSize: new google.maps.Size(40, 40) }
+        position: pos, map: viajeMap, title: 'Conductor',
+        label: { text: '🏍️', fontSize: '24px', color: '#FFD700' }
       });
     } else {
       conductorMarker.setPosition(pos);
     }
-    map.panTo(pos);
+    viajeMap.panTo(pos);
   } catch {}
 }
 async function cancelarViaje() {
@@ -599,6 +611,9 @@ async function cancelarViaje() {
   } catch {}
   if (pollingInterval) clearInterval(pollingInterval);
   viajeActivo = null;
+  conductorMarker = null;
+viajeMap = null;
+document.getElementById('viaje-mapa').style.display = 'none';
   paso = 'origen';
   coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = '';
