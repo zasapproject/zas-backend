@@ -58,6 +58,8 @@ const documentosRouter = require('./routes/documentos');
 app.use('/api/documentos', documentosRouter);
 const soporteRouter = require('./routes/soporte'); // v2
 app.use('/api/soporte', soporteRouter);
+const tarifasRouter = require('./routes/tarifas');
+app.use('/api/tarifas', tarifasRouter);
 const adminRouter = require('./routes/admin');
 app.use('/api/admin', adminRouter);
 // Iniciar en el puerto 3000
