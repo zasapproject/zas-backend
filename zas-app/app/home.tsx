@@ -10,9 +10,17 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
+const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc2nncTMor2988Q';
 
 type Coord = { latitude: number; longitude: number };
+
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 async function geocodificarInverso(lat: number, lng: number): Promise<string> {
   try {
@@ -41,6 +49,22 @@ async function buscarDireccion(texto: string): Promise<{ description: string; la
   } catch { return []; }
 }
 
+async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: number; tipo: string; municipio: string | null }> {
+  const distancia_km = haversine(origen.latitude, origen.longitude, destino.latitude, destino.longitude);
+  try {
+    const res = await fetch(
+      `${API_URL}/api/tarifas/calcular?lat=${origen.latitude}&lng=${origen.longitude}&distancia_km=${distancia_km.toFixed(2)}`
+    );
+    const data = await res.json();
+    if (data.ok) {
+      return { precio: data.precio, tipo: data.tipo, municipio: data.municipio };
+    }
+  } catch (e) {}
+  // Fallback si falla el endpoint
+  const precioFallback = Math.max(3000, Math.round(distancia_km * 800));
+  return { precio: precioFallback, tipo: 'fallback', municipio: null };
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
@@ -64,6 +88,12 @@ export default function HomeScreen() {
   const [textoBusqueda, setTextoBusqueda] = useState('');
   const [sugerencias, setSugerencias] = useState<any[]>([]);
   const [buscando, setBuscando] = useState(false);
+
+  // ── Precio dinámico ──
+  const [precioCalculado, setPrecioCalculado] = useState<number>(0);
+  const [tipoTarifa, setTipoTarifa] = useState<string>('');
+  const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
+  const [calculandoPrecio, setCalculandoPrecio] = useState(false);
 
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [editandoPerfil, setEditandoPerfil] = useState(false);
@@ -171,7 +201,15 @@ export default function HomeScreen() {
       setTextoBusqueda(''); setSugerencias([]); setPaso('destino');
     } else {
       setCoordDestino(pinCoord); setNombreDestino(nombre);
-      setTextoBusqueda(''); setSugerencias([]); setPaso('confirmar');
+      setTextoBusqueda(''); setSugerencias([]);
+      // Calcular precio antes de mostrar confirmación
+      setCalculandoPrecio(true);
+      setPaso('confirmar');
+      const resultado = await calcularPrecio(coordOrigen!, pinCoord);
+      setPrecioCalculado(resultado.precio);
+      setTipoTarifa(resultado.tipo);
+      setMunicipioTarifa(resultado.municipio);
+      setCalculandoPrecio(false);
     }
   };
 
@@ -187,22 +225,33 @@ export default function HomeScreen() {
     }, 600);
   };
 
-  const seleccionarSugerencia = (sug: any) => {
+  const seleccionarSugerencia = async (sug: any) => {
     const coords = { latitude: sug.lat, longitude: sug.lng };
     setPinCoord(coords);
     setRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 });
     setSugerencias([]); setTextoBusqueda('');
-    if (paso === 'origen') { setCoordOrigen(coords); setNombreOrigen(sug.description); setPaso('destino'); }
-    else { setCoordDestino(coords); setNombreDestino(sug.description); setPaso('confirmar'); }
+    if (paso === 'origen') {
+      setCoordOrigen(coords); setNombreOrigen(sug.description); setPaso('destino');
+    } else {
+      setCoordDestino(coords); setNombreDestino(sug.description);
+      // Calcular precio antes de mostrar confirmación
+      setCalculandoPrecio(true);
+      setPaso('confirmar');
+      const resultado = await calcularPrecio(coordOrigen!, coords);
+      setPrecioCalculado(resultado.precio);
+      setTipoTarifa(resultado.tipo);
+      setMunicipioTarifa(resultado.municipio);
+      setCalculandoPrecio(false);
+    }
   };
 
   const solicitarViaje = async () => {
-    if (!coordOrigen || !coordDestino) return;
+    if (!coordOrigen || !coordDestino || !precioCalculado) return;
     setCargando(true);
     try {
       const res = await fetch(`${API_URL}/api/viajes/nuevo`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: usuarioId, origen: nombreOrigen, destino: nombreDestino, origen_lat: coordOrigen.latitude, origen_lng: coordOrigen.longitude, destino_lat: coordDestino.latitude, destino_lng: coordDestino.longitude, precio: 4000 }),
+        body: JSON.stringify({ usuario_id: usuarioId, origen: nombreOrigen, destino: nombreDestino, origen_lat: coordOrigen.latitude, origen_lng: coordOrigen.longitude, destino_lat: coordDestino.latitude, destino_lng: coordDestino.longitude, precio: precioCalculado }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -217,6 +266,7 @@ export default function HomeScreen() {
   const reiniciarFlujo = () => {
     setPaso('origen'); setCoordOrigen(null); setCoordDestino(null);
     setNombreOrigen(''); setNombreDestino(''); setTextoBusqueda(''); setSugerencias([]);
+    setPrecioCalculado(0); setTipoTarifa(''); setMunicipioTarifa(null);
   };
 
   const cancelarViaje = async () => {
@@ -284,6 +334,10 @@ export default function HomeScreen() {
     finally { setGuardando(false); }
   };
 
+  const formatearPrecio = (precio: number) => {
+    return '$' + precio.toLocaleString('es-CO') + ' COP';
+  };
+
   const ModalPerfil = () => (
     <Modal visible={editandoPerfil} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
@@ -326,6 +380,7 @@ export default function HomeScreen() {
           <View style={styles.viajeInfo}>
             <Text style={styles.viajeLabel}>Desde</Text><Text style={styles.viajeValor}>{viaje.origen}</Text>
             <Text style={styles.viajeLabel}>Hasta</Text><Text style={styles.viajeValor}>{viaje.destino}</Text>
+            <Text style={styles.viajeLabel}>Precio</Text><Text style={[styles.viajeEstado, { color: '#FFD700' }]}>{viaje.precio ? formatearPrecio(Number(viaje.precio)) : '—'}</Text>
             <Text style={styles.viajeLabel}>Estado</Text><Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
@@ -354,7 +409,15 @@ export default function HomeScreen() {
           <View style={styles.viajeInfo}>
             <Text style={styles.viajeLabel}>Origen</Text><Text style={styles.viajeValor}>{nombreOrigen}</Text>
             <Text style={styles.viajeLabel}>Destino</Text><Text style={styles.viajeValor}>{nombreDestino}</Text>
-            <Text style={styles.viajeLabel}>Precio estimado</Text><Text style={[styles.viajeEstado, { color: '#FFD700' }]}>$4.000 COP</Text>
+            <Text style={styles.viajeLabel}>Precio estimado</Text>
+            {calculandoPrecio ? (
+              <ActivityIndicator color="#FFD700" style={{ marginTop: 8 }} />
+            ) : (
+              <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 22 }]}>{formatearPrecio(precioCalculado)}</Text>
+            )}
+            {municipioTarifa ? (
+              <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text>
+            ) : null}
           </View>
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
@@ -363,7 +426,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={[styles.pagoBoton, metodoPago === 'tarjeta' && styles.pagoBotonActivo]} onPress={() => setMetodoPago('tarjeta')}><Text style={[styles.pagoTexto, metodoPago === 'tarjeta' && styles.pagoTextoActivo]}>Tarjeta</Text></TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={styles.boton} onPress={solicitarViaje} disabled={cargando}>
+          <TouchableOpacity style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]} onPress={solicitarViaje} disabled={cargando || calculandoPrecio || !precioCalculado}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>⚡ Solicitar ZAS</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}><Text style={styles.botonCancelarTexto}>Cambiar ruta</Text></TouchableOpacity>
