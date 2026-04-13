@@ -18,7 +18,7 @@
     .logo { padding: 0 24px 32px; border-bottom: 1px solid var(--border); }
     .logo-text { font-size: 28px; font-weight: 800; color: var(--gold); letter-spacing: -1px; }
     .logo-sub { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; }
-    .nav { padding: 24px 0; flex: 1; }
+    .nav { padding: 24px 0; flex: 1; overflow-y: auto; }
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 600; transition: all 0.2s; border-left: 3px solid transparent; }
     .nav-item:hover { color: var(--text); background: var(--surface2); }
     .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(255,215,0,0.05); }
@@ -73,7 +73,7 @@
     .empty-text { font-size: 16px; font-weight: 600; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
     .modal-overlay.show { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 400px; animation: modalIn 0.2s ease; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 400px; animation: modalIn 0.2s ease; max-height: 90vh; overflow-y: auto; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
     .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
@@ -95,6 +95,32 @@
     .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; align-items: center; justify-content: center; cursor: pointer; }
     .lightbox.show { display: flex; }
     .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+    /* Tarifas form styles */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-family: 'Space Mono', monospace; }
+    .form-group input, .form-group select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--gold); }
+    .form-group select { cursor: pointer; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tarifa-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 12px; transition: border-color 0.2s; }
+    .tarifa-card:hover { border-color: var(--gold); }
+    .tarifa-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .tarifa-card-name { font-size: 18px; font-weight: 700; }
+    .tarifa-card-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Space Mono', monospace; }
+    .tarifa-card-badge.fija { background: rgba(0,230,118,0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+    .tarifa-card-badge.dinamica { background: rgba(255,215,0,0.1); color: var(--gold); border: 1px solid rgba(255,215,0,0.3); }
+    .tarifa-card-badge.inactivo { background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.3); }
+    .tarifa-card-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .tarifa-stat { background: var(--surface2); border-radius: 8px; padding: 10px; }
+    .tarifa-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-family: 'Space Mono', monospace; }
+    .tarifa-stat-value { font-size: 16px; font-weight: 700; color: var(--gold); margin-top: 2px; }
+    .tarifa-card-actions { display: flex; gap: 8px; }
+    .btn-edit { background: var(--surface2); color: var(--gold); border: 1px solid var(--gold); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.2s; }
+    .btn-edit:hover { background: rgba(255,215,0,0.1); }
+    .btn-delete { background: var(--surface2); color: var(--red); border: 1px solid var(--red); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.2s; }
+    .btn-delete:hover { background: rgba(255,23,68,0.1); }
+    .btn-toggle { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.2s; }
+    .btn-toggle:hover { border-color: var(--text); color: var(--text); }
   </style>
 </head>
 <body>
@@ -119,6 +145,7 @@
     <div class="nav-item active" onclick="showPage('conductores', this)"><span class="nav-icon">🏍️</span> Conductores</div>
     <div class="nav-item" onclick="showPage('viajes', this)"><span class="nav-icon">🗺️</span> Viajes</div>
     <div class="nav-item" onclick="showPage('usuarios', this)"><span class="nav-icon">👤</span> Usuarios</div>
+    <div class="nav-item" onclick="showPage('tarifas', this)"><span class="nav-icon">💲</span> Tarifas</div>
     <div class="nav-item" onclick="showPage('documentos', this)"><span class="nav-icon">📋</span> Documentos</div>
     <div class="nav-item" onclick="showPage('vencimientos', this)"><span class="nav-icon">⚠️</span> Vencimientos</div>
     <div class="nav-item" onclick="showPage('pagos-suscripcion', this)"><span class="nav-icon">💰</span> Pagos Suscripción</div>
@@ -129,6 +156,7 @@
 </div>
 
 <main class="main">
+  <!-- ═══ CONDUCTORES ═══ -->
   <div class="page active" id="page-conductores">
     <div class="topbar">
       <div class="page-title">Condu<span>ctores</span></div>
@@ -148,6 +176,7 @@
     </div>
   </div>
 
+  <!-- ═══ VIAJES ═══ -->
   <div class="page" id="page-viajes">
     <div class="topbar"><div class="page-title">Via<span>jes</span></div><button class="refresh-btn" onclick="cargarViajes()">↻ Actualizar</button></div>
     <div class="table-container">
@@ -156,32 +185,55 @@
     </div>
   </div>
 
+  <!-- ═══ USUARIOS ═══ -->
   <div class="page" id="page-usuarios">
     <div class="topbar"><div class="page-title">Usua<span>rios</span></div><button class="refresh-btn" onclick="cargarUsuarios()">↻ Actualizar</button></div>
     <div id="lista-usuarios" style="padding:4px"></div>
   </div>
 
+  <!-- ═══ TARIFAS ═══ -->
+  <div class="page" id="page-tarifas">
+    <div class="topbar">
+      <div class="page-title">Tari<span>fas</span></div>
+      <div style="display:flex;gap:12px">
+        <button class="refresh-btn" onclick="cargarTarifas()">↻ Actualizar</button>
+        <button class="btn-activar" style="padding:10px 20px;font-size:13px" onclick="abrirModalTarifa()">+ Nuevo municipio</button>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card gold"><div class="stat-label">Municipios</div><div class="stat-value" id="stat-municipios">—</div></div>
+      <div class="stat-card green"><div class="stat-label">Activos</div><div class="stat-value" id="stat-mun-activos">—</div></div>
+      <div class="stat-card red"><div class="stat-label">Inactivos</div><div class="stat-value" id="stat-mun-inactivos">—</div></div>
+    </div>
+    <div id="lista-tarifas"><div class="loading"><div class="spinner"></div>Cargando tarifas...</div></div>
+  </div>
+
+  <!-- ═══ DOCUMENTOS ═══ -->
   <div class="page" id="page-documentos">
     <div class="topbar"><div class="page-title">Docu<span>mentos</span></div><button class="refresh-btn" onclick="cargarDocumentos()">↻ Actualizar</button></div>
     <div id="lista-documentos"></div>
   </div>
 
+  <!-- ═══ VENCIMIENTOS ═══ -->
   <div class="page" id="page-vencimientos">
     <div class="topbar"><div class="page-title">Venci<span>mientos</span></div><button class="refresh-btn" onclick="cargarVencimientos()">↻ Actualizar</button></div>
     <div id="lista-vencimientos"></div>
   </div>
 
+  <!-- ═══ PAGOS SUSCRIPCIÓN ═══ -->
   <div class="page" id="page-pagos-suscripcion">
     <div class="topbar"><div class="page-title">Pagos <span>Suscripción</span></div><button class="refresh-btn" onclick="cargarPagosSuscripcion()">↻ Actualizar</button></div>
     <div id="lista-pagos-suscripcion"></div>
   </div>
 
+  <!-- ═══ SOPORTE ═══ -->
   <div class="page" id="page-soporte">
     <div class="topbar"><div class="page-title">Sop<span>orte</span></div><button class="refresh-btn" onclick="cargarSoporte()">↻ Actualizar</button></div>
     <div id="lista-soporte"></div>
   </div>
 </main>
 
+<!-- Modal Suscripción -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-title">⚡ Activar Suscripción</div>
@@ -198,6 +250,64 @@
   </div>
 </div>
 
+<!-- Modal Tarifa -->
+<div class="modal-overlay" id="modal-tarifa">
+  <div class="modal" style="width:480px">
+    <div class="modal-title" id="modal-tarifa-titulo">💲 Nuevo Municipio</div>
+    <div class="modal-sub">Configura la tarifa para este municipio</div>
+    <input type="hidden" id="tarifa-id" />
+    <div class="form-group">
+      <label>Nombre del municipio</label>
+      <input type="text" id="tarifa-municipio" placeholder="Ej: San Cristóbal" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Latitud centro</label>
+        <input type="number" step="any" id="tarifa-lat" placeholder="7.7633" />
+      </div>
+      <div class="form-group">
+        <label>Longitud centro</label>
+        <input type="number" step="any" id="tarifa-lng" placeholder="-72.2249" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Radio (km)</label>
+        <input type="number" step="0.1" id="tarifa-radio" placeholder="5" />
+      </div>
+      <div class="form-group">
+        <label>Tipo de tarifa</label>
+        <select id="tarifa-tipo" onchange="toggleCamposTarifa()">
+          <option value="fija">Fija</option>
+          <option value="dinamica">Dinámica (por km)</option>
+        </select>
+      </div>
+    </div>
+    <div id="campos-fija">
+      <div class="form-group">
+        <label>Tarifa fija (COP)</label>
+        <input type="number" id="tarifa-fija" placeholder="4000" />
+      </div>
+    </div>
+    <div id="campos-dinamica" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tarifa base (COP)</label>
+          <input type="number" id="tarifa-base" placeholder="3000" />
+        </div>
+        <div class="form-group">
+          <label>Tarifa por km (COP)</label>
+          <input type="number" id="tarifa-por-km" placeholder="800" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:24px">
+      <button class="btn-cancel" onclick="cerrarModalTarifa()">Cancelar</button>
+      <button class="btn-confirm" onclick="guardarTarifa()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
   <img id="lightbox-img" src="" alt="Documento" />
 </div>
@@ -207,6 +317,7 @@
   const API = 'https://zasapps.com';
   let conductoresData = [];
   let conductorSeleccionado = null;
+  let tarifasData = [];
 
   async function verificarLogin() {
     const user = document.getElementById('login-user').value;
@@ -251,6 +362,7 @@
     if (page === 'conductores') cargarConductores();
     if (page === 'viajes') cargarViajes();
     if (page === 'usuarios') cargarUsuarios();
+    if (page === 'tarifas') cargarTarifas();
     if (page === 'documentos') cargarDocumentos();
     if (page === 'vencimientos') cargarVencimientos();
     if (page === 'pagos-suscripcion') cargarPagosSuscripcion();
@@ -305,6 +417,9 @@
     return `<div><p style="color:#aaa;font-size:12px;margin:0 0 4px">${label}</p><img src="${url}" onclick="abrirLightbox('${url}')" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"></div>`;
   }
 
+  // ═══════════════════════════════════════════
+  // CONDUCTORES
+  // ═══════════════════════════════════════════
   async function cargarConductores() {
     document.getElementById('conductores-table').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando conductores...</div>`;
     try {
@@ -380,6 +495,176 @@
 
   document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
 
+  // ═══════════════════════════════════════════
+  // TARIFAS
+  // ═══════════════════════════════════════════
+  function toggleCamposTarifa() {
+    const tipo = document.getElementById('tarifa-tipo').value;
+    document.getElementById('campos-fija').style.display = tipo === 'fija' ? 'block' : 'none';
+    document.getElementById('campos-dinamica').style.display = tipo === 'dinamica' ? 'block' : 'none';
+  }
+
+  function abrirModalTarifa(municipio) {
+    document.getElementById('tarifa-id').value = '';
+    document.getElementById('tarifa-municipio').value = '';
+    document.getElementById('tarifa-lat').value = '';
+    document.getElementById('tarifa-lng').value = '';
+    document.getElementById('tarifa-radio').value = '';
+    document.getElementById('tarifa-tipo').value = 'fija';
+    document.getElementById('tarifa-fija').value = '';
+    document.getElementById('tarifa-base').value = '';
+    document.getElementById('tarifa-por-km').value = '';
+    document.getElementById('modal-tarifa-titulo').textContent = '💲 Nuevo Municipio';
+
+    if (municipio) {
+      document.getElementById('modal-tarifa-titulo').textContent = '✏️ Editar: ' + municipio.municipio;
+      document.getElementById('tarifa-id').value = municipio.id;
+      document.getElementById('tarifa-municipio').value = municipio.municipio || '';
+      document.getElementById('tarifa-lat').value = municipio.lat_centro || '';
+      document.getElementById('tarifa-lng').value = municipio.lng_centro || '';
+      document.getElementById('tarifa-radio').value = municipio.radio_km || '';
+      document.getElementById('tarifa-tipo').value = municipio.tipo || 'fija';
+      document.getElementById('tarifa-fija').value = municipio.tarifa_fija || '';
+      document.getElementById('tarifa-base').value = municipio.tarifa_base || '';
+      document.getElementById('tarifa-por-km').value = municipio.tarifa_por_km || '';
+    }
+    toggleCamposTarifa();
+    document.getElementById('modal-tarifa').classList.add('show');
+  }
+
+  function cerrarModalTarifa() {
+    document.getElementById('modal-tarifa').classList.remove('show');
+  }
+
+  document.getElementById('modal-tarifa').addEventListener('click', function(e) { if (e.target === this) cerrarModalTarifa(); });
+
+  async function guardarTarifa() {
+    const id = document.getElementById('tarifa-id').value;
+    const municipio = document.getElementById('tarifa-municipio').value.trim();
+    const lat = parseFloat(document.getElementById('tarifa-lat').value);
+    const lng = parseFloat(document.getElementById('tarifa-lng').value);
+    const radio = parseFloat(document.getElementById('tarifa-radio').value);
+    const tipo = document.getElementById('tarifa-tipo').value;
+
+    if (!municipio || isNaN(lat) || isNaN(lng) || isNaN(radio)) {
+      mostrarToast('⚠️ Completa todos los campos obligatorios');
+      return;
+    }
+
+    const payload = {
+      municipio, lat_centro: lat, lng_centro: lng, radio_km: radio, tipo, activo: true,
+      tarifa_fija: tipo === 'fija' ? parseInt(document.getElementById('tarifa-fija').value) || 0 : null,
+      tarifa_base: tipo === 'dinamica' ? parseInt(document.getElementById('tarifa-base').value) || 0 : null,
+      tarifa_por_km: tipo === 'dinamica' ? parseInt(document.getElementById('tarifa-por-km').value) || 0 : null
+    };
+
+    try {
+      let res;
+      if (id) {
+        res = await fetch(`${API}/api/tarifas/municipios/${id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(`${API}/api/tarifas/municipios`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+      }
+      const data = await res.json();
+      if (data.ok) {
+        mostrarToast(id ? '✅ Municipio actualizado' : '✅ Municipio creado');
+        cerrarModalTarifa();
+        cargarTarifas();
+      } else {
+        mostrarToast('❌ ' + (data.error || 'Error al guardar'));
+      }
+    } catch { mostrarToast('❌ Error de conexión'); }
+  }
+
+  async function toggleActivoTarifa(id, activo) {
+    try {
+      const res = await fetch(`${API}/api/tarifas/municipios/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !activo })
+      });
+      const data = await res.json();
+      if (data.ok) { mostrarToast(activo ? '⏸️ Municipio desactivado' : '✅ Municipio activado'); cargarTarifas(); }
+    } catch { mostrarToast('❌ Error de conexión'); }
+  }
+
+  async function eliminarTarifa(id, nombre) {
+    if (!confirm('¿Eliminar la tarifa de ' + nombre + '? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetch(`${API}/api/tarifas/municipios/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) { mostrarToast('🗑️ Municipio eliminado'); cargarTarifas(); }
+      else mostrarToast('❌ ' + (data.error || 'Error al eliminar'));
+    } catch { mostrarToast('❌ Error de conexión'); }
+  }
+
+  async function cargarTarifas() {
+    const lista = document.getElementById('lista-tarifas');
+    lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando tarifas...</div>`;
+    try {
+      const res = await fetch(`${API}/api/tarifas/municipios`);
+      const data = await res.json();
+      tarifasData = data.municipios || [];
+      const activos = tarifasData.filter(m => m.activo).length;
+      document.getElementById('stat-municipios').textContent = tarifasData.length;
+      document.getElementById('stat-mun-activos').textContent = activos;
+      document.getElementById('stat-mun-inactivos').textContent = tarifasData.length - activos;
+
+      if (!tarifasData.length) {
+        lista.innerHTML = `<div class="empty"><div class="empty-icon">💲</div><div class="empty-text">No hay municipios configurados</div><p style="color:var(--muted);margin-top:8px">Agrega el primer municipio con el botón de arriba</p></div>`;
+        return;
+      }
+
+      lista.innerHTML = tarifasData.map(m => `
+        <div class="tarifa-card" style="${!m.activo?'opacity:0.6':''}">
+          <div class="tarifa-card-header">
+            <div class="tarifa-card-name">📍 ${m.municipio}</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="tarifa-card-badge ${!m.activo?'inactivo':m.tipo}">${!m.activo?'INACTIVO':m.tipo.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="tarifa-card-stats">
+            <div class="tarifa-stat">
+              <div class="tarifa-stat-label">Centro</div>
+              <div class="tarifa-stat-value" style="font-size:12px;font-family:'Space Mono',monospace">${m.lat_centro?.toFixed(4)}, ${m.lng_centro?.toFixed(4)}</div>
+            </div>
+            <div class="tarifa-stat">
+              <div class="tarifa-stat-label">Radio</div>
+              <div class="tarifa-stat-value">${m.radio_km} km</div>
+            </div>
+            ${m.tipo === 'fija' ? `
+              <div class="tarifa-stat">
+                <div class="tarifa-stat-label">Tarifa fija</div>
+                <div class="tarifa-stat-value">$${Number(m.tarifa_fija||0).toLocaleString()}</div>
+              </div>
+            ` : `
+              <div class="tarifa-stat">
+                <div class="tarifa-stat-label">Base</div>
+                <div class="tarifa-stat-value">$${Number(m.tarifa_base||0).toLocaleString()}</div>
+              </div>
+              <div class="tarifa-stat">
+                <div class="tarifa-stat-label">Por km</div>
+                <div class="tarifa-stat-value">$${Number(m.tarifa_por_km||0).toLocaleString()}</div>
+              </div>
+            `}
+          </div>
+          <div class="tarifa-card-actions">
+            <button class="btn-edit" onclick='abrirModalTarifa(${JSON.stringify(m).replace(/'/g,"&#39;")})'>✏️ Editar</button>
+            <button class="btn-toggle" onclick="toggleActivoTarifa('${m.id}',${m.activo})">${m.activo?'⏸️ Desactivar':'▶️ Activar'}</button>
+            <button class="btn-delete" onclick="eliminarTarifa('${m.id}','${m.municipio.replace(/'/g,"\\'")}')">🗑️ Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+      actualizarTimestamp();
+    } catch { lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar tarifas</div></div>`; }
+  }
+
+  // ═══════════════════════════════════════════
+  // VIAJES
+  // ═══════════════════════════════════════════
   async function cargarViajes() {
     document.getElementById('viajes-table').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando viajes...</div>`;
     try {
@@ -405,6 +690,9 @@
     } catch { document.getElementById('viajes-table').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
   }
 
+  // ═══════════════════════════════════════════
+  // USUARIOS
+  // ═══════════════════════════════════════════
   async function cargarUsuarios() {
     const lista = document.getElementById('lista-usuarios');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando usuarios...</div>`;
@@ -431,6 +719,9 @@
     } catch { lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
   }
 
+  // ═══════════════════════════════════════════
+  // DOCUMENTOS
+  // ═══════════════════════════════════════════
   async function cargarDocumentos() {
     const lista = document.getElementById('lista-documentos');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando documentos...</div>`;
@@ -470,6 +761,9 @@
     } catch { mostrarToast('❌ Error de conexión'); }
   }
 
+  // ═══════════════════════════════════════════
+  // VENCIMIENTOS
+  // ═══════════════════════════════════════════
   async function cargarVencimientos() {
     const lista = document.getElementById('lista-vencimientos');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando...</div>`;
@@ -496,6 +790,9 @@
     } catch { mostrarToast('❌ Error de conexión'); }
   }
 
+  // ═══════════════════════════════════════════
+  // PAGOS SUSCRIPCIÓN
+  // ═══════════════════════════════════════════
   async function cargarPagosSuscripcion() {
     const lista = document.getElementById('lista-pagos-suscripcion');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando pagos...</div>`;
@@ -521,6 +818,9 @@
     } catch { lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
   }
 
+  // ═══════════════════════════════════════════
+  // SOPORTE
+  // ═══════════════════════════════════════════
   async function cargarSoporte() {
     const lista = document.getElementById('lista-soporte');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando mensajes...</div>`;
@@ -555,6 +855,9 @@
     } catch { mostrarToast('❌ Error de conexión'); }
   }
 
+  // ═══════════════════════════════════════════
+  // RESET PASSWORD
+  // ═══════════════════════════════════════════
   async function resetPasswordUsuario(id, nombre) {
     const nueva = prompt('Nueva contraseña para ' + nombre + ':');
     if (!nueva || nueva.length < 4) { alert('Mínimo 4 caracteres'); return; }
@@ -577,6 +880,9 @@
     } catch { mostrarToast('❌ Error de conexión'); }
   }
 
+  // ═══════════════════════════════════════════
+  // AUTO-REFRESH
+  // ═══════════════════════════════════════════
   setInterval(() => {
     const activa = document.querySelector('.page.active')?.id;
     if (activa === 'page-conductores') cargarConductores();

@@ -20,6 +20,9 @@ app.use(express.static('public'));
 app.get('/solicitar', (req, res) => {
   res.sendFile(__dirname + '/public/solicitar.html');
 });
+app.get('/privacidad', (req, res) => {
+  res.sendFile(__dirname + '/public/privacidad.html');
+});
 
 
 
@@ -60,8 +63,8 @@ const soporteRouter = require('./routes/soporte'); // v2
 app.use('/api/soporte', soporteRouter);
 const tarifasRouter = require('./routes/tarifas');
 app.use('/api/tarifas', tarifasRouter);
-const adminRouter = require('./routes/admin');
-app.use('/api/admin', adminRouter);
+const authAdmin = require('./middleware/authAdmin');
+app.use('/api/admin', authAdmin, adminRouter);
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {

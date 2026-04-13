@@ -70,6 +70,7 @@
     .val { font-size: 14px; }
     .precio-row { display: flex; justify-content: space-between; align-items: center; }
     .precio-num { color: var(--gold); font-size: 26px; font-weight: 700; }
+    .precio-municipio { color: var(--muted); font-size: 12px; margin-top: 4px; }
     .pago-ops { display: flex; gap: 10px; margin-top: 12px; }
     .pago-op { flex: 1; padding: 12px; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
     .pago-op.active { border-color: var(--gold); color: var(--gold); }
@@ -164,7 +165,6 @@
 <div class="screen" id="screen-confirmar">
   <div class="confirmar-header">
     <button class="btn-back" onclick="volverAlMapa()">←</button>
-    
     <div style="font-size:22px;font-weight:700">Confirma tu viaje</div>
   </div>
   <div class="card">
@@ -172,9 +172,12 @@
     <div class="ruta-linea"></div>
     <div class="ruta-punto"><div class="ruta-dot d"></div><div><div class="lbl">Destino</div><div class="val" id="conf-destino">—</div></div></div>
   </div>
-  <div class="card precio-row">
-    <div style="color:var(--muted);font-size:14px">Precio del viaje</div>
-    <div class="precio-num">$4.000 COP</div>
+  <div class="card">
+    <div class="precio-row">
+      <div style="color:var(--muted);font-size:14px">Precio del viaje</div>
+      <div class="precio-num" id="conf-precio">Calculando...</div>
+    </div>
+    <div class="precio-municipio" id="conf-municipio"></div>
   </div>
   <div class="card">
     <div class="lbl">Método de pago</div>
@@ -183,7 +186,7 @@
       <div class="pago-op" onclick="selectPago('transferencia',this)">💳 Transferencia</div>
     </div>
   </div>
-  <button class="btn-primary" onclick="solicitarViaje()" id="btn-solicitar">⚡ Solicitar ZAS</button>
+  <button class="btn-primary" onclick="solicitarViaje()" id="btn-solicitar" disabled>⚡ Solicitar ZAS</button>
 </div>
 
 <div class="screen" id="screen-viaje">
@@ -207,6 +210,7 @@
   <div class="card">
     <div class="lbl">Desde</div><div class="val" id="v-origen">—</div>
     <div class="lbl" style="margin-top:10px">Hasta</div><div class="val" id="v-destino">—</div>
+    <div class="lbl" style="margin-top:10px">Precio</div><div style="color:var(--gold);font-size:15px;font-weight:700" id="v-precio">—</div>
     <div class="lbl" style="margin-top:10px">Estado</div><div style="color:var(--gold);font-size:15px;font-weight:700" id="v-estado">—</div>
   </div>
   <button class="btn-cancelar" onclick="cancelarViaje()">Cancelar viaje</button>
@@ -226,6 +230,8 @@ let viajeActivo = null, pollingInterval = null;
 let conductorMarker = null, viajeMap = null;
 let busquedaTimeout = null;
 let searchTimeout = null;
+let precioCalculado = 0;
+
 function togglePass(id, el) {
   const inp = document.getElementById(id);
   if (inp.type === 'password') { inp.type = 'text'; el.textContent = '🙈'; }
@@ -252,6 +258,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── UTILS ──
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function formatearPrecio(precio) {
+  return '$' + Number(precio).toLocaleString('es-CO') + ' COP';
+}
+
 function mostrarToast(msg, color='#00c853') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -270,6 +288,33 @@ function setLoading(btnId, loading, texto) {
   const btn = document.getElementById(btnId);
   btn.disabled = loading;
   btn.textContent = loading ? 'Cargando...' : texto;
+}
+
+// ── CALCULAR PRECIO ──
+async function calcularPrecioViaje() {
+  if (!coordOrigen || !coordDestino) return;
+  const distKm = haversineKm(coordOrigen.lat, coordOrigen.lng, coordDestino.lat, coordDestino.lng);
+  document.getElementById('conf-precio').textContent = 'Calculando...';
+  document.getElementById('conf-municipio').textContent = '';
+  document.getElementById('btn-solicitar').disabled = true;
+  try {
+    const res = await fetch(`${API}/api/tarifas/calcular?lat=${coordOrigen.lat}&lng=${coordOrigen.lng}&distancia_km=${distKm.toFixed(2)}`);
+    const data = await res.json();
+    if (data.ok) {
+      precioCalculado = data.precio;
+      document.getElementById('conf-precio').textContent = formatearPrecio(data.precio);
+      if (data.municipio) {
+        document.getElementById('conf-municipio').textContent = 'Tarifa ' + data.tipo + ' — ' + data.municipio;
+      }
+    } else {
+      precioCalculado = Math.max(3000, Math.round(distKm * 800));
+      document.getElementById('conf-precio').textContent = formatearPrecio(precioCalculado);
+    }
+  } catch {
+    precioCalculado = Math.max(3000, Math.round(distKm * 800));
+    document.getElementById('conf-precio').textContent = formatearPrecio(precioCalculado);
+  }
+  document.getElementById('btn-solicitar').disabled = false;
 }
 
 // ── AUTH ──
@@ -339,6 +384,7 @@ function cerrarSesion() {
   paso = 'origen';
   coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = '';
+  precioCalculado = 0;
   showScreen('auth');
 }
 
@@ -360,7 +406,6 @@ function iniciarMapa() {
       { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
       { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#16213e' }] },
       { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
-      
     ]
   });
   map.addListener('center_changed', () => {
@@ -428,6 +473,7 @@ async function confirmarPunto() {
     document.getElementById('conf-origen').textContent = nombreOrigen;
     document.getElementById('conf-destino').textContent = nombreDestino;
     showScreen('confirmar');
+    calcularPrecioViaje();
   }
 }
 
@@ -461,14 +507,22 @@ function seleccionarSugerencia(placeId, desc) {
       pinCoord = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
       map.setCenter(pinCoord);
       map.setZoom(17);
-      if (paso === 'origen') { coordOrigen = {...pinCoord}; nombreOrigen = desc; paso = 'destino'; actualizarPaso(); }
-      else { coordDestino = {...pinCoord}; nombreDestino = desc; document.getElementById('conf-origen').textContent = nombreOrigen; document.getElementById('conf-destino').textContent = nombreDestino; showScreen('confirmar'); }
+      if (paso === 'origen') {
+        coordOrigen = {...pinCoord}; nombreOrigen = desc; paso = 'destino'; actualizarPaso();
+      } else {
+        coordDestino = {...pinCoord}; nombreDestino = desc;
+        document.getElementById('conf-origen').textContent = nombreOrigen;
+        document.getElementById('conf-destino').textContent = nombreDestino;
+        showScreen('confirmar');
+        calcularPrecioViaje();
+      }
     }
   });
 }
 
 function volverAlMapa() {
   paso = 'destino';
+  precioCalculado = 0;
   showScreen('mapa');
   actualizarPaso();
 }
@@ -490,6 +544,7 @@ function selectPago(metodo, el) {
 
 // ── SOLICITAR VIAJE ──
 async function solicitarViaje() {
+  if (!precioCalculado) { mostrarToast('Esperando cálculo de precio...', '#ff1744'); return; }
   setLoading('btn-solicitar', true, '⚡ Solicitar ZAS');
   try {
     const res = await fetch(`${API}/api/viajes/nuevo`, {
@@ -499,7 +554,7 @@ async function solicitarViaje() {
         origen: nombreOrigen, destino: nombreDestino,
         origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
         destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
-        precio: 4000
+        precio: precioCalculado
       })
     });
     const data = await res.json();
@@ -518,6 +573,7 @@ async function solicitarViaje() {
 function mostrarViaje(v) {
   document.getElementById('v-origen').textContent = v.origen || '—';
   document.getElementById('v-destino').textContent = v.destino || '—';
+  document.getElementById('v-precio').textContent = v.precio ? formatearPrecio(Number(v.precio)) : '—';
   document.getElementById('v-estado').textContent = (v.estado || '—').toUpperCase();
   const esAceptado = v.estado === 'aceptado' || v.estado === 'en_curso';
   document.getElementById('buscando-anim').style.display = esAceptado ? 'none' : 'block';
@@ -562,6 +618,7 @@ function iniciarPolling() {
               paso = 'origen';
               coordOrigen = null; coordDestino = null;
               nombreOrigen = ''; nombreDestino = '';
+              precioCalculado = 0;
               showScreen('mapa');
               actualizarPaso();
             }, 2000);
@@ -612,11 +669,12 @@ async function cancelarViaje() {
   if (pollingInterval) clearInterval(pollingInterval);
   viajeActivo = null;
   conductorMarker = null;
-viajeMap = null;
-document.getElementById('viaje-mapa').style.display = 'none';
+  viajeMap = null;
+  document.getElementById('viaje-mapa').style.display = 'none';
   paso = 'origen';
   coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = '';
+  precioCalculado = 0;
   showScreen('mapa');
   actualizarPaso();
 }
