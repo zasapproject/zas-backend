@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
+const { emailConductorAprobado } = require('../mailer');
 
 // ─────────────────────────────────────────────
 // Rate limiting
@@ -285,9 +286,14 @@ router.patch('/verificar/:id', async (req, res) => {
       .from('conductores')
       .update({ documentos_verificados })
       .eq('id', req.params.id)
-      .select('id, nombre, documentos_verificados');
+      .select('id, nombre, email, documentos_verificados');
 
     if (error) throw error;
+
+    if (documentos_verificados && data[0].email) {
+      emailConductorAprobado(data[0].nombre, data[0].email).catch(() => {});
+    }
+
     res.json({ ok: true, conductor: data[0] });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
