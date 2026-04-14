@@ -291,7 +291,7 @@ router.patch('/verificar/:id', async (req, res) => {
     if (error) throw error;
 
     if (documentos_verificados && data[0].email) {
-      emailConductorAprobado(data[0].nombre, data[0].email).catch(() => {});
+      emailConductorAprobado(data[0].nombre, data[0].email).catch((err) => console.error('Error email:', err));
     }
 
     res.json({ ok: true, conductor: data[0] });
