@@ -65,7 +65,7 @@ const tarifasRouter = require('./routes/tarifas');
 app.use('/api/tarifas', tarifasRouter);
 const authAdmin = require('./middleware/authAdmin');
 const adminRouter = require('./routes/admin');
-app.use('/api/admin', authAdmin, adminRouter);
+app.use('/api/admin', adminRouter);
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
