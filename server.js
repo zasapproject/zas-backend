@@ -32,6 +32,12 @@ app.get('/privacidad', (req, res) => {
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/solicitar.html');
 });
+app.get('/api/test-env', (req, res) => {
+  res.json({
+    gmail_user: process.env.GMAIL_USER ? 'OK' : 'FALTA',
+    gmail_pass: process.env.GMAIL_PASS ? 'OK' : 'FALTA',
+  });
+});
 app.get('/api/health', async (req, res) => {
   try {
     const { error } = await supabase.from('usuarios').select('id').limit(1);
