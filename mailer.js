@@ -22,20 +22,7 @@ async function enviarEmail({ para, asunto, html }) {
     throw err;
   }
 }
-    console.log('Email enviado:', info.response);
-  } catch (err) {
-    console.error('Error enviando email:', err.message);
-    throw err;
-  }
-}
-    from: `"ZAS Mototaxi" <${process.env.GMAIL_USER}>`,
-    to: para,
-    subject: asunto,
-    html,
-  });
-}
 
-// Email: conductor aprobado
 async function emailConductorAprobado(nombre, email) {
   await enviarEmail({
     para: email,
@@ -50,7 +37,6 @@ async function emailConductorAprobado(nombre, email) {
   });
 }
 
-// Email: recuperación de contraseña
 async function emailRecuperarContrasena(nombre, email, token) {
   const link = `https://zasapps.com/resetear?token=${token}`;
   await enviarEmail({
@@ -67,7 +53,6 @@ async function emailRecuperarContrasena(nombre, email, token) {
   });
 }
 
-// Email: soporte
 async function emailSoporte(nombre, emailUsuario, mensaje) {
   await enviarEmail({
     para: process.env.GMAIL_USER,
