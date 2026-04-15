@@ -25,22 +25,6 @@ app.get('/privacidad', (req, res) => {
 });
 
 
-
-
-
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/solicitar.html');
-});
-app.get('/api/test-email', async (req, res) => {
-  const { emailConductorAprobado } = require('./mailer');
-  try {
-    await emailConductorAprobado('Conductor Prueba', process.env.GMAIL_USER);
-    res.json({ ok: true, mensaje: 'Email enviado' });
-  } catch (err) {
-    res.json({ ok: false, error: err.message });
-  }
-});
 app.get('/api/health', async (req, res) => {
   try {
     const { error } = await supabase.from('usuarios').select('id').limit(1);
