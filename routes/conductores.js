@@ -242,13 +242,13 @@ router.patch('/calificar/:id', async (req, res) => {
 // Editar perfil conductor
 // ─────────────────────────────────────────────
 router.patch('/perfil/:id', async (req, res) => {
-  const { nombre, telefono, placa_moto, modelo_moto, foto_url } = req.body;
+  const { nombre, telefono, placa_moto, modelo_moto, foto_url, email } = req.body;
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url })
+      .update({ nombre, telefono, placa_moto, modelo_moto, foto_url, email })
       .eq('id', req.params.id)
-      .select('id, nombre, telefono, placa_moto, modelo_moto, foto_url');
+      .select('id, nombre, telefono, placa_moto, modelo_moto, foto_url, email');
 
     if (error) throw error;
     res.json({ ok: true, conductor: data[0] });
@@ -256,7 +256,6 @@ router.patch('/perfil/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
-
 // ─────────────────────────────────────────────
 // Subir documentos del conductor
 // ─────────────────────────────────────────────
