@@ -27,7 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.5",
     "react": "18.2.0",
-    "react-native": "0.72.10"
+    "react-native": "0.72.10",
+    "resend": "^6.11.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

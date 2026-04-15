@@ -1,29 +1,14 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-  family: 4,
-});
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function enviarEmail({ para, asunto, html }) {
-  try {
-    const info = await transporter.sendMail({
-      from: `"ZAS Mototaxi" <${process.env.GMAIL_USER}>`,
-      to: para,
-      subject: asunto,
-      html,
-    });
-    console.log('Email enviado:', info.response);
-  } catch (err) {
-    console.error('Error enviando email:', err.message);
-    throw err;
-  }
+  const { error } = await resend.emails.send({
+    from: 'ZAS Mototaxi <onboarding@resend.dev>',
+    to: para,
+    subject: asunto,
+    html,
+  });
+  if (error) throw new Error(error.message);
 }
 
 async function emailConductorAprobado(nombre, email) {
