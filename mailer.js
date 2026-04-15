@@ -9,7 +9,25 @@ const transporter = nodemailer.createTransport({
 });
 
 async function enviarEmail({ para, asunto, html }) {
-  await transporter.sendMail({
+  try {
+    const info = await transporter.sendMail({
+      from: `"ZAS Mototaxi" <${process.env.GMAIL_USER}>`,
+      to: para,
+      subject: asunto,
+      html,
+    });
+    console.log('Email enviado:', info.response);
+  } catch (err) {
+    console.error('Error enviando email:', err.message);
+    throw err;
+  }
+}
+    console.log('Email enviado:', info.response);
+  } catch (err) {
+    console.error('Error enviando email:', err.message);
+    throw err;
+  }
+}
     from: `"ZAS Mototaxi" <${process.env.GMAIL_USER}>`,
     to: para,
     subject: asunto,
