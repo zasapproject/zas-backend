@@ -1,18 +1,29 @@
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function enviarEmail({ para, asunto, html }) {
-  const { error } = await resend.emails.send({
-    from: 'ZAS Mototaxi <onboarding@resend.dev>',
-    to: para,
-    subject: asunto,
-    html,
+async function enviarEmailBrevo({ para, asunto, html }) {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { name: 'ZAS Mototaxi', email: 'soporte@zasapps.com' },
+      to: [{ email: para }],
+      subject: asunto,
+      htmlContent: html,
+    }),
   });
-  if (error) throw new Error(error.message);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error enviando email con Brevo');
+  }
 }
 
 async function emailConductorAprobado(nombre, email) {
-  await enviarEmail({
+  await enviarEmailBrevo({
     para: email,
     asunto: '¡Tu cuenta ZAS fue aprobada!',
     html: `
@@ -26,7 +37,7 @@ async function emailConductorAprobado(nombre, email) {
 }
 
 async function enviarRecuperacionPassword(email, nombre, codigo) {
-  await enviarEmail({
+  await enviarEmailBrevo({
     para: email,
     asunto: 'Código de recuperación ZAS Mototaxi',
     html: `
@@ -48,7 +59,7 @@ async function enviarRecuperacionPassword(email, nombre, codigo) {
 
 async function emailRecuperarContrasena(nombre, email, token) {
   const link = `https://zasapps.com/resetear?token=${token}`;
-  await enviarEmail({
+  await enviarEmailBrevo({
     para: email,
     asunto: 'Recupera tu contraseña ZAS',
     html: `
@@ -63,8 +74,8 @@ async function emailRecuperarContrasena(nombre, email, token) {
 }
 
 async function emailSoporte(nombre, emailUsuario, mensaje) {
-  await enviarEmail({
-    para: process.env.GMAIL_USER,
+  await enviarEmailBrevo({
+    para: 'soporte@zasapps.com',
     asunto: `Soporte ZAS — ${nombre}`,
     html: `
       <h2>Nuevo mensaje de soporte</h2>
