@@ -25,6 +25,27 @@ async function emailConductorAprobado(nombre, email) {
   });
 }
 
+async function enviarRecuperacionPassword(email, nombre, codigo) {
+  await enviarEmail({
+    para: email,
+    asunto: 'Código de recuperación ZAS Mototaxi',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+        <h2 style="color:#f5a623;">⚡ ZAS Mototaxi</h2>
+        <p>Hola <strong>${nombre}</strong>,</p>
+        <p>Recibimos una solicitud para restablecer tu contraseña. Usa este código:</p>
+        <div style="text-align:center;margin:32px 0;">
+          <span style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#1a1a2e;">${codigo}</span>
+        </div>
+        <p style="color:#888;">Este código expira en <strong>15 minutos</strong>.</p>
+        <p style="color:#888;">Si no solicitaste esto, ignora este mensaje.</p>
+        <br>
+        <p>Equipo ZAS Mototaxi</p>
+      </div>
+    `,
+  });
+}
+
 async function emailRecuperarContrasena(nombre, email, token) {
   const link = `https://zasapps.com/resetear?token=${token}`;
   await enviarEmail({
@@ -54,4 +75,9 @@ async function emailSoporte(nombre, emailUsuario, mensaje) {
   });
 }
 
-module.exports = { emailConductorAprobado, emailRecuperarContrasena, emailSoporte };
+module.exports = { 
+  emailConductorAprobado, 
+  emailRecuperarContrasena, 
+  enviarRecuperacionPassword,
+  emailSoporte 
+};

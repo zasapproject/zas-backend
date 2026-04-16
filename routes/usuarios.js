@@ -244,4 +244,100 @@ router.patch('/push-token/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Solicitar reset de contraseña por email
+// ─────────────────────────────────────────────
+router.post('/solicitar-reset', async (req, res) => {
+  const { telefono } = req.body;
+
+  if (!telefono) {
+    return res.status(400).json({ ok: false, error: 'Teléfono es obligatorio' });
+  }
+
+  try {
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre, email, telefono')
+      .eq('telefono', telefono)
+      .single();
+
+    if (error || !usuario) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    }
+
+    if (!usuario.email) {
+      return res.status(400).json({ ok: false, error: 'Esta cuenta no tiene email registrado. Contacta a soporte.' });
+    }
+
+    // Generar código de 6 dígitos
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    const expira = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    // Guardar código en Supabase
+    await supabase
+      .from('usuarios')
+      .update({ reset_codigo: codigo, reset_expira: expira.toISOString() })
+      .eq('id', usuario.id);
+
+    // Enviar email con el código
+    const { enviarRecuperacionPassword } = require('../mailer');
+    await enviarRecuperacionPassword(usuario.email, usuario.nombre, codigo);
+
+    res.json({ ok: true, mensaje: 'Código enviado al correo registrado' });
+
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Confirmar código y cambiar contraseña
+// ─────────────────────────────────────────────
+router.post('/confirmar-reset', async (req, res) => {
+  const { telefono, codigo, nueva_password } = req.body;
+
+  if (!telefono || !codigo || !nueva_password) {
+    return res.status(400).json({ ok: false, error: 'Teléfono, código y nueva contraseña son obligatorios' });
+  }
+
+  if (nueva_password.length < 4) {
+    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
+  }
+
+  try {
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('id, reset_codigo, reset_expira')
+      .eq('telefono', telefono)
+      .single();
+
+    if (error || !usuario) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    }
+
+    if (usuario.reset_codigo !== codigo) {
+      return res.status(400).json({ ok: false, error: 'Código incorrecto' });
+    }
+
+    if (new Date() > new Date(usuario.reset_expira)) {
+      return res.status(400).json({ ok: false, error: 'El código ha expirado. Solicita uno nuevo.' });
+    }
+
+    // Actualizar contraseña y limpiar código
+    const passwordHash = await bcrypt.hash(nueva_password, 10);
+    await supabase
+      .from('usuarios')
+      .update({ 
+        password: passwordHash, 
+        reset_codigo: null, 
+        reset_expira: null 
+      })
+      .eq('id', usuario.id);
+
+    res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
+
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;
