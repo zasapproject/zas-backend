@@ -17,6 +17,9 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/solicitar.html');
+});
 app.get('/solicitar', (req, res) => {
   res.sendFile(__dirname + '/public/solicitar.html');
 });
