@@ -118,7 +118,7 @@
       <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre" /></div>
       <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
       <div class="input-group"><label>Contraseña</label><div style="position:relative"><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /><span onclick="togglePass('reg-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span></div></div>
-      <div class="input-group"><label>Email (opcional)</label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
+      <div class="input-group"><label>Email <span style="color:#ff1744">*obligatorio</span></label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
       <div class="input-group">
   <label>Foto de perfil <span style="color:#ff1744">*obligatoria</span></label>
   <input type="file" id="reg-foto" accept="image/*" capture="user" style="width:100%;background:var(--bg);border:1px solid var(--surface2);border-radius:10px;padding:12px;color:var(--text);font-size:14px;" />
@@ -353,7 +353,7 @@ async function registrarUsuario() {
   const pass = document.getElementById('reg-pass').value;
   const email = document.getElementById('reg-email').value.trim();
   const errEl = document.getElementById('registro-error');
-  if (!nombre || !tel || !pass) { errEl.textContent = 'Nombre, teléfono y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
+  if (!nombre || !tel || !pass || !email) { errEl.textContent = 'Nombre, teléfono y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
   if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener mínimo 4 caracteres'; errEl.style.display = 'block'; return; }
   if (!fotoBase64) { errEl.textContent = 'La foto de perfil es obligatoria'; errEl.style.display = 'block'; return; }
   setLoading('btn-registro', true, 'Crear cuenta');
