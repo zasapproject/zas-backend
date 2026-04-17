@@ -8,6 +8,11 @@
     "platforms": [],
     "android": {
       "package": "com.zasapp.zasapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7b00282b-231e-42ad-b63a-4755f4c392fe"
+      }
     }
   }
 }
