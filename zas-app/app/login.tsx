@@ -87,7 +87,7 @@ export default function LoginScreen() {
   };
 
   const registrarUsuario = async () => {
-    if (!nombre || !telefono || !password) { Alert.alert("Error", "Nombre telefono y contrasena son obligatorios"); return; }
+    if (!nombre || !telefono || !password || !email) { Alert.alert("Error", "Nombre, teléfono, contraseña y correo son obligatorios"); return; }
     if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }
     if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
   if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
@@ -181,8 +181,8 @@ export default function LoginScreen() {
                 <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.label}>Email opcional</Text>
-            <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" value={email} onChangeText={setEmail} />
+            <Text style={styles.label}>Correo electrónico <Text style={{color:'#ff6b6b'}}>*obligatorio</Text></Text>
+            <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" value={email} onChangeText={setEmail} />
             <Text style={styles.label}>Foto Cédula <Text style={{color:'#ff6b6b'}}>*obligatoria</Text></Text>
             <TouchableOpacity style={[styles.fotoBoton, fotoCedula ? {borderColor: '#00c853'} : {borderColor: '#ff6b6b'}]} onPress={seleccionarCedula}>
               {fotoCedula
