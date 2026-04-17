@@ -4,11 +4,16 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-const GOOGLE_MAPS_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const GOOGLE_MAPS_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 
 export default function MapaScreen() {
   const router = useRouter();
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState({
+  latitude: 7.7633,
+  longitude: -72.2249,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+});
   const [origen, setOrigen] = useState(null);
   const [destino, setDestino] = useState(null);
   const [paso, setPaso] = useState('origen');
