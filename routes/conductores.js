@@ -30,9 +30,12 @@ const registroLimiter = rateLimit({
 router.post('/registro', registroLimiter, async (req, res) => {
   const { nombre, telefono, email, placa_moto, modelo_moto, foto_url, password, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes } = req.body;
 
-  if (!nombre || !telefono || !password) {
+  if (!nombre || !telefono || !password || !email) {
     return res.status(400).json({ ok: false, error: 'Nombre, teléfono y contraseña son obligatorios' });
   }
+  if (!email || !email.includes('@')) {
+  return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
+}
   if (password.length < 4) {
     return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
   }
@@ -47,6 +50,15 @@ router.post('/registro', registroLimiter, async (req, res) => {
 
     if (existe) {
       return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese teléfono' });
+    }
+    const { data: existeEmail } = await supabase
+      .from('conductores')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existeEmail) {
+      return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese correo electrónico' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -376,5 +388,24 @@ router.patch('/reset-password/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Buscar conductor por email (para recuperar contraseña)
+// ─────────────────────────────────────────────
+router.get('/buscar-email/:email', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('id, nombre, telefono, email')
+      .eq('email', req.params.email)
+      .single();
 
+    if (error || !data) {
+      return res.status(404).json({ ok: false, error: 'No existe ningún conductor con ese correo' });
+    }
+
+    res.json({ ok: true, conductor: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

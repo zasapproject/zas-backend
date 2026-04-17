@@ -133,6 +133,24 @@
     <div style="position:relative"><input id="login-pass" type="password" placeholder="Contraseña" style="width:100%;background:#0f3460;border:1px solid #0f3460;border-radius:8px;padding:12px;color:#fff;font-size:14px;margin-bottom:16px;box-sizing:border-box" /><span onclick="var p=document.getElementById('login-pass');if(p.type==='password'){p.type='text';this.textContent='🙈'}else{p.type='password';this.textContent='👁️'}" style="position:absolute;right:14px;top:12px;cursor:pointer;font-size:18px">👁️</span></div>
     <button onclick="verificarLogin()" style="width:100%;background:#FFD700;color:#1a1a2e;border:none;border-radius:8px;padding:14px;font-weight:bold;font-size:15px;cursor:pointer">Entrar</button>
     <p id="login-error" style="color:#ff6b6b;text-align:center;margin-top:12px;font-size:13px;display:none">Usuario o contraseña incorrectos</p>
+    <p style="text-align:center;margin-top:16px">
+      <a onclick="mostrarRecuperacion()" style="color:#FFD700;font-size:13px;text-decoration:none;cursor:pointer">¿Olvidaste tu contraseña?</a>
+    </p>
+    <div id="recuperacion" style="display:none;margin-top:16px">
+      <div id="paso1-rec">
+        <input id="correo-admin" type="email" placeholder="soporte@zasapps.com" style="width:100%;background:#0f3460;border:1px solid #FFD700;border-radius:8px;padding:12px;color:#fff;font-size:14px;margin-bottom:10px;box-sizing:border-box" />
+        <button onclick="solicitarResetAdmin()" style="width:100%;background:#FFD700;color:#1a1a2e;border:none;border-radius:8px;padding:12px;font-weight:bold;font-size:14px;cursor:pointer">Enviar código</button>
+      </div>
+      <div id="paso2-rec" style="display:none">
+        <p style="color:#888;font-size:12px;text-align:center;margin-bottom:10px">Revisa soporte@zasapps.com e ingresa el código</p>
+        <input id="codigo-admin" type="text" placeholder="Código de 6 dígitos" maxlength="6" style="width:100%;background:#0f3460;border:1px solid #FFD700;border-radius:8px;padding:12px;color:#fff;font-size:14px;margin-bottom:10px;box-sizing:border-box;text-align:center;letter-spacing:6px" />
+        <button onclick="confirmarResetAdmin()" style="width:100%;background:#FFD700;color:#1a1a2e;border:none;border-radius:8px;padding:12px;font-weight:bold;font-size:14px;cursor:pointer">Verificar código</button>
+      </div>
+      <div id="paso3-rec" style="display:none">
+        <p style="color:#00e676;font-size:13px;text-align:center">✅ Código correcto. Ve a Railway → Variables → ADMIN_PASS y actualiza la contraseña.</p>
+      </div>
+      <p id="rec-error" style="color:#ff6b6b;text-align:center;font-size:12px;margin-top:8px;display:none"></p>
+    </div>
   </div>
 </div>
 
@@ -893,7 +911,56 @@
     if (activa === 'page-vencimientos') cargarVencimientos();
     if (activa === 'page-pagos-suscripcion') cargarPagosSuscripcion();
   }, 10000);
+function mostrarRecuperacion() {
+    const div = document.getElementById('recuperacion');
+    div.style.display = div.style.display === 'none' ? 'block' : 'none';
+  }
 
+  async function solicitarResetAdmin() {
+    const correo = document.getElementById('correo-admin').value.trim();
+    if (!correo) return;
+    try {
+      const res = await fetch(`${API}/api/admin/solicitar-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('paso1-rec').style.display = 'none';
+        document.getElementById('paso2-rec').style.display = 'block';
+      } else {
+        document.getElementById('rec-error').textContent = data.error;
+        document.getElementById('rec-error').style.display = 'block';
+      }
+    } catch {
+      document.getElementById('rec-error').textContent = 'Error de conexión';
+      document.getElementById('rec-error').style.display = 'block';
+    }
+  }
+
+  async function confirmarResetAdmin() {
+    const codigo = document.getElementById('codigo-admin').value.trim();
+    if (!codigo) return;
+    try {
+      const res = await fetch(`${API}/api/admin/confirmar-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo, nueva_password: 'ZAS' + Math.random().toString(36).slice(-4).toUpperCase() })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('paso2-rec').style.display = 'none';
+        document.getElementById('paso3-rec').style.display = 'block';
+      } else {
+        document.getElementById('rec-error').textContent = data.error;
+        document.getElementById('rec-error').style.display = 'block';
+      }
+    } catch {
+      document.getElementById('rec-error').textContent = 'Error de conexión';
+      document.getElementById('rec-error').style.display = 'block';
+    }
+  }
   if (sessionStorage.getItem('zas_admin') === 'true') cargarConductores();
 </script>
 </body>

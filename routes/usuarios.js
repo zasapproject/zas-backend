@@ -31,8 +31,11 @@ router.post('/registro', registroLimiter, async (req, res) => {
   const { nombre, telefono, email, password, foto, foto_url, foto_cedula } = req.body;
 
   // Validaciones
-  if (!nombre || !telefono || !password) {
-    return res.status(400).json({ ok: false, error: 'Nombre, teléfono y contraseña son obligatorios' });
+  if (!nombre || !telefono || !password || !email) {
+    return res.status(400).json({ ok: false, error: 'Nombre, teléfono, contraseña y correo son obligatorios' });
+  }
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
   }
   if (password.length < 4) {
     return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
