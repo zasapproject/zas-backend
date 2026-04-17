@@ -39,6 +39,7 @@ export default function ConductorScreen() {
   const [regFotoRegistro, setRegFotoRegistro] = useState('');
   const [regFotoRcv, setRegFotoRcv] = useState('');
   const [regFotoAntecedentes, setRegFotoAntecedentes] = useState('');
+  const [regEmail, setRegEmail] = useState('');
 
   useEffect(() => { cargarSesion(); }, []);
 useEffect(() => {
@@ -166,7 +167,7 @@ useEffect(() => {
 
       const res = await fetch(API_URL + '/api/conductores/registro', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: regNombre, telefono: regTelefono, password: regPassword, foto_url: urlFotoPerfil, placa_moto: regPlaca, modelo_moto: regModelo, foto_cedula: urlCedula, foto_licencia: urlLicencia, foto_registro_moto: urlRegistro, foto_rcv: urlRcv, foto_antecedentes: urlAntecedentes })
+        body: JSON.stringify({ nombre: regNombre, telefono: regTelefono, email: regEmail, password: regPassword, foto_url: urlFotoPerfil, placa_moto: regPlaca, modelo_moto: regModelo, foto_cedula: urlCedula, foto_licencia: urlLicencia, foto_registro_moto: urlRegistro, foto_rcv: urlRcv, foto_antecedentes: urlAntecedentes })
       });
       const data = await res.json();
       if (data.ok) {
@@ -343,6 +344,8 @@ useEffect(() => {
               <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={regNombre} onChangeText={setRegNombre} />
               <Text style={styles.label}>Teléfono</Text>
               <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={regTelefono} onChangeText={setRegTelefono} maxLength={11} />
+              <Text style={styles.label}>Correo electrónico <Text style={{color:'#ff6b6b'}}>*obligatorio</Text></Text>
+              <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" value={regEmail} onChangeText={setRegEmail} />
               <Text style={styles.label}>Contraseña</Text>
               <View style={styles.inputContenedor}>
                 <TextInput style={styles.inputFlex} placeholder="Mínimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
@@ -351,7 +354,7 @@ useEffect(() => {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.boton} onPress={() => {
-                if (!regNombre || !regTelefono || !regPassword) { Alert.alert('Error', 'Todos los campos son obligatorios'); return; }
+                if (!regNombre || !regTelefono || !regPassword || !regEmail) { Alert.alert('Error', 'Todos los campos son obligatorios incluyendo el correo'); return; }
 if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
                 if (regPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
                 setPantalla('reg2');

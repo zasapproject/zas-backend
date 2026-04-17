@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 const GOOGLE_MAPS_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
@@ -131,6 +131,7 @@ export default function MapaScreen() {
       {location ? (
         <MapView
           style={styles.mapa}
+          provider={PROVIDER_GOOGLE}
           initialRegion={location}
           onPress={seleccionarPunto}
         >
