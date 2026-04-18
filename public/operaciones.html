@@ -167,6 +167,8 @@
     <div class="nav-item" onclick="showPage('documentos', this)"><span class="nav-icon">📋</span> Documentos</div>
     <div class="nav-item" onclick="showPage('vencimientos', this)"><span class="nav-icon">⚠️</span> Vencimientos</div>
     <div class="nav-item" onclick="showPage('pagos-suscripcion', this)"><span class="nav-icon">💰</span> Pagos Suscripción</div>
+   <div class="nav-item" onclick="showPage('pagos-digitales', this)"><span class="nav-icon">💳</span> Pagos Digitales</div>
+<div class="nav-item" onclick="showPage('retiros', this)"><span class="nav-icon">💸</span> Retiros</div>
     <div class="nav-item" onclick="showPage('soporte', this)"><span class="nav-icon">🆘</span> Soporte</div>
     <div class="nav-item" onclick="sessionStorage.removeItem('zas_admin');location.reload()" style="color:var(--red)"><span class="nav-icon">🚪</span> Cerrar sesión</div>
   </nav>
@@ -243,7 +245,33 @@
     <div class="topbar"><div class="page-title">Pagos <span>Suscripción</span></div><button class="refresh-btn" onclick="cargarPagosSuscripcion()">↻ Actualizar</button></div>
     <div id="lista-pagos-suscripcion"></div>
   </div>
+<!-- ═══ PAGOS DIGITALES ═══ -->
+<div class="page" id="page-pagos-digitales">
+  <div class="topbar">
+    <div class="page-title">Pagos <span>Digitales</span></div>
+    <button class="refresh-btn" onclick="cargarPagosDigitales()">↻ Actualizar</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card gold"><div class="stat-label">En Revisión</div><div class="stat-value" id="stat-pd-revision">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Confirmados Hoy</div><div class="stat-value" id="stat-pd-confirmados">—</div></div>
+    <div class="stat-card red"><div class="stat-label">Rechazados</div><div class="stat-value" id="stat-pd-rechazados">—</div></div>
+  </div>
+  <div id="lista-pagos-digitales"><div class="loading"><div class="spinner"></div>Cargando pagos...</div></div>
+</div>
 
+<!-- ═══ RETIROS ═══ -->
+<div class="page" id="page-retiros">
+  <div class="topbar">
+    <div class="page-title">Reti<span>ros</span></div>
+    <button class="refresh-btn" onclick="cargarRetiros()">↻ Actualizar</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card gold"><div class="stat-label">Pendientes</div><div class="stat-value" id="stat-ret-pendientes">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Procesados Hoy</div><div class="stat-value" id="stat-ret-procesados">—</div></div>
+    <div class="stat-card gold"><div class="stat-label">Monto Pendiente</div><div class="stat-value" id="stat-ret-monto">—</div></div>
+  </div>
+  <div id="lista-retiros"><div class="loading"><div class="spinner"></div>Cargando retiros...</div></div>
+</div>
   <!-- ═══ SOPORTE ═══ -->
   <div class="page" id="page-soporte">
     <div class="topbar"><div class="page-title">Sop<span>orte</span></div><button class="refresh-btn" onclick="cargarSoporte()">↻ Actualizar</button></div>
@@ -384,6 +412,8 @@
     if (page === 'documentos') cargarDocumentos();
     if (page === 'vencimientos') cargarVencimientos();
     if (page === 'pagos-suscripcion') cargarPagosSuscripcion();
+    if (page === 'pagos-digitales') cargarPagosDigitales();
+if (page === 'retiros') cargarRetiros();
     if (page === 'soporte') cargarSoporte();
   }
 
@@ -910,7 +940,7 @@
     if (activa === 'page-documentos') cargarDocumentos();
     if (activa === 'page-vencimientos') cargarVencimientos();
     if (activa === 'page-pagos-suscripcion') cargarPagosSuscripcion();
-  }, 10000);
+  }, 30000);
 function mostrarRecuperacion() {
     const div = document.getElementById('recuperacion');
     div.style.display = div.style.display === 'none' ? 'block' : 'none';
@@ -961,6 +991,191 @@ function mostrarRecuperacion() {
       document.getElementById('rec-error').style.display = 'block';
     }
   }
+  // ═══════════════════════════════════════════
+// PAGOS DIGITALES
+// ═══════════════════════════════════════════
+async function cargarPagosDigitales() {
+  const lista = document.getElementById('lista-pagos-digitales');
+  lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando pagos...</div>`;
+  try {
+    const [revRes, todosRes] = await Promise.all([
+      fetch(`${API}/api/pagos/en-revision`),
+      fetch(`${API}/api/pagos?limit=100`)
+    ]);
+    const revData = await revRes.json();
+    const todosData = await todosRes.json();
+
+    const enRevision = revData.pagos || [];
+    const todos = todosData.pagos || [];
+    const hoy = new Date().toDateString();
+    const confirmadosHoy = todos.filter(p => p.estado === 'completado' && p.es_digital && new Date(p.completado_en).toDateString() === hoy).length;
+    const rechazados = todos.filter(p => p.estado === 'rechazado').length;
+
+    document.getElementById('stat-pd-revision').textContent = enRevision.length;
+    document.getElementById('stat-pd-confirmados').textContent = confirmadosHoy;
+    document.getElementById('stat-pd-rechazados').textContent = rechazados;
+
+    if (!enRevision.length) {
+      lista.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay pagos pendientes de revisión</div></div>`;
+      return;
+    }
+
+    lista.innerHTML = enRevision.map(p => `
+      <div style="background:#16213e;border-radius:16px;padding:20px;margin-bottom:12px;border-left:4px solid var(--gold)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="background:rgba(255,215,0,0.15);color:var(--gold);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;font-family:'Space Mono',monospace">${(p.metodo||'').toUpperCase()}</span>
+              <span style="color:var(--gold);font-size:20px;font-weight:800">$${Number(p.monto).toFixed(2)}</span>
+            </div>
+            <p style="color:#888;font-size:12px;margin:0;font-family:'Space Mono',monospace">Viaje: ${p.viaje_id?.slice(0,8)}...</p>
+            ${p.referencia_pago ? `<p style="color:#aaa;font-size:12px;margin:4px 0">Ref: ${p.referencia_pago}</p>` : ''}
+            <p style="color:#666;font-size:11px;margin:4px 0">${p.comprobante_en ? new Date(p.comprobante_en).toLocaleString('es-VE') : ''}</p>
+          </div>
+          ${p.comprobante_url ? `
+            <img src="${p.comprobante_url}" onclick="abrirLightbox('${p.comprobante_url}')"
+              style="width:100px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--gold);cursor:pointer;transition:transform 0.2s"
+              onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
+            />` : '<div style="width:100px;height:70px;background:#1a1a28;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px">Sin foto</div>'}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="confirmarPagoDigital('${p.id}')"
+            style="flex:1;background:var(--green);color:#0a0a0f;border:none;border-radius:10px;padding:12px;cursor:pointer;font-weight:800;font-family:'Syne',sans-serif;font-size:14px;transition:opacity 0.2s"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            ✅ Confirmar pago
+          </button>
+          <button onclick="rechazarPagoDigital('${p.id}')"
+            style="flex:1;background:transparent;color:var(--red);border:1px solid var(--red);border-radius:10px;padding:12px;cursor:pointer;font-weight:700;font-family:'Syne',sans-serif;font-size:14px;transition:all 0.2s"
+            onmouseover="this.style.background='rgba(255,23,68,0.1)'" onmouseout="this.style.background='transparent'">
+            ❌ Rechazar
+          </button>
+        </div>
+      </div>`).join('');
+    actualizarTimestamp();
+  } catch(e) {
+    lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar pagos</div></div>`;
+  }
+}
+
+async function confirmarPagoDigital(id) {
+  if (!confirm('¿Confirmar este pago? Se acreditará el saldo al conductor automáticamente.')) return;
+  try {
+    const res = await fetch(`${API}/api/pagos/confirmar/${id}`, { method: 'PATCH' });
+    const data = await res.json();
+    if (data.ok) { mostrarToast('✅ Pago confirmado — saldo acreditado al conductor'); cargarPagosDigitales(); }
+    else mostrarToast('❌ Error: ' + data.error);
+  } catch { mostrarToast('❌ Error de conexión'); }
+}
+
+async function rechazarPagoDigital(id) {
+  const motivo = prompt('Motivo del rechazo (opcional):') || 'Comprobante no válido';
+  try {
+    const res = await fetch(`${API}/api/pagos/rechazar/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motivo })
+    });
+    const data = await res.json();
+    if (data.ok) { mostrarToast('❌ Pago rechazado'); cargarPagosDigitales(); }
+    else mostrarToast('❌ Error: ' + data.error);
+  } catch { mostrarToast('❌ Error de conexión'); }
+}
+
+// ═══════════════════════════════════════════
+// RETIROS
+// ═══════════════════════════════════════════
+async function cargarRetiros() {
+  const lista = document.getElementById('lista-retiros');
+  lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando retiros...</div>`;
+  try {
+    const res = await fetch(`${API}/api/saldo/retiros/pendientes`);
+    const data = await res.json();
+    const retiros = data.retiros || [];
+
+    const montoTotal = retiros.reduce((s, r) => s + Number(r.monto), 0);
+    document.getElementById('stat-ret-pendientes').textContent = retiros.length;
+    document.getElementById('stat-ret-procesados').textContent = '—';
+    document.getElementById('stat-ret-monto').textContent = '$' + montoTotal.toFixed(0);
+
+    if (!retiros.length) {
+      lista.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay retiros pendientes</div></div>`;
+      return;
+    }
+
+    lista.innerHTML = retiros.map(r => {
+      const db = r.datos_bancarios || {};
+      const metodo = r.metodo_retiro || '';
+      let datosHTML = '';
+      if (metodo === 'pago_movil' || metodo === 'transferencia') {
+        datosHTML = `
+          ${db.banco ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Banco: <strong style="color:#fff">${db.banco}</strong></p>` : ''}
+          ${db.telefono_pago_movil ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Teléfono: <strong style="color:#fff">${db.telefono_pago_movil}</strong></p>` : ''}
+          ${db.cedula ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Cédula: <strong style="color:#fff">${db.cedula}</strong></p>` : ''}
+          ${db.numero_cuenta ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Cuenta: <strong style="color:#fff">${db.numero_cuenta}</strong></p>` : ''}`;
+      } else if (metodo === 'zelle') {
+        datosHTML = `
+          ${db.zelle_email ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Email: <strong style="color:#fff">${db.zelle_email}</strong></p>` : ''}
+          ${db.zelle_telefono ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Teléfono: <strong style="color:#fff">${db.zelle_telefono}</strong></p>` : ''}`;
+      } else if (metodo === 'usdt') {
+        datosHTML = `
+          ${db.wallet_usdt ? `<p style="margin:2px 0;font-size:12px;color:#aaa">Wallet: <strong style="color:#fff;font-family:'Space Mono',monospace;font-size:11px">${db.wallet_usdt}</strong></p>` : ''}
+          <p style="margin:2px 0;font-size:12px;color:#aaa">Red: <strong style="color:var(--gold)">TRC20</strong></p>`;
+      }
+
+      return `
+      <div style="background:#16213e;border-radius:16px;padding:20px;margin-bottom:12px;border-left:4px solid var(--green)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div>
+            <h4 style="color:#fff;margin:0 0 4px">${r.conductores?.nombre || 'Conductor'}</h4>
+            <p style="color:#888;font-size:13px;margin:0">${r.conductores?.telefono || ''}</p>
+          </div>
+          <div style="text-align:right">
+            <p style="color:var(--green);font-size:24px;font-weight:800;margin:0">$${Number(r.monto).toFixed(2)}</p>
+            <span style="background:rgba(255,215,0,0.15);color:var(--gold);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace">${metodo.toUpperCase()}</span>
+          </div>
+        </div>
+        <div style="background:#0f0f1a;border-radius:10px;padding:12px;margin-bottom:14px">
+          <p style="color:#666;font-size:11px;margin:0 0 6px;text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Datos para transferir</p>
+          ${datosHTML || '<p style="color:#555;font-size:12px;margin:0">Sin datos bancarios</p>'}
+        </div>
+        <p style="color:#555;font-size:11px;margin:0 0 12px;font-family:\'Space Mono\',monospace">Solicitado: ${new Date(r.created_at).toLocaleString('es-VE')}</p>
+        <div style="display:flex;gap:10px">
+          <button onclick="aprobarRetiro('${r.id}')"
+            style="flex:1;background:var(--green);color:#0a0a0f;border:none;border-radius:10px;padding:12px;cursor:pointer;font-weight:800;font-family:'Syne',sans-serif;font-size:14px">
+            ✅ Aprobar retiro
+          </button>
+          <button onclick="rechazarRetiro('${r.id}')"
+            style="flex:1;background:transparent;color:var(--red);border:1px solid var(--red);border-radius:10px;padding:12px;cursor:pointer;font-weight:700;font-family:'Syne',sans-serif;font-size:14px">
+            ❌ Rechazar
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+    actualizarTimestamp();
+  } catch(e) {
+    lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar retiros</div></div>`;
+  }
+}
+
+async function aprobarRetiro(id) {
+  if (!confirm('¿Confirmar que ya transferiste el dinero al conductor?')) return;
+  try {
+    const res = await fetch(`${API}/api/saldo/retiro/aprobar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const data = await res.json();
+    if (data.ok) { mostrarToast('✅ Retiro aprobado y procesado'); cargarRetiros(); }
+    else mostrarToast('❌ Error: ' + data.error);
+  } catch { mostrarToast('❌ Error de conexión'); }
+}
+
+async function rechazarRetiro(id) {
+  const motivo = prompt('Motivo del rechazo:') || 'Rechazado por admin';
+  try {
+    const res = await fetch(`${API}/api/saldo/retiro/rechazar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motivo }) });
+    const data = await res.json();
+    if (data.ok) { mostrarToast('Retiro rechazado — saldo devuelto al conductor'); cargarRetiros(); }
+    else mostrarToast('❌ Error: ' + data.error);
+  } catch { mostrarToast('❌ Error de conexión'); }
+}
   if (sessionStorage.getItem('zas_admin') === 'true') cargarConductores();
 </script>
 </body>
