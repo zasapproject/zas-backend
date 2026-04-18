@@ -24,18 +24,18 @@ const METODOS_DIGITALES = ['pago_movil', 'zelle', 'transferencia', 'usdt'];
 const DATOS_PAGO_ZAS = {
   pago_movil: {
     banco: 'Banco de Venezuela',
-    telefono: '04XX-XXXXXXX',
-    cedula: 'V-XXXXXXXX',
-    nombre: 'ZAS Mototaxi',
+    telefono: '0414-7224623',
+    cedula: 'V-17677795',
+    nombre: 'Rosmaire Vivas',
   },
   zelle: {
-    email: 'pagos@zasapps.com',
-    nombre: 'ZAS Mototaxi',
+    email: 'jrchinchilla82@gmail.com',
+    nombre: 'Jhonatan Rincon',
   },
   transferencia: {
     banco: 'Banco de Venezuela',
-    cuenta: 'XXXX-XXXX-XXXX-XXXX',
-    nombre: 'ZAS Mototaxi',
+    cuenta: '01020120930000638760',
+    nombre: 'Rosmaire Vivas',
     rif: 'J-XXXXXXXX-X',
   },
   usdt: {
