@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
+import SubirComprobante from './SubirComprobante';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Dimensions, Platform, Animated, Image, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -87,6 +88,11 @@ export default function MapaViaje() {
   const [estadoViaje, setEstadoViaje] = useState('aceptado');
   const [cargando, setCargando] = useState(true);
   const [etaTexto, setEtaTexto] = useState('Calculando...');
+  const [mostrarComprobante, setMostrarComprobante] = useState(false);
+  const [pagoId, setPagoId] = useState<string | null>(null);
+  const [datosZas, setDatosZas] = useState<any>(null);
+  const [montoViaje, setMontoViaje] = useState<number>(0);
+  const [metodoViaje, setMetodoViaje] = useState<string>('efectivo');
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -155,6 +161,13 @@ export default function MapaViaje() {
             if (locationSub.current) locationSub.current.remove();
             if (estado === 'cancelado') {
               Alert.alert('Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
+            } else if (!esCondutor && params.pago_id && params.metodo_pago !== 'efectivo') {
+                setPagoId(params.pago_id as string);
+                setDatosZas(params.datos_zas ? JSON.parse(params.datos_zas as string) : null);
+                setMontoViaje(Number(params.monto_viaje) || 0);
+                setMetodoViaje(params.metodo_pago as string || 'efectivo');
+                setMostrarComprobante(true);
+                return;
             } else if (!esCondutor) {
               Alert.alert('¿Cómo fue tu conductor?', 'Califica de 1 a 5 estrellas', [
                 { text: '⭐ 1', onPress: () => calificar(1) },
@@ -278,7 +291,26 @@ async function terminarViaje() {
   if (cargando) {
     return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /><Text style={styles.loadingText}>Cargando mapa...</Text></View>;
   }
-
+if (mostrarComprobante && pagoId) {
+    return (
+      <SubirComprobante
+        pagoId={pagoId}
+        metodo={metodoViaje}
+        monto={montoViaje}
+        datosZas={datosZas}
+        onComprobanteEnviado={() => {
+          setMostrarComprobante(false);
+          Alert.alert('¿Cómo fue tu conductor?', 'Califica de 1 a 5 estrellas', [
+            { text: '⭐ 1', onPress: () => calificar(1) },
+            { text: '⭐⭐ 2', onPress: () => calificar(2) },
+            { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
+            { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
+            { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
+          ]);
+        }}
+      />
+    );
+  }
   return (
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>

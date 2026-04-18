@@ -1,4 +1,6 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
+import BilleteraConductor from './BilleteraConductor';
+import DatosBancarios from './DatosBancarios';
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image, Modal, BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -27,6 +29,8 @@ export default function ConductorScreen() {
   const [guardando, setGuardando] = useState(false);
   const [suscripcionActiva, setSuscripcionActiva] = useState(false);
   const [diasRestantes, setDiasRestantes] = useState(0);
+  const [mostrarBilletera, setMostrarBilletera] = useState(false);
+  const [mostrarDatosBancarios, setMostrarDatosBancarios] = useState(false);
 
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
@@ -424,7 +428,32 @@ if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return
       </KeyboardAvoidingView>
     );
   }
-
+  if (mostrarDatosBancarios) {
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity onPress={() => setMostrarDatosBancarios(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
+          <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
+        </TouchableOpacity>
+        <DatosBancarios
+          conductorId={sesion.id}
+          onGuardado={() => setMostrarDatosBancarios(false)}
+        />
+      </View>
+    );
+  }
+if (mostrarBilletera) {
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity onPress={() => setMostrarBilletera(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
+          <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
+        </TouchableOpacity>
+        <BilleteraConductor
+          conductorId={sesion.id}
+          onIrDatosBancarios={() => { setMostrarBilletera(false); setMostrarDatosBancarios(true); }}
+        />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -439,6 +468,9 @@ if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return
             <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>
               {suscripcionActiva ? `✅ Suscripción activa — ${diasRestantes}d` : '⚡ Ver suscripción'}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMostrarBilletera(true)} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>💰 Mi Billetera</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/soporte')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>🆘 Soporte</Text>

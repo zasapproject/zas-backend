@@ -51,6 +51,11 @@ app.use('/api/conductores', conductoresRoutes);
 app.use('/api/viajes', viajesRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/suscripciones', suscripcionesRouter);
+const saldoRouter = require('./routes/saldo');
+app.use('/api/saldo', saldoRouter);
+
+const datosBancariosRouter = require('./routes/datos-bancarios');
+app.use('/api/datos-bancarios', datosBancariosRouter);
 const storageRouter = require('./routes/storage');
 app.use('/api/storage', storageRouter);
 const documentosRouter = require('./routes/documentos');

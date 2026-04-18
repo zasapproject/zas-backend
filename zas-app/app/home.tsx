@@ -96,6 +96,9 @@ export default function HomeScreen() {
   const [calculandoPrecio, setCalculandoPrecio] = useState(false);
 
   const [metodoPago, setMetodoPago] = useState('efectivo');
+  const [pagoId, setPagoId] = useState<string | null>(null);
+  const [datosZas, setDatosZas] = useState<any>(null);
+  const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
   const [editandoPerfil, setEditandoPerfil] = useState(false);
   const [editTelefono, setEditTelefono] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -257,6 +260,18 @@ export default function HomeScreen() {
       if (data.ok) {
         setViaje(data.viaje);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
+        // Crear registro de pago
+        try {
+          const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
+          });
+          const dataPago = await resPago.json();
+          if (dataPago.ok) {
+            setPagoId(dataPago.pago.id);
+            if (dataPago.datos_pago_zas) setDatosZas(dataPago.datos_pago_zas);
+          }
+        } catch {}
         Alert.alert('Viaje solicitado', 'Buscando conductor cercano...');
       } else Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
@@ -422,9 +437,19 @@ export default function HomeScreen() {
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
             <View style={styles.pagoOpciones}>
-              <TouchableOpacity style={[styles.pagoBoton, metodoPago === 'efectivo' && styles.pagoBotonActivo]} onPress={() => setMetodoPago('efectivo')}><Text style={[styles.pagoTexto, metodoPago === 'efectivo' && styles.pagoTextoActivo]}>Efectivo</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.pagoBoton, metodoPago === 'tarjeta' && styles.pagoBotonActivo]} onPress={() => setMetodoPago('tarjeta')}><Text style={[styles.pagoTexto, metodoPago === 'tarjeta' && styles.pagoTextoActivo]}>Tarjeta</Text></TouchableOpacity>
+              {['efectivo','pago_movil','zelle','transferencia','usdt'].map(m => (
+                <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+                  <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
+                    {m === 'efectivo' ? '💵 Efectivo' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : m === 'transferencia' ? '🏦 Transferencia' : '₿ USDT'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
+            {metodoPago !== 'efectivo' && (
+              <Text style={{color:'#888', fontSize:12, marginTop:8, textAlign:'center'}}>
+                Después del viaje deberás subir el comprobante de pago
+              </Text>
+            )}
           </View>
           <TouchableOpacity style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]} onPress={solicitarViaje} disabled={cargando || calculandoPrecio || !precioCalculado}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>⚡ Solicitar ZAS</Text>}
