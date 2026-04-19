@@ -1,10 +1,11 @@
 ﻿const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
-const { notificarUsuario, notificarConductor, notificarConductoresCercanos } = require('../pushNotifications');
+const { notificarUsuario, notificarConductor } = require('../pushNotifications');
 const { asignarConductor } = require('../services/asignacionService');
+
 // Estados válidos de un viaje
-const ESTADOS_VALIDOS = ['solicitado', 'aceptado', 'en_curso', 'completado', 'cancelado'];
+const ESTADOS_VALIDOS = ['solicitado', 'buscando', 'asignado', 'aceptado', 'en_curso', 'completado', 'cancelado', 'sin_conductor'];
 
 // ─────────────────────────────────────────────
 // Crear nuevo viaje
@@ -29,14 +30,18 @@ router.post('/nuevo', async (req, res) => {
         destino_lat: destino_lat || null,
         destino_lng: destino_lng || null,
         precio: precio || null,
-        estado: 'solicitado',
+        estado: 'buscando',
       }])
       .select();
 
- if (error) throw error;
+    if (error) throw error;
 
     const viaje = data[0];
-    await asignarConductor(viaje);
+
+    // Asignación en background — no bloquea la respuesta
+    asignarConductor(viaje).catch(err =>
+      console.error('❌ Error en asignación background:', err)
+    );
 
     res.json({ ok: true, viaje });
 
@@ -128,17 +133,44 @@ router.patch('/estado/:id', async (req, res) => {
     if (!data || data.length === 0) {
       return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
     }
+
     const viaje = data[0];
+
     if (estado === 'aceptado' && viaje.usuario_id) {
       notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
     }
+
+    if (estado === 'completado') {
+      if (viaje.usuario_id) {
+        notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
+      }
+      // Liberar conductor
+      if (viaje.conductor_id) {
+        await supabase
+          .from('conductores')
+          .update({ estado: 'disponible' })
+          .eq('id', viaje.conductor_id);
+        console.log('🟢 Conductor liberado — disponible nuevamente');
+      }
+    }
+
     if (estado === 'cancelado') {
-      if (conductor_id && viaje.usuario_id) notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje. Solicita otro.');
-      if (!conductor_id && viaje.conductor_id) notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
+      if (conductor_id && viaje.usuario_id) {
+        notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje. Solicita otro.');
+      }
+      if (!conductor_id && viaje.conductor_id) {
+        notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
+      }
+      // Liberar conductor en cualquier caso
+      if (viaje.conductor_id) {
+        await supabase
+          .from('conductores')
+          .update({ estado: 'disponible' })
+          .eq('id', viaje.conductor_id);
+        console.log('🟢 Conductor liberado por cancelación');
+      }
     }
-    if (estado === 'completado' && viaje.usuario_id) {
-      notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
-    }
+
     res.json({ ok: true, viaje });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -235,6 +267,7 @@ router.get('/', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Viajes solicitados cerca del conductor (5km)
 // ─────────────────────────────────────────────
@@ -278,4 +311,5 @@ router.get('/cercanos/:lat/:lng', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 module.exports = router;
