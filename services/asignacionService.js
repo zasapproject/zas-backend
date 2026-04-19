@@ -9,9 +9,8 @@ async function asignarConductor(viaje) {
     // ── PASO 1: buscar conductor disponible ──────────────
     const { data: conductores, error: errorBuscar } = await supabase
       .from('conductores')
-      .select('id, nombre, push_token, activo, estado')
+      .select('id, nombre, push_token, estado')
       .eq('estado', 'disponible')
-      .eq('activo', true)
       .limit(5);
 
     console.log('Conductores encontrados:', conductores?.length ?? 0);
