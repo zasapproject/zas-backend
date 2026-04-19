@@ -1,3 +1,6 @@
+if (!process.env.BREVO_API_KEY) {
+  console.error('❌ Falta BREVO_API_KEY en .env');
+}
 async function enviarEmailBrevo({ para, asunto, html }) {
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',

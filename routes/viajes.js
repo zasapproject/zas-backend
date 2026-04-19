@@ -2,6 +2,7 @@
 const router = express.Router();
 const supabase = require('../supabase');
 const { notificarUsuario, notificarConductor, notificarConductoresCercanos } = require('../pushNotifications');
+const { asignarConductor } = require('../services/asignacionService');
 // Estados válidos de un viaje
 const ESTADOS_VALIDOS = ['solicitado', 'aceptado', 'en_curso', 'completado', 'cancelado'];
 
@@ -33,8 +34,11 @@ router.post('/nuevo', async (req, res) => {
       .select();
 
  if (error) throw error;
-    notificarConductoresCercanos(origen_lat, origen_lng, '🏍️ Nuevo viaje disponible', `De: ${origen} → A: ${destino}`);
-    res.json({ ok: true, viaje: data[0] });
+
+    const viaje = data[0];
+    await asignarConductor(viaje);
+
+    res.json({ ok: true, viaje });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -247,7 +251,7 @@ router.get('/cercanos/:lat/:lng', async (req, res) => {
     const { data, error } = await supabase
       .from('viajes')
       .select('*, usuarios(nombre, telefono, foto_url)')
-      .eq('estado', 'solicitado')
+      .eq('estado', 'buscando')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
