@@ -10,7 +10,7 @@ async function asignarConductor(viaje) {
     const { data: conductores, error: errorBuscar } = await supabase
       .from('conductores')
       .select('id, nombre, push_token, estado')
-      .eq('id', '569abe76-b469-4e45-974d-a772b65987f0')
+      .eq('estado', 'disponible')
       .limit(5);
 
     console.log('Conductores encontrados:', conductores?.length ?? 0);

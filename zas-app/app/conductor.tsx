@@ -55,7 +55,20 @@ useEffect(() => {
   useEffect(() => {
     if (sesion) {
       (async () => {
-        const token = await registrarNotificaciones();
+        console.log('🔔 Intentando registrar notificaciones...');
+const token = await registrarNotificaciones();
+console.log('🔔 Token obtenido:', token);
+if (token) {
+  console.log('📡 Enviando token al backend...');
+  const resp = await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ push_token: token })
+  });
+  const respData = await resp.json();
+  console.log('📡 Respuesta backend:', JSON.stringify(respData));
+} else {
+  console.log('❌ Token es null — no se guardó');
+}
         if (token) {
           await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -263,11 +276,7 @@ useEffect(() => {
 
   const buscarViajes = async () => {
     try {
-      let url = API_URL + '/api/viajes/estado/solicitado';
-      try {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        url = `${API_URL}/api/viajes/cercanos/${loc.coords.latitude}/${loc.coords.longitude}`;
-      } catch {}
+      const url = `${API_URL}/api/viajes/conductor/${sesion.id}?estado=asignado`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.ok) setViajes(data.viajes || []);

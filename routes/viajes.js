@@ -99,6 +99,7 @@ router.get('/conductor/:conductor_id', async (req, res) => {
       .from('viajes')
       .select('*', { count: 'exact' })
       .eq('conductor_id', req.params.conductor_id)
+      .eq('estado', req.query.estado || 'asignado')
       .order('created_at', { ascending: false })
       .range(from, to);
 
