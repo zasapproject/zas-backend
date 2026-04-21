@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const BACKEND_URL = 'https://zasapps.com';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 const POLLING_INTERVAL = 4000;
 
 function decodificarPolyline(encoded) {

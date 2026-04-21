@@ -97,14 +97,21 @@ router.get('/conductor/:conductor_id', async (req, res) => {
   try {
     const { data, error, count } = await supabase
       .from('viajes')
-      .select('*', { count: 'exact' })
+      .select('*, usuarios(nombre, telefono, foto_url)', { count: 'exact' })
       .eq('conductor_id', req.params.conductor_id)
       .eq('estado', req.query.estado || 'asignado')
       .order('created_at', { ascending: false })
       .range(from, to);
 
     if (error) throw error;
-    res.json({ ok: true, viajes: data, total: count, page, limit });
+    const viajes = data.map(v => ({
+  ...v,
+  usuario_nombre: v.usuarios?.nombre || '',
+  usuario_telefono: v.usuarios?.telefono || '',
+  usuario_foto: v.usuarios?.foto_url || '',
+  usuarios: undefined,
+}));
+res.json({ ok: true, viajes, total: count, page, limit });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
