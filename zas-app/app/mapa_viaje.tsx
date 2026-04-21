@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const BACKEND_URL = 'https://zasapps.com';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
+const GOOGLE_SERVER_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 const POLLING_INTERVAL = 4000;
 
 function decodificarPolyline(encoded) {
@@ -26,7 +27,7 @@ function decodificarPolyline(encoded) {
 
 async function geocodificar(direccion) {
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(direccion + ', Colombia')}&key=${GOOGLE_MAPS_API_KEY}`);
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(direccion + ', Venezuela')}&key=${GOOGLE_SERVER_KEY}`);
     const data = await res.json();
     if (data.results && data.results.length > 0) {
       const loc = data.results[0].geometry.location;
@@ -38,7 +39,7 @@ async function geocodificar(direccion) {
 
 async function obtenerRuta(origen, destino) {
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${origen.latitude},${origen.longitude}&destination=${destino.latitude},${destino.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`);
+    const res = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${origen.latitude},${origen.longitude}&destination=${destino.latitude},${destino.longitude}&mode=driving&key=${GOOGLE_SERVER_KEY}`);
     const data = await res.json();
     if (data.routes && data.routes.length > 0) return decodificarPolyline(data.routes[0].overview_polyline.points);
   } catch (e) {}
