@@ -437,7 +437,7 @@ export default function HomeScreen() {
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
             <View style={styles.pagoOpciones}>
-              {['efectivo','pago_movil','zelle','transferencia','usdt'].map(m => (
+              {['efectivo','pago_movil','zelle','usdt'].map(m => (
                 <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
                   <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
                     {m === 'efectivo' ? '💵 Efectivo' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : m === 'transferencia' ? '🏦 Transferencia' : '₿ USDT'}
