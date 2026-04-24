@@ -408,4 +408,25 @@ router.get('/buscar-email/:email', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Logout conductor — cambia estado a inactivo
+// ─────────────────────────────────────────────
+router.post('/logout/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ estado: 'inactivo', activo: false })
+      .eq('id', req.params.id)
+      .select('id, nombre, estado');
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Conductor no encontrado' });
+    }
+
+    res.json({ ok: true, mensaje: 'Sesión cerrada correctamente', conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

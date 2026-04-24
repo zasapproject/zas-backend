@@ -5,13 +5,14 @@
     "version": "1.0.0",
     "description": "",
     "sdkVersion": "49.0.0",
-    "platforms": [],
+    "platforms": ["android"],
     "android": {
-      "package": "com.zasapp.zasapp"
+      "package": "com.zasapp.zasapp",
+      "versionCode": 4
     },
     "extra": {
       "eas": {
-        "projectId": "7b00282b-231e-42ad-b63a-4755f4c392fe"
+        "projectId": "8593a256-cca9-410b-ac4e-e3854ddfde42"
       }
     }
   }
