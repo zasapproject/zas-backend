@@ -11,11 +11,10 @@ const METODOS_VALIDOS = [
   'efectivo',
   'pago_movil',
   'zelle',
-  'transferencia',
   'usdt',
 ];
 
-const METODOS_DIGITALES = ['pago_movil', 'zelle', 'transferencia', 'usdt'];
+const METODOS_DIGITALES = ['pago_movil', 'zelle', 'usdt'];
 
 // ─────────────────────────────────────────────
 // Datos de ZAS para mostrar al usuario al pagar
@@ -31,12 +30,6 @@ const DATOS_PAGO_ZAS = {
   zelle: {
     email: 'jrchinchilla82@gmail.com',
     nombre: 'Jhonatan Rincon',
-  },
-  transferencia: {
-    banco: 'Banco de Venezuela',
-    cuenta: '01020120930000638760',
-    nombre: 'Rosmaire Vivas',
-    rif: 'J-XXXXXXXX-X',
   },
   usdt: {
     red: 'TRC20 (Tron)',
