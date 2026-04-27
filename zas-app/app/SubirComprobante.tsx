@@ -58,7 +58,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
       } else {
         Alert.alert('Error', data.error || 'No se pudo enviar el comprobante');
       }
-    } catch { Alert.alert('Error', 'No se pudo conectar'); }
+    } catch { Alert.alert('Error', 'No se pudo subir el comprobante. Verifica tu conexión e intenta de nuevo.'); }
     finally { setEnviando(false); }
   };
 

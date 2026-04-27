@@ -257,6 +257,11 @@ export default function HomeScreen() {
         body: JSON.stringify({ usuario_id: usuarioId, origen: nombreOrigen, destino: nombreDestino, origen_lat: coordOrigen.latitude, origen_lng: coordOrigen.longitude, destino_lat: coordDestino.latitude, destino_lng: coordDestino.longitude, precio: precioCalculado }),
       });
       const data = await res.json();
+      if (!data.ok && data.error?.includes('conductor')) {
+        Alert.alert('Sin conductores', 'No hay conductores disponibles en este momento. Intenta en unos minutos.');
+        setCargando(false);
+        return;
+      }
       if (data.ok) {
         setViaje(data.viaje);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
@@ -404,6 +409,9 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}><Text style={styles.botonCancelarTexto}>Cancelar viaje</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 8, borderColor: '#FFD700' }]} onPress={() => router.push('/historial')}>
+            <Text style={[styles.botonCancelarTexto, { color: '#FFD700' }]}>📋 Ver historial</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );

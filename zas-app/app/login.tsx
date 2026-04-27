@@ -77,12 +77,23 @@ export default function LoginScreen() {
     setCargando(true);
     try {
       const res = await fetch(API_URL + "/api/usuarios/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefono, password }) });
+      if (res.status === 401) {
+        await AsyncStorage.removeItem('usuario_sesion');
+        Alert.alert('Sesión expirada', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
+        setCargando(false);
+        return;
+      }
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
-        router.push("/home");
+        const terminos = await AsyncStorage.getItem('terminos_aceptados');
+        if (!terminos) {
+          router.replace('/terminos');
+        } else {
+          router.replace('/home');
+        }
       } else Alert.alert("Error", data.error || "Telefono o contrasena incorrectos");
-    } catch { Alert.alert("Error", "No se pudo conectar"); }
+    } catch { Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo."); }
     finally { setCargando(false); }
   };
 
@@ -110,7 +121,7 @@ export default function LoginScreen() {
         Alert.alert("Registro exitoso", "Bienvenido a ZAS " + data.usuario.nombre);
         router.push("/home");
       } else Alert.alert("Error", data.error || "No se pudo registrar");
-    } catch { Alert.alert("Error", "No se pudo conectar"); }
+    } catch { Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo."); }
     finally { setCargando(false); }
   };
 

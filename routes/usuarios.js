@@ -343,4 +343,66 @@ router.post('/confirmar-reset', async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// POST /api/usuarios/recuperar-password
+// Usuario solicita recuperación de contraseña
+// ─────────────────────────────────────────────
+router.post('/recuperar-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ ok: false, error: 'El email es obligatorio' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre, email')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email' });
+    }
+
+    const nueva = Math.random().toString(36).slice(-6).toUpperCase();
+
+    await supabase
+      .from('usuarios')
+      .update({ password: nueva })
+      .eq('id', data.id);
+
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: 'ZAS Mototaxi', email: 'soporte@zasapps.com' },
+        to: [{ email: data.email, name: data.nombre }],
+        subject: 'Tu contraseña temporal — ZAS Mototaxi',
+        htmlContent: `
+          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+            <h2 style="color:#000">Hola ${data.nombre} 👋</h2>
+            <p>Recibimos tu solicitud de recuperación de contraseña.</p>
+            <p>Tu contraseña temporal es:</p>
+            <div style="background:#f4f4f4;padding:20px;text-align:center;border-radius:8px;margin:20px 0;">
+              <h1 style="letter-spacing:6px;color:#000;margin:0">${nueva}</h1>
+            </div>
+            <p>Ingresa a la app con esta contraseña. Te recomendamos cambiarla desde tu perfil.</p>
+            <p style="color:#888;font-size:12px;">Si no solicitaste esto, ignora este mensaje.</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+            <p style="color:#888;font-size:12px;text-align:center;">ZAS Mototaxi · soporte@zasapps.com</p>
+          </div>
+        `,
+      }),
+    });
+
+    res.json({ ok: true, mensaje: 'Te enviamos una contraseña temporal a tu correo.' });
+
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

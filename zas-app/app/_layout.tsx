@@ -27,6 +27,8 @@ export default function RootLayout() {
       <Stack.Screen name="mapa_viaje" options={{ headerShown: false }} />
       <Stack.Screen name="documentos_conductor" options={{ headerShown: false }} />
       <Stack.Screen name="documentos_usuario" options={{ headerShown: false }} />
+      <Stack.Screen name="historial" options={{ headerShown: false }} />
+      <Stack.Screen name="terminos" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
