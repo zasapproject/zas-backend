@@ -429,4 +429,22 @@ router.post('/logout/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Cambiar estado del conductor
+// ─────────────────────────────────────────────
+router.patch('/estado/:id', async (req, res) => {
+  const { estado } = req.body;
+  const estadosValidos = ['disponible', 'ocupado', 'inactivo'];
+  if (!estadosValidos.includes(estado)) {
+    return res.status(400).json({ ok: false, error: 'Estado no válido' });
+  }
+  const { data, error } = await supabase
+    .from('conductores')
+    .update({ estado })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true, conductor: data });
+});
 module.exports = router;
