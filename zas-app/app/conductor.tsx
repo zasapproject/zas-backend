@@ -137,6 +137,13 @@ useEffect(() => {
         await AsyncStorage.setItem('conductor_sesion', JSON.stringify(data.conductor));
         setSesion(data.conductor);
         await verificarSuscripcion(data.conductor.id);
+        try {
+          await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${data.conductor.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'disponible' })
+          });
+        } catch {}
       } else Alert.alert('Error', data.error || 'Telefono o contrasena incorrectos');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
@@ -268,6 +275,13 @@ useEffect(() => {
   };
 
   const cerrarSesion = async () => {
+    try {
+      await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${sesion.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'inactivo' })
+      });
+    } catch {}
     await AsyncStorage.removeItem('conductor_sesion');
     setSesion(null);
     setViajes([]);

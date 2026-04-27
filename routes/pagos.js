@@ -33,7 +33,7 @@ const DATOS_PAGO_ZAS = {
   },
   usdt: {
     red: 'TRC20 (Tron)',
-    wallet: 'TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    wallet: 'TCQou8bEo2jwsvtaoRLFkA4FPWQrZXVsTt',
     nota: 'Solo enviar USDT por red TRC20',
   },
 };
