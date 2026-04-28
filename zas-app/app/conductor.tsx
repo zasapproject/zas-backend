@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import polyline from '@mapbox/polyline';
 
 const API_URL = 'https://zasapps.com';
 
@@ -31,6 +33,8 @@ export default function ConductorScreen() {
   const [diasRestantes, setDiasRestantes] = useState(0);
   const [mostrarBilletera, setMostrarBilletera] = useState(false);
   const [mostrarDatosBancarios, setMostrarDatosBancarios] = useState(false);
+  const [conductorLat, setConductorLat] = useState<number>(0);
+  const [conductorLng, setConductorLng] = useState<number>(0);
 
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
@@ -84,10 +88,18 @@ if (token) {
     }
   }, [sesion]);
 useEffect(() => {
-    (async () => {
-      await Location.requestForegroundPermissionsAsync();
-    })();
-  }, []);
+  (async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+      (loc) => {
+        setConductorLat(loc.coords.latitude);
+        setConductorLng(loc.coords.longitude);
+      }
+    );
+  })();
+}, []);
   const cargarSesion = async () => {
     try {
       const data = await AsyncStorage.getItem('conductor_sesion');
@@ -528,7 +540,27 @@ if (mostrarBilletera) {
             {viajes.length === 0 ? (
               <Text style={styles.sinViajes}>Esperando viajes...</Text>
             ) : (
-              viajes.map(viaje => (
+              viajes.map(viaje => {
+        const coordenadasRuta = viaje.polyline
+          ? polyline.decode(viaje.polyline).map(([lat, lng]: [number, number]) => ({
+              latitude: lat,
+              longitude: lng,
+            }))
+          : [];
+        const latitudCentro = viaje.origen_lat && viaje.destino_lat
+          ? (viaje.origen_lat + viaje.destino_lat) / 2
+          : viaje.origen_lat || 0;
+        const longitudCentro = viaje.origen_lng && viaje.destino_lng
+          ? (viaje.origen_lng + viaje.destino_lng) / 2
+          : viaje.origen_lng || 0;
+        const latDelta = viaje.origen_lat && viaje.destino_lat
+          ? Math.abs(viaje.origen_lat - viaje.destino_lat) * 2.5 + 0.01
+          : 0.05;
+        const lngDelta = viaje.origen_lng && viaje.destino_lng
+          ? Math.abs(viaje.origen_lng - viaje.destino_lng) * 2.5 + 0.01
+          : 0.05;
+        return (
+              viajes.map(viaje => {
                 <View key={viaje.id} style={styles.card}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                     {viaje.usuario_foto
@@ -542,21 +574,64 @@ if (mostrarBilletera) {
                       <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
                     </View>
                   </View>
-                  <View style={{ backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#00c853', marginTop: 4, marginRight: 10 }} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
-                        <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.origen}</Text>
-                      </View>
-                    </View>
-                    <View style={{ width: 1, height: 16, backgroundColor: '#333', marginLeft: 4, marginBottom: 4 }} />
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#ff1744', marginTop: 4, marginRight: 10 }} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
-                        <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino}</Text>
-                      </View>
+                  <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+                    <MapView
+                      style={{ width: '100%', height: 180 }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                      rotateEnabled={false}
+                      pitchEnabled={false}
+                      pointerEvents="none"
+                      initialRegion={{
+                        latitude: latitudCentro,
+                        longitude: longitudCentro,
+                        latitudeDelta: latDelta,
+                        longitudeDelta: lngDelta,
+                      }}
+                    >
+                      {conductorLat !== 0 && (
+                        <Marker
+                          coordinate={{ latitude: conductorLat, longitude: conductorLng }}
+                          pinColor="#2196F3"
+                          title="Tu ubicación"
+                        />
+                      )}
+                      {viaje.origen_lat && (
+                        <Marker
+                          coordinate={{ latitude: viaje.origen_lat, longitude: viaje.origen_lng }}
+                          pinColor="#4CAF50"
+                          title="Origen"
+                        />
+                      )}
+                      {viaje.destino_lat && (
+                        <Marker
+                          coordinate={{ latitude: viaje.destino_lat, longitude: viaje.destino_lng }}
+                          pinColor="#F44336"
+                          title="Destino"
+                        />
+                      )}
+                      {coordenadasRuta.length > 0 && (
+                        <Polyline
+                          coordinates={coordenadasRuta}
+                          strokeColor="#1565C0"
+                          strokeWidth={3}
+                        />
+                      )}
+                    </MapView>
+                    <View style={{ backgroundColor: '#0f3460', padding: 12 }}>
+                      <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
+                      <Text style={{ color: '#fff', fontSize: 13, marginBottom: 8 }} numberOfLines={2}>
+                        {viaje.origen_texto || viaje.origen}
+                      </Text>
+                      <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
+                      <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>
+                        {viaje.destino_texto || viaje.destino}
+                      </Text>
+                      {viaje.distancia_km && (
+                        <Text style={{ color: '#FFD700', fontSize: 13, marginTop: 6 }}>
+                          📏 {viaje.distancia_km} km · ⏱ {viaje.duracion_minutos} min
+                        </Text>
+                      )}
                     </View>
                   </View>
                   <View style={styles.botones}>
@@ -568,8 +643,9 @@ if (mostrarBilletera) {
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))
-            )}
+              )
+        );
+      })}
           </>
         )}
       </ScrollView>
