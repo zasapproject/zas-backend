@@ -18,6 +18,8 @@ export default function LoginScreen() {
   const [cargando, setCargando] = useState(false);
   const [verPassword, setVerPassword] = useState(false);
   const [verPasswordReg, setVerPasswordReg] = useState(false);
+  const [recEmail, setRecEmail] = useState('');
+  const [recCargando, setRecCargando] = useState(false);
 
   const seleccionarFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -71,7 +73,32 @@ export default function LoginScreen() {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
-
+const recuperarPassword = async () => {
+    if (!recEmail || !recEmail.includes('@')) {
+      Alert.alert('Error', 'Ingresa un email valido');
+      return;
+    }
+    setRecCargando(true);
+    try {
+      const res = await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/usuarios/recuperar-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recEmail })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        Alert.alert('Listo', 'Te enviamos una contrasena temporal a tu correo. Revisa tu bandeja de entrada.', [
+          { text: 'OK', onPress: () => { setRecEmail(''); setPantalla('login'); } }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'No encontramos una cuenta con ese email');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.');
+    } finally {
+      setRecCargando(false);
+    }
+  };
   const iniciarSesion = async () => {
     if (!telefono || !password) { Alert.alert("Error", "Ingresa telefono y contrasena"); return; }
     setCargando(true);
@@ -214,15 +241,26 @@ export default function LoginScreen() {
 
         {pantalla === "recuperar" && (
           <View style={styles.formulario}>
-            <Text style={styles.formTitulo}>Recuperar cuenta</Text>
+            <Text style={styles.formTitulo}>Recuperar contraseña</Text>
             <Text style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
-              Contacta al administrador de ZAS para restablecer tu contraseña.
+              Ingresa tu correo y te enviaremos una contraseña temporal.
             </Text>
-            <TouchableOpacity style={styles.boton} onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS')}>
-              <Text style={styles.botonTexto}>Contactar por WhatsApp</Text>
+            <Text style={styles.label}>Correo electrónico</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="tu@email.com"
+              placeholderTextColor="#888"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={recEmail}
+              onChangeText={setRecEmail}
+            />
+            <TouchableOpacity style={styles.boton} onPress={recuperarPassword} disabled={recCargando}>
+              {recCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar contraseña temporal</Text>}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPantalla("login")}>
-              <Text style={styles.linkTexto}>Volver</Text>
+            <TouchableOpacity onPress={() => { setRecEmail(''); setPantalla("login"); }}>
+              <Text style={styles.linkTexto}>← Volver al login</Text>
             </TouchableOpacity>
           </View>
         )}

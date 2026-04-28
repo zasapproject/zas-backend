@@ -48,6 +48,8 @@ export default function ConductorScreen() {
   const [regFotoRcv, setRegFotoRcv] = useState('');
   const [regFotoAntecedentes, setRegFotoAntecedentes] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [recEmail, setRecEmail] = useState('');
+  const [recCargando, setRecCargando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
 useEffect(() => {
@@ -138,7 +140,32 @@ useEffect(() => {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
-
+const recuperarPassword = async () => {
+    if (!recEmail || !recEmail.includes('@')) {
+      Alert.alert('Error', 'Ingresa un email valido');
+      return;
+    }
+    setRecCargando(true);
+    try {
+      const res = await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/recuperar-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recEmail })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        Alert.alert('Listo', 'Te enviamos una contrasena temporal a tu correo. Revisa tu bandeja de entrada.', [
+          { text: 'OK', onPress: () => { setRecEmail(''); setPantalla('login'); } }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'No encontramos una cuenta con ese email');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.');
+    } finally {
+      setRecCargando(false);
+    }
+  };
   const login = async () => {
     if (!telefono || !password) { Alert.alert('Error', 'Ingresa telefono y contrasena'); return; }
     setCargando(true);
@@ -366,12 +393,36 @@ useEffect(() => {
               <TouchableOpacity onPress={() => router.back()}>
                 <Text style={styles.linkTexto}>Volver</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS')}>
+              <TouchableOpacity onPress={() => setPantalla('recuperar')}>
                 <Text style={[styles.linkTexto, { color: '#FFD700' }]}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
             </>
           )}
-
+{pantalla === 'recuperar' && (
+            <>
+              <Text style={styles.titulo}>Recuperar contraseña</Text>
+              <Text style={[styles.pasoTexto, { marginBottom: 20 }]}>
+                Ingresa tu correo y te enviaremos una contraseña temporal.
+              </Text>
+              <Text style={styles.label}>Correo electrónico</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="tu@email.com"
+                placeholderTextColor="#888"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={recEmail}
+                onChangeText={setRecEmail}
+              />
+              <TouchableOpacity style={styles.boton} onPress={recuperarPassword} disabled={recCargando}>
+                {recCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar contraseña temporal</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setRecEmail(''); setPantalla('login'); }}>
+                <Text style={styles.linkTexto}>← Volver al login</Text>
+              </TouchableOpacity>
+            </>
+          )}
           {pantalla === 'reg1' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 1/3</Text>
