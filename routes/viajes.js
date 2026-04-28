@@ -1,6 +1,31 @@
 ﻿const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/directions/json` +
+      `?origin=${origenLat},${origenLng}` +
+      `&destination=${destinoLat},${destinoLng}` +
+      `&key=${process.env.GOOGLE_MAPS_API_KEY}&language=es`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status !== 'OK' || !data.routes.length) {
+      console.error('Directions API error:', data.status);
+      return null;
+    }
+    const ruta = data.routes[0].legs[0];
+    return {
+      polyline: data.routes[0].overview_polyline.points,
+      distancia_km: parseFloat((ruta.distance.value / 1000).toFixed(2)),
+      duracion_minutos: Math.ceil(ruta.duration.value / 60),
+      origen_texto: ruta.start_address,
+      destino_texto: ruta.end_address,
+    };
+  } catch (err) {
+    console.error('Error obteniendo ruta:', err.message);
+    return null;
+  }
+}
 const { notificarUsuario, notificarConductor } = require('../pushNotifications');
 const { asignarConductor } = require('../services/asignacionService');
 
@@ -21,6 +46,10 @@ router.post('/nuevo', async (req, res) => {
   }
 
   try {
+    const rutaData = await obtenerRuta(
+      origen_lat, origen_lng,
+      destino_lat, destino_lng
+    );
     const { data, error } = await supabase
       .from('viajes')
       .insert([{
@@ -31,6 +60,11 @@ router.post('/nuevo', async (req, res) => {
         destino_lng: destino_lng || null,
         precio: precio || null,
         estado: 'buscando',
+        polyline: rutaData?.polyline || null,
+        distancia_km: rutaData?.distancia_km || null,
+        duracion_minutos: rutaData?.duracion_minutos || null,
+        origen_texto: rutaData?.origen_texto || null,
+        destino_texto: rutaData?.destino_texto || null,
       }])
       .select();
 
