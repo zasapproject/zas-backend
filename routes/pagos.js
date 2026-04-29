@@ -143,7 +143,36 @@ router.post('/nuevo', async (req, res) => {
     if (error) throw error;
 
     // Si es digital → devolver datos de pago de ZAS
-    const respuesta = { ok: true, pago: data };
+    // Si es efectivo → acreditar saldo al conductor directamente
+    if (metodo === 'efectivo' && viaje.conductor_id) {
+      const conductor_id = viaje.conductor_id;
+      const montoNum = parseFloat(monto);
+      const { data: saldoActual } = await supabase
+        .from('saldo_conductores')
+        .select('*')
+        .eq('conductor_id', conductor_id)
+        .single();
+      if (saldoActual) {
+        await supabase
+          .from('saldo_conductores')
+          .update({
+            saldo_disponible: parseFloat(saldoActual.saldo_disponible) + montoNum,
+            total_ganado: parseFloat(saldoActual.total_ganado) + montoNum,
+            ultima_actualizacion: new Date().toISOString(),
+          })
+          .eq('conductor_id', conductor_id);
+      } else {
+        await supabase
+          .from('saldo_conductores')
+          .insert({
+            conductor_id,
+            saldo_disponible: montoNum,
+            saldo_retenido: 0,
+            total_ganado: montoNum,
+            ultima_actualizacion: new Date().toISOString(),
+          });
+      }
+    }
     if (METODOS_DIGITALES.includes(metodo)) {
       respuesta.datos_pago_zas = DATOS_PAGO_ZAS[metodo];
       respuesta.instruccion = `Transfiere $${monto} a ZAS y sube el comprobante para confirmar.`;
