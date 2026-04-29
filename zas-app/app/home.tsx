@@ -60,7 +60,6 @@ async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: 
       return { precio: data.precio, tipo: data.tipo, municipio: data.municipio };
     }
   } catch (e) {}
-  // Fallback si falla el endpoint
   const precioFallback = Math.max(3000, Math.round(distancia_km * 800));
   return { precio: precioFallback, tipo: 'fallback', municipio: null };
 }
@@ -95,10 +94,17 @@ export default function HomeScreen() {
   const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
   const [calculandoPrecio, setCalculandoPrecio] = useState(false);
 
+  // ── Pago ──
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [pagoId, setPagoId] = useState<string | null>(null);
+  const pagoIdRef = useRef<string | null>(null);
+  const metodoPagoRef = useRef<string>('efectivo');
   const [datosZas, setDatosZas] = useState<any>(null);
   const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
+
+  // Sincronizar metodoPagoRef cuando cambia el estado
+  useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
+
   const [editandoPerfil, setEditandoPerfil] = useState(false);
   const [editTelefono, setEditTelefono] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -106,7 +112,8 @@ export default function HomeScreen() {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
-    useEffect(() => {
+
+  useEffect(() => {
     if (usuarioId) {
       (async () => {
         const token = await registrarNotificaciones();
@@ -119,23 +126,24 @@ export default function HomeScreen() {
       })();
     }
   }, [usuarioId]);
+
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-    if (viaje) {
-      BackHandler.exitApp();
-      return true;
-    }
-    if (paso === 'destino') {
-      setPaso('origen');
-      return true;
-    }
-    if (paso === 'confirmar') {
-      setPaso('destino');
-      return true;
-    }
-    return false;
-  });
-  return () => backHandler.remove();
+      if (viaje) {
+        BackHandler.exitApp();
+        return true;
+      }
+      if (paso === 'destino') {
+        setPaso('origen');
+        return true;
+      }
+      if (paso === 'confirmar') {
+        setPaso('destino');
+        return true;
+      }
+      return false;
+    });
+    return () => backHandler.remove();
   }, [viaje, paso]);
 
   useEffect(() => {
@@ -152,7 +160,29 @@ export default function HomeScreen() {
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
-              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino, origen_lat: viajeActual.origen_lat || '', origen_lng: viajeActual.origen_lng || '', destino_lat: viajeActual.destino_lat || '', destino_lng: viajeActual.destino_lng || '', pago_id: pagoId || '', metodo_pago: metodoPago || 'efectivo', monto_viaje: String(precioCalculado || 0), datos_zas: datosZas ? JSON.stringify(datosZas) : '' } });
+              router.push({
+                pathname: '/mapa_viaje',
+                params: {
+                  viaje_id: viajeActual.id,
+                  rol: 'usuario',
+                  conductor_id: viajeActual.conductor_id || '',
+                  conductor_nombre: viajeActual.conductor_nombre || '',
+                  conductor_telefono: viajeActual.conductor_telefono || '',
+                  conductor_foto: viajeActual.conductor_foto || '',
+                  conductor_placa: viajeActual.conductor_placa || '',
+                  conductor_modelo: viajeActual.conductor_modelo || '',
+                  origen: viajeActual.origen,
+                  destino: viajeActual.destino,
+                  origen_lat: viajeActual.origen_lat || '',
+                  origen_lng: viajeActual.origen_lng || '',
+                  destino_lat: viajeActual.destino_lat || '',
+                  destino_lng: viajeActual.destino_lng || '',
+                  pago_id: pagoIdRef.current || '',
+                  metodo_pago: metodoPagoRef.current || 'efectivo',
+                  monto_viaje: String(precioCalculado || 0),
+                  datos_zas: datosZas ? JSON.stringify(datosZas) : '',
+                },
+              });
             }
             if (viajeActual.estado === 'completado' || viajeActual.estado === 'cancelado') {
               await AsyncStorage.removeItem('viaje_activo');
@@ -167,6 +197,8 @@ export default function HomeScreen() {
               setTipoTarifa('');
               setMunicipioTarifa(null);
               setPagoId(null);
+              pagoIdRef.current = null;
+              metodoPagoRef.current = 'efectivo';
               setDatosZas(null);
               setMetodoPago('efectivo');
             }
@@ -216,7 +248,6 @@ export default function HomeScreen() {
     } else {
       setCoordDestino(pinCoord); setNombreDestino(nombre);
       setTextoBusqueda(''); setSugerencias([]);
-      // Calcular precio antes de mostrar confirmación
       setCalculandoPrecio(true);
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, pinCoord);
@@ -248,7 +279,6 @@ export default function HomeScreen() {
       setCoordOrigen(coords); setNombreOrigen(sug.description); setPaso('destino');
     } else {
       setCoordDestino(coords); setNombreDestino(sug.description);
-      // Calcular precio antes de mostrar confirmación
       setCalculandoPrecio(true);
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, coords);
@@ -265,7 +295,16 @@ export default function HomeScreen() {
     try {
       const res = await fetch(`${API_URL}/api/viajes/nuevo`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: usuarioId, origen: nombreOrigen, destino: nombreDestino, origen_lat: coordOrigen.latitude, origen_lng: coordOrigen.longitude, destino_lat: coordDestino.latitude, destino_lng: coordDestino.longitude, precio: precioCalculado }),
+        body: JSON.stringify({
+          usuario_id: usuarioId,
+          origen: nombreOrigen,
+          destino: nombreDestino,
+          origen_lat: coordOrigen.latitude,
+          origen_lng: coordOrigen.longitude,
+          destino_lat: coordDestino.latitude,
+          destino_lng: coordDestino.longitude,
+          precio: precioCalculado,
+        }),
       });
       const data = await res.json();
       if (!data.ok && data.error?.includes('conductor')) {
@@ -276,7 +315,6 @@ export default function HomeScreen() {
       if (data.ok) {
         setViaje(data.viaje);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
-        // Crear registro de pago
         try {
           const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -285,6 +323,7 @@ export default function HomeScreen() {
           const dataPago = await resPago.json();
           if (dataPago.ok) {
             setPagoId(dataPago.pago.id);
+            pagoIdRef.current = dataPago.pago.id;
             if (dataPago.datos_pago_zas) setDatosZas(dataPago.datos_pago_zas);
           }
         } catch {}
@@ -415,7 +454,29 @@ export default function HomeScreen() {
             <Text style={styles.viajeLabel}>Estado</Text><Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
-            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'usuario', conductor_id: viaje.conductor_id || '', conductor_nombre: viaje.conductor_nombre || '', conductor_telefono: viaje.conductor_telefono || '', conductor_foto: viaje.conductor_foto || '', conductor_placa: viaje.conductor_placa || '', conductor_modelo: viaje.conductor_modelo || '', origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '', pago_id: pagoId || '', metodo_pago: metodoPago || 'efectivo', monto_viaje: String(viaje.precio || 0), datos_zas: datosZas ? JSON.stringify(datosZas) : '' } })}>
+            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({
+              pathname: '/mapa_viaje',
+              params: {
+                viaje_id: viaje.id,
+                rol: 'usuario',
+                conductor_id: viaje.conductor_id || '',
+                conductor_nombre: viaje.conductor_nombre || '',
+                conductor_telefono: viaje.conductor_telefono || '',
+                conductor_foto: viaje.conductor_foto || '',
+                conductor_placa: viaje.conductor_placa || '',
+                conductor_modelo: viaje.conductor_modelo || '',
+                origen: viaje.origen,
+                destino: viaje.destino,
+                origen_lat: viaje.origen_lat || '',
+                origen_lng: viaje.origen_lng || '',
+                destino_lat: viaje.destino_lat || '',
+                destino_lng: viaje.destino_lng || '',
+                pago_id: pagoIdRef.current || '',
+                metodo_pago: metodoPagoRef.current || 'efectivo',
+                monto_viaje: String(viaje.precio || 0),
+                datos_zas: datosZas ? JSON.stringify(datosZas) : '',
+              },
+            })}>
               <Text style={styles.botonVerMapaTexto}>Ver en el mapa</Text>
             </TouchableOpacity>
           )}
@@ -456,16 +517,16 @@ export default function HomeScreen() {
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
             <View style={styles.pagoOpciones}>
-              {['efectivo','pago_movil','zelle','usdt'].map(m => (
+              {['efectivo', 'pago_movil', 'zelle', 'usdt'].map(m => (
                 <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
                   <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
-                    {m === 'efectivo' ? '💵 Efectivo' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : m === 'transferencia' ? '🏦 Transferencia' : '₿ USDT'}
+                    {m === 'efectivo' ? '💵 Efectivo' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             {metodoPago !== 'efectivo' && (
-              <Text style={{color:'#888', fontSize:12, marginTop:8, textAlign:'center'}}>
+              <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
                 Después del viaje deberás subir el comprobante de pago
               </Text>
             )}
