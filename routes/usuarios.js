@@ -358,7 +358,7 @@ router.post('/recuperar-password', async (req, res) => {
     const { data, error } = await supabase
       .from('usuarios')
       .select('id, nombre, email')
-      .eq('email', email)
+      .ilike('email', email.trim().toLowerCase())
       .single();
 
     if (error || !data) {
