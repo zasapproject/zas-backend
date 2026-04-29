@@ -20,6 +20,10 @@ export default function LoginScreen() {
   const [verPasswordReg, setVerPasswordReg] = useState(false);
   const [recEmail, setRecEmail] = useState('');
   const [recCargando, setRecCargando] = useState(false);
+  const [usuarioIdTemp, setUsuarioIdTemp] = useState('');
+  const [nuevaPassword, setNuevaPassword] = useState('');
+  const [confirmarPassword, setConfirmarPassword] = useState('');
+  const [cambCargando, setCambCargando] = useState(false);
 
   const seleccionarFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,6 +77,36 @@ export default function LoginScreen() {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
+  const cambiarPasswordTemporal = async () => {
+    if (nuevaPassword.length < 4) {
+      Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres');
+      return;
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden');
+      return;
+    }
+    setCambCargando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/usuarios/reset-password/${usuarioIdTemp}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: nuevaPassword }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        Alert.alert('¡Listo!', 'Tu contraseña fue actualizada. Ahora inicia sesión.', [
+          { text: 'OK', onPress: () => { setNuevaPassword(''); setConfirmarPassword(''); setUsuarioIdTemp(''); setPantalla('login'); } }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo actualizar la contraseña');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.');
+    } finally {
+      setCambCargando(false);
+    }
+  };
 const recuperarPassword = async () => {
     if (!recEmail || !recEmail.includes('@')) {
       Alert.alert('Error', 'Ingresa un email valido');
@@ -113,6 +147,12 @@ const recuperarPassword = async () => {
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
+        if (data.usuario.contrasena_temporal === true) {
+          setUsuarioIdTemp(data.usuario.id);
+          setPantalla('cambiar-password');
+          setCargando(false);
+          return;
+        }
         const terminos = await AsyncStorage.getItem('terminos_aceptados');
         if (!terminos) {
           router.replace('/terminos');
@@ -238,7 +278,35 @@ const recuperarPassword = async () => {
             </TouchableOpacity>
           </View>
         )}
-
+{pantalla === "cambiar-password" && (
+          <View style={styles.formulario}>
+            <Text style={styles.formTitulo}>Crea tu contraseña</Text>
+            <Text style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
+              Recibiste una contraseña temporal. Por seguridad, crea una nueva antes de continuar.
+            </Text>
+            <Text style={styles.label}>Nueva contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mínimo 4 caracteres"
+              placeholderTextColor="#888"
+              secureTextEntry
+              value={nuevaPassword}
+              onChangeText={setNuevaPassword}
+            />
+            <Text style={styles.label}>Confirmar contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Repite tu contraseña"
+              placeholderTextColor="#888"
+              secureTextEntry
+              value={confirmarPassword}
+              onChangeText={setConfirmarPassword}
+            />
+            <TouchableOpacity style={styles.boton} onPress={cambiarPasswordTemporal} disabled={cambCargando}>
+              {cambCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar contraseña</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
         {pantalla === "recuperar" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Recuperar contraseña</Text>

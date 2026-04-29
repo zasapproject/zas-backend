@@ -141,7 +141,7 @@ router.get('/buscar/:telefono', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id, nombre, telefono, email, foto_url, foto_cedula, created_at')
+      .select('id, nombre, telefono, email, foto_url, foto_cedula, contrasena_temporal, created_at')
       .eq('telefono', telefono)
       .single();
 
@@ -178,7 +178,7 @@ router.get('/todos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id, nombre, telefono, email, foto_url, foto_cedula, created_at')
+      .select('id, nombre, telefono, email, foto_url, foto_cedula, contrasena_temporal, created_at')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -369,7 +369,7 @@ router.post('/recuperar-password', async (req, res) => {
 
     await supabase
       .from('usuarios')
-      .update({ password: nueva })
+      .update({ password: nueva, contrasena_temporal: true })
       .eq('id', data.id);
 
     await fetch('https://api.brevo.com/v3/smtp/email', {
