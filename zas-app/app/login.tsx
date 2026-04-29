@@ -139,8 +139,7 @@ const recuperarPassword = async () => {
     try {
       const res = await fetch(API_URL + "/api/usuarios/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefono, password }) });
       if (res.status === 401) {
-        await AsyncStorage.removeItem('usuario_sesion');
-        Alert.alert('Sesión expirada', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
+        Alert.alert('Error', 'Teléfono o contraseña incorrectos.');
         setCargando(false);
         return;
       }
