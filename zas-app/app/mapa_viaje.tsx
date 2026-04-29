@@ -203,7 +203,17 @@ export default function MapaViaje() {
     return '57';
   }
   function llamar(tel) { if (tel) Linking.openURL(`tel:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
-  function whatsapp(tel) { if (tel) Linking.openURL(`whatsapp://send?phone=${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
+  function whatsapp(tel) {
+    if (!tel) {
+      Alert.alert('Sin número', 'No se encontró el número de teléfono.');
+      return;
+    }
+    const limpio = tel.replace(/\D/g, '');
+    const codigo = getCodigoPais(tel);
+    Linking.openURL(`https://wa.me/${codigo}${limpio}`).catch(() => {
+      Alert.alert('Error', 'No se pudo abrir WhatsApp. Verifica que esté instalado.');
+    });
+  }
   function sms(tel) { if (tel) Linking.openURL(`sms:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
 
   async function iniciarViaje() {
