@@ -152,12 +152,23 @@ export default function HomeScreen() {
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
-              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino, origen_lat: viajeActual.origen_lat || '', origen_lng: viajeActual.origen_lng || '', destino_lat: viajeActual.destino_lat || '', destino_lng: viajeActual.destino_lng || '' } });
+              router.push({ pathname: '/mapa_viaje', params: { viaje_id: viajeActual.id, rol: 'usuario', conductor_id: viajeActual.conductor_id || '', conductor_nombre: viajeActual.conductor_nombre || '', conductor_telefono: viajeActual.conductor_telefono || '', conductor_foto: viajeActual.conductor_foto || '', conductor_placa: viajeActual.conductor_placa || '', conductor_modelo: viajeActual.conductor_modelo || '', origen: viajeActual.origen, destino: viajeActual.destino, origen_lat: viajeActual.origen_lat || '', origen_lng: viajeActual.origen_lng || '', destino_lat: viajeActual.destino_lat || '', destino_lng: viajeActual.destino_lng || '', pago_id: pagoId || '', metodo_pago: metodoPago || 'efectivo', monto_viaje: String(precioCalculado || 0), datos_zas: datosZas ? JSON.stringify(datosZas) : '' } });
             }
             if (viajeActual.estado === 'completado' || viajeActual.estado === 'cancelado') {
               await AsyncStorage.removeItem('viaje_activo');
               setViaje(null);
               setNavegandoAlMapa(false);
+              setPaso('origen');
+              setCoordOrigen(null);
+              setCoordDestino(null);
+              setNombreOrigen('');
+              setNombreDestino('');
+              setPrecioCalculado(0);
+              setTipoTarifa('');
+              setMunicipioTarifa(null);
+              setPagoId(null);
+              setDatosZas(null);
+              setMetodoPago('efectivo');
             }
           }
         }
@@ -404,7 +415,7 @@ export default function HomeScreen() {
             <Text style={styles.viajeLabel}>Estado</Text><Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
-            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'usuario', conductor_id: viaje.conductor_id || '', conductor_nombre: viaje.conductor_nombre || '', conductor_telefono: viaje.conductor_telefono || '', conductor_foto: viaje.conductor_foto || '', conductor_placa: viaje.conductor_placa || '', conductor_modelo: viaje.conductor_modelo || '', origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '' } })}>
+            <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'usuario', conductor_id: viaje.conductor_id || '', conductor_nombre: viaje.conductor_nombre || '', conductor_telefono: viaje.conductor_telefono || '', conductor_foto: viaje.conductor_foto || '', conductor_placa: viaje.conductor_placa || '', conductor_modelo: viaje.conductor_modelo || '', origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '', pago_id: pagoId || '', metodo_pago: metodoPago || 'efectivo', monto_viaje: String(viaje.precio || 0), datos_zas: datosZas ? JSON.stringify(datosZas) : '' } })}>
               <Text style={styles.botonVerMapaTexto}>Ver en el mapa</Text>
             </TouchableOpacity>
           )}

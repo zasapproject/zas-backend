@@ -611,7 +611,6 @@ if (mostrarBilletera) {
           ? Math.abs(viaje.origen_lng - viaje.destino_lng) * 2.5 + 0.01
           : 0.05;
         return (
-              viajes.map(viaje => {
                 <View key={viaje.id} style={styles.card}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                     {viaje.usuario_foto
@@ -694,9 +693,9 @@ if (mostrarBilletera) {
                     </TouchableOpacity>
                   </View>
                 </View>
-              )
         );
-      })}
+      })
+            )}
           </>
         )}
       </ScrollView>

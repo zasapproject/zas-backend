@@ -94,6 +94,9 @@ export default function MapaViaje() {
   const [datosZas, setDatosZas] = useState<any>(null);
   const [montoViaje, setMontoViaje] = useState<number>(0);
   const [metodoViaje, setMetodoViaje] = useState<string>('efectivo');
+  const [mostrarPagoEfectivo, setMostrarPagoEfectivo] = useState(false);
+  const [mostrarCalificacion, setMostrarCalificacion] = useState(false);
+  const [calificacionTitulo, setCalificacionTitulo] = useState('');
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -170,13 +173,7 @@ export default function MapaViaje() {
                 setMostrarComprobante(true);
                 return;
             } else if (!esCondutor) {
-              Alert.alert('¿Cómo fue tu conductor?', 'Califica de 1 a 5 estrellas', [
-                { text: '⭐ 1', onPress: () => calificar(1) },
-                { text: '⭐⭐ 2', onPress: () => calificar(2) },
-                { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
-                { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
-                { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
-              ]);
+              setMostrarPagoEfectivo(true);
             } else {
               Alert.alert('Viaje completado!', '', [{ text: 'OK', onPress: () => router.back() }]);
             }
@@ -248,7 +245,11 @@ async function calificar(estrellas) {
         body: JSON.stringify({ calificacion: estrellas })
       });
     } catch {}
-    router.back();
+    if (esCondutor) {
+      router.replace('/conductor');
+    } else {
+      router.replace('/home');
+    }
   }
 async function terminarViaje() {
   Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
@@ -261,13 +262,8 @@ async function terminarViaje() {
       });
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (locationSub.current) locationSub.current.remove();
-      Alert.alert('¿Cómo fue el usuario?', 'Califica de 1 a 5 estrellas', [
-        { text: '⭐ 1', onPress: () => calificar(1) },
-        { text: '⭐⭐ 2', onPress: () => calificar(2) },
-        { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
-        { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
-        { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
-      ]);
+      setCalificacionTitulo('¿Cómo fue el usuario?');
+      setMostrarCalificacion(true);
     }},
   ]);
 }
@@ -292,6 +288,69 @@ async function terminarViaje() {
   if (cargando) {
     return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /><Text style={styles.loadingText}>Cargando mapa...</Text></View>;
   }
+  if (mostrarCalificacion) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 60, marginBottom: 20 }}>🏍</Text>
+        <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
+          {calificacionTitulo}
+        </Text>
+        <Text style={{ color: '#888', fontSize: 14, textAlign: 'center', marginBottom: 32 }}>
+          Tu opinión ayuda a mejorar el servicio
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+          {[1, 2, 3, 4, 5].map(estrella => (
+            <TouchableOpacity
+              key={estrella}
+              style={{ backgroundColor: '#16213e', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#FFD700', minWidth: 52 }}
+              onPress={() => {
+                setMostrarCalificacion(false);
+                calificar(estrella);
+              }}
+            >
+              <Text style={{ fontSize: 24 }}>⭐</Text>
+              <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 14, marginTop: 4 }}>{estrella}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity
+          style={{ padding: 12 }}
+          onPress={() => {
+            setMostrarCalificacion(false);
+            calificar(5);
+          }}
+        >
+          <Text style={{ color: '#555', fontSize: 13 }}>Saltar calificación</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  if (mostrarPagoEfectivo) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 60, marginBottom: 20 }}>💵</Text>
+        <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+          Pago en efectivo
+        </Text>
+        <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', marginBottom: 8 }}>
+          Recuerda pagar al conductor:
+        </Text>
+        <Text style={{ color: '#FFD700', fontSize: 32, fontWeight: 'bold', marginBottom: 32 }}>
+          ${params.monto_viaje || '0'}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#FFD700', borderRadius: 14, padding: 18, width: '100%', alignItems: 'center', marginBottom: 12 }}
+          onPress={() => {
+            setMostrarPagoEfectivo(false);
+            setCalificacionTitulo('¿Cómo fue tu conductor?');
+            setMostrarCalificacion(true);
+          }}
+        >
+          <Text style={{ color: '#1A1A2E', fontWeight: 'bold', fontSize: 16 }}>✅ Ya pagué al conductor</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 if (mostrarComprobante && pagoId) {
     return (
       <SubirComprobante
@@ -301,13 +360,8 @@ if (mostrarComprobante && pagoId) {
         datosZas={datosZas}
         onComprobanteEnviado={() => {
           setMostrarComprobante(false);
-          Alert.alert('¿Cómo fue tu conductor?', 'Califica de 1 a 5 estrellas', [
-            { text: '⭐ 1', onPress: () => calificar(1) },
-            { text: '⭐⭐ 2', onPress: () => calificar(2) },
-            { text: '⭐⭐⭐ 3', onPress: () => calificar(3) },
-            { text: '⭐⭐⭐⭐ 4', onPress: () => calificar(4) },
-            { text: '⭐⭐⭐⭐⭐ 5', onPress: () => calificar(5) },
-          ]);
+          setCalificacionTitulo('¿Cómo fue tu conductor?');
+          setMostrarCalificacion(true);
         }}
       />
     );
