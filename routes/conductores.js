@@ -473,7 +473,7 @@ router.post('/recuperar-password', async (req, res) => {
 
     await supabase
       .from('conductores')
-      .update({ password: nueva })
+      .update({ password: nueva, contrasena_temporal: true })
       .eq('id', data.id);
 
     await fetch('https://api.brevo.com/v3/smtp/email', {
