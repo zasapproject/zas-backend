@@ -133,7 +133,7 @@ router.get('/buscar/:telefono', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, created_at')
+      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, contrasena_temporal, created_at')
       .eq('telefono', req.params.telefono)
       .single();
 
@@ -378,7 +378,7 @@ router.patch('/reset-password/:id', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const { data, error } = await supabase
       .from('conductores')
-      .update({ password: passwordHash })
+      .update({ password: passwordHash, contrasena_temporal: false })
       .eq('id', req.params.id)
       .select('id, nombre, telefono');
 
