@@ -361,8 +361,12 @@ router.post('/recuperar-password', async (req, res) => {
       .eq('email', email.trim().toLowerCase())
       .single();
 
+    console.log('EMAIL BUSCADO:', email.trim().toLowerCase());
+    console.log('RESULTADO:', JSON.stringify(data));
+    console.log('ERROR:', JSON.stringify(error));
+
     if (error || !data) {
-      return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email' });
+      return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email', debug: { buscado: email.trim().toLowerCase(), supabase_error: error?.message } });
     }
 
     const nueva = Math.random().toString(36).slice(-6).toUpperCase();
