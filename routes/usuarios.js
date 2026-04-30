@@ -57,6 +57,16 @@ router.post('/registro', registroLimiter, async (req, res) => {
     if (existe) {
       return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese teléfono' });
     }
+    // Verificar si el email ya está registrado
+    const { data: emailExiste } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('email', email.trim().toLowerCase())
+      .limit(1);
+
+    if (emailExiste && emailExiste.length > 0) {
+      return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese correo electrónico' });
+    }
 
     // Encriptar contraseña
     const passwordHash = await bcrypt.hash(password, 10);
