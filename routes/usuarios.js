@@ -229,7 +229,7 @@ router.patch('/reset-password/:id', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const { data, error } = await supabase
       .from('usuarios')
-      .update({ password: passwordHash })
+      .update({ password: passwordHash, contrasena_temporal: false })
       .eq('id', req.params.id)
       .select('id, nombre, telefono');
 
@@ -371,19 +371,16 @@ router.post('/recuperar-password', async (req, res) => {
       .eq('email', email.trim().toLowerCase())
       .single();
 
-    console.log('EMAIL BUSCADO:', email.trim().toLowerCase());
-    console.log('RESULTADO:', JSON.stringify(data));
-    console.log('ERROR:', JSON.stringify(error));
-
     if (error || !data) {
-      return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email', debug: { buscado: email.trim().toLowerCase(), supabase_error: error?.message } });
+      return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email' });
     }
 
     const nueva = Math.random().toString(36).slice(-6).toUpperCase();
+    const nuevaHash = await bcrypt.hash(nueva, 10);
 
     await supabase
       .from('usuarios')
-      .update({ password: nueva, contrasena_temporal: true })
+      .update({ password: nuevaHash, contrasena_temporal: true })
       .eq('id', data.id);
 
     await fetch('https://api.brevo.com/v3/smtp/email', {

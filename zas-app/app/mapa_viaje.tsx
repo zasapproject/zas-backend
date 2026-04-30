@@ -114,6 +114,12 @@ export default function MapaViaje() {
   }, []);
 
   async function inicializar() {
+    console.log('PARAMS MAPA_VIAJE:', JSON.stringify({
+      pago_id: params.pago_id,
+      metodo_pago: params.metodo_pago,
+      monto_viaje: params.monto_viaje,
+      rol: params.rol
+    }));
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu ubicacion'); setCargando(false); return; }
     const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -165,7 +171,7 @@ export default function MapaViaje() {
             if (locationSub.current) locationSub.current.remove();
             if (estado === 'cancelado') {
               Alert.alert('Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
-            } else if (!esCondutor && params.pago_id && params.metodo_pago !== 'efectivo') {
+            } else if (!esCondutor && params.metodo_pago && params.metodo_pago !== 'efectivo') {
                 setPagoId(params.pago_id as string);
                 setDatosZas(params.datos_zas ? JSON.parse(params.datos_zas as string) : null);
                 setMontoViaje(Number(params.monto_viaje) || 0);

@@ -316,9 +316,11 @@ export default function HomeScreen() {
         setViaje(data.viaje);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
         try {
+          const metodoActual = metodoPago;
+          metodoPagoRef.current = metodoActual;
           const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
+            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoActual })
           });
           const dataPago = await resPago.json();
           if (dataPago.ok) {
