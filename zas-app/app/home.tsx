@@ -90,6 +90,7 @@ export default function HomeScreen() {
 
   // ── Precio dinámico ──
   const [precioCalculado, setPrecioCalculado] = useState<number>(0);
+  const precioCalculadoRef = useRef<number>(0); // ← FIX: ref para que el polling siempre tenga el precio correcto
   const [tipoTarifa, setTipoTarifa] = useState<string>('');
   const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
   const [calculandoPrecio, setCalculandoPrecio] = useState(false);
@@ -99,11 +100,14 @@ export default function HomeScreen() {
   const [pagoId, setPagoId] = useState<string | null>(null);
   const pagoIdRef = useRef<string | null>(null);
   const metodoPagoRef = useRef<string>('efectivo');
+  const datosZasRef = useRef<any>(null);
   const [datosZas, setDatosZas] = useState<any>(null);
   const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
 
-  // Sincronizar metodoPagoRef cuando cambia el estado
+  // Sincronizar refs cuando cambian los estados
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
+  useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
+  useEffect(() => { datosZasRef.current = datosZas; }, [datosZas]);
 
   const [editandoPerfil, setEditandoPerfil] = useState(false);
   const [editTelefono, setEditTelefono] = useState('');
@@ -160,6 +164,7 @@ export default function HomeScreen() {
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
+              // ── FIX: usar refs para que el polling siempre tenga los valores correctos ──
               router.push({
                 pathname: '/mapa_viaje',
                 params: {
@@ -179,8 +184,8 @@ export default function HomeScreen() {
                   destino_lng: viajeActual.destino_lng || '',
                   pago_id: pagoIdRef.current || '',
                   metodo_pago: metodoPagoRef.current || 'efectivo',
-                  monto_viaje: String(precioCalculado || 0),
-                  datos_zas: datosZas ? JSON.stringify(datosZas) : '',
+                  monto_viaje: String(precioCalculadoRef.current || viajeActual.precio || 0),
+                  datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
                 },
               });
             }
@@ -194,12 +199,14 @@ export default function HomeScreen() {
               setNombreOrigen('');
               setNombreDestino('');
               setPrecioCalculado(0);
+              precioCalculadoRef.current = 0;
               setTipoTarifa('');
               setMunicipioTarifa(null);
               setPagoId(null);
               pagoIdRef.current = null;
               metodoPagoRef.current = 'efectivo';
               setDatosZas(null);
+              datosZasRef.current = null;
               setMetodoPago('efectivo');
             }
           }
@@ -252,6 +259,7 @@ export default function HomeScreen() {
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, pinCoord);
       setPrecioCalculado(resultado.precio);
+      precioCalculadoRef.current = resultado.precio; // ← sincronizar ref
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
@@ -283,6 +291,7 @@ export default function HomeScreen() {
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, coords);
       setPrecioCalculado(resultado.precio);
+      precioCalculadoRef.current = resultado.precio; // ← sincronizar ref
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
@@ -326,7 +335,10 @@ export default function HomeScreen() {
           if (dataPago.ok) {
             setPagoId(dataPago.pago.id);
             pagoIdRef.current = dataPago.pago.id;
-            if (dataPago.datos_pago_zas) setDatosZas(dataPago.datos_pago_zas);
+            if (dataPago.datos_pago_zas) {
+              setDatosZas(dataPago.datos_pago_zas);
+              datosZasRef.current = dataPago.datos_pago_zas;
+            }
           }
         } catch {}
         Alert.alert('Viaje solicitado', 'Buscando conductor cercano...');
@@ -338,7 +350,8 @@ export default function HomeScreen() {
   const reiniciarFlujo = () => {
     setPaso('origen'); setCoordOrigen(null); setCoordDestino(null);
     setNombreOrigen(''); setNombreDestino(''); setTextoBusqueda(''); setSugerencias([]);
-    setPrecioCalculado(0); setTipoTarifa(''); setMunicipioTarifa(null);
+    setPrecioCalculado(0); precioCalculadoRef.current = 0;
+    setTipoTarifa(''); setMunicipioTarifa(null);
   };
 
   const cancelarViaje = async () => {
@@ -475,8 +488,8 @@ export default function HomeScreen() {
                 destino_lng: viaje.destino_lng || '',
                 pago_id: pagoIdRef.current || '',
                 metodo_pago: metodoPagoRef.current || 'efectivo',
-                monto_viaje: String(viaje.precio || 0),
-                datos_zas: datosZas ? JSON.stringify(datosZas) : '',
+                monto_viaje: String(precioCalculadoRef.current || viaje.precio || 0),
+                datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
               },
             })}>
               <Text style={styles.botonVerMapaTexto}>Ver en el mapa</Text>

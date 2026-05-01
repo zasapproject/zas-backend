@@ -48,6 +48,28 @@ router.post('/guardar', async (req, res) => {
     });
   }
 
+  // Validar que el teléfono de Pago Móvil coincida con el del conductor
+  if (telefono_pago_movil) {
+    const { data: conductor } = await supabase
+      .from('conductores')
+      .select('telefono')
+      .eq('id', conductor_id)
+      .single();
+
+    if (!conductor) {
+      return res.status(404).json({ ok: false, error: 'Conductor no encontrado.' });
+    }
+
+    const telLimpio = (t) => t.replace(/\D/g, '');
+
+    if (telLimpio(telefono_pago_movil) !== telLimpio(conductor.telefono)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'El teléfono de Pago Móvil debe coincidir con el número registrado en ZAS.',
+      });
+    }
+  }
+
   const payload = {
     conductor_id,
     banco: banco || null,

@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
 import SubirComprobante from './SubirComprobante';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Dimensions, Platform, Animated, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Platform, Animated, Image, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -78,8 +78,15 @@ export default function MapaViaje() {
   const locationSub = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  const esCondutorRef = useRef(params.rol === 'conductor');
+  const conductorIdRef = useRef(params.conductor_id || '');
+  const viajeIdRef = useRef(params.viaje_id || '');
+  const metodoPagoRef = useRef(String(params.metodo_pago || 'efectivo').trim());
+  const pagoIdRef = useRef(String(params.pago_id || '').trim());
+  const datosZasRef = useRef(params.datos_zas ? String(params.datos_zas) : '');
+  const montoViajeRef = useRef(Number(params.monto_viaje) || 0);
+
   const esCondutor = params.rol === 'conductor';
-  const conductorId = params.conductor_id || '';
 
   const [miUbicacion, setMiUbicacion] = useState(null);
   const [ubicacionConductor, setUbicacionConductor] = useState(null);
@@ -87,6 +94,7 @@ export default function MapaViaje() {
   const [coordDestino, setCoordDestino] = useState(null);
   const [ruta, setRuta] = useState([]);
   const [estadoViaje, setEstadoViaje] = useState('aceptado');
+  const estadoViajeRef = useRef('aceptado');
   const [cargando, setCargando] = useState(true);
   const [etaTexto, setEtaTexto] = useState('Calculando...');
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
@@ -97,6 +105,9 @@ export default function MapaViaje() {
   const [mostrarPagoEfectivo, setMostrarPagoEfectivo] = useState(false);
   const [mostrarCalificacion, setMostrarCalificacion] = useState(false);
   const [calificacionTitulo, setCalificacionTitulo] = useState('');
+  const coordOrigenRef = useRef(null);
+  const coordDestinoRef = useRef(null);
+  const miUbicacionRef = useRef(null);
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -114,37 +125,43 @@ export default function MapaViaje() {
   }, []);
 
   async function inicializar() {
-    console.log('PARAMS MAPA_VIAJE:', JSON.stringify({
-      pago_id: params.pago_id,
-      metodo_pago: params.metodo_pago,
-      monto_viaje: params.monto_viaje,
-      rol: params.rol
-    }));
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu ubicacion'); setCargando(false); return; }
     const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
     const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
     setMiUbicacion(coords);
+    miUbicacionRef.current = coords;
+
     if (params.origen_lat && params.destino_lat) {
       const cOrig = { latitude: Number(params.origen_lat), longitude: Number(params.origen_lng) };
       const cDest = { latitude: Number(params.destino_lat), longitude: Number(params.destino_lng) };
       setCoordOrigen(cOrig);
       setCoordDestino(cDest);
+      coordOrigenRef.current = cOrig;
+      coordDestinoRef.current = cDest;
       actualizarRuta(cOrig, cDest);
     } else if (params.origen && params.destino) {
       const [cOrig, cDest] = await Promise.all([geocodificar(params.origen), geocodificar(params.destino)]);
       setCoordOrigen(cOrig);
       setCoordDestino(cDest);
+      coordOrigenRef.current = cOrig;
+      coordDestinoRef.current = cDest;
       if (cOrig && cDest) actualizarRuta(cOrig, cDest);
     }
-    if (esCondutor && conductorId) {
-      locationSub.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 }, (newLoc) => {
-        const c = { latitude: newLoc.coords.latitude, longitude: newLoc.coords.longitude };
-        setMiUbicacion(c);
-        actualizarUbicacionConductor(conductorId, c);
-      });
+
+    if (esCondutorRef.current && conductorIdRef.current) {
+      locationSub.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
+        (newLoc) => {
+          const c = { latitude: newLoc.coords.latitude, longitude: newLoc.coords.longitude };
+          setMiUbicacion(c);
+          miUbicacionRef.current = c;
+          actualizarUbicacionConductor(conductorIdRef.current, c);
+        }
+      );
     }
-    iniciarPolling(coords);
+
+    iniciarPolling();
     setCargando(false);
   }
 
@@ -160,44 +177,71 @@ export default function MapaViaje() {
     } catch (_) {}
   }, []);
 
-  function iniciarPolling(miCoord) {
+  function iniciarPolling() {
     pollingRef.current = setInterval(async () => {
-      if (params.viaje_id) {
-        const estado = await obtenerEstadoViaje(params.viaje_id);
-        if (estado) {
-          setEstadoViaje(estado);
-          if (estado === 'completado' || estado === 'cancelado') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            if (locationSub.current) locationSub.current.remove();
-            if (estado === 'cancelado') {
-              Alert.alert('Viaje cancelado', '', [{ text: 'OK', onPress: () => router.back() }]);
-            } else if (!esCondutor && params.metodo_pago && params.metodo_pago !== 'efectivo') {
-                setPagoId(params.pago_id as string);
-                setDatosZas(params.datos_zas ? JSON.parse(params.datos_zas as string) : null);
-                setMontoViaje(Number(params.monto_viaje) || 0);
-                setMetodoViaje(params.metodo_pago as string || 'efectivo');
-                setMostrarComprobante(true);
-                return;
-            } else if (!esCondutor) {
-              setMostrarPagoEfectivo(true);
-            } else {
-              Alert.alert('Viaje completado!', '', [{ text: 'OK', onPress: () => router.back() }]);
-            }
+      const viajeId = viajeIdRef.current;
+      if (!viajeId) return;
+
+      const estado = await obtenerEstadoViaje(viajeId);
+      if (!estado) return;
+
+      setEstadoViaje(estado);
+      estadoViajeRef.current = estado;
+
+      if (estado === 'completado' || estado === 'cancelado') {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        if (locationSub.current) locationSub.current.remove();
+
+        if (estado === 'cancelado') {
+          Alert.alert('Viaje cancelado', '', [{ text: 'OK', onPress: () => router.replace(esCondutorRef.current ? '/conductor' : '/home') }]);
+          return;
+        }
+
+        if (esCondutorRef.current) {
+          setCalificacionTitulo('¿Cómo fue el usuario?');
+          setMostrarCalificacion(true);
+        } else {
+          const metodo = metodoPagoRef.current;
+          const pId = pagoIdRef.current;
+          if (metodo && metodo !== 'efectivo' && metodo !== '') {
+            setPagoId(pId || null);
+            setMontoViaje(montoViajeRef.current);
+            setMetodoViaje(metodo);
+            try {
+              const dzas = datosZasRef.current;
+              setDatosZas(dzas ? JSON.parse(dzas) : null);
+            } catch { setDatosZas(null); }
+            setMostrarComprobante(true);
+          } else {
+            setMostrarPagoEfectivo(true);
+          }
+        }
+        return;
+      }
+
+      if (!esCondutorRef.current && conductorIdRef.current) {
+        const ubicCond = await obtenerUbicacionConductor(conductorIdRef.current);
+        if (ubicCond) {
+          setUbicacionConductor(ubicCond);
+          const ev = estadoViajeRef.current;
+          if ((ev === 'aceptado' || ev === 'en_camino') && coordOrigenRef.current) {
+            await actualizarRuta(ubicCond, coordOrigenRef.current);
+          } else if (ev === 'en_curso' && coordDestinoRef.current) {
+            await actualizarRuta(ubicCond, coordDestinoRef.current);
           }
         }
       }
-      if (!esCondutor && conductorId) {
-        const ubicCond = await obtenerUbicacionConductor(conductorId);
-        if (ubicCond) {
-          setUbicacionConductor(ubicCond);
-          if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicCond, coordOrigen);
-          else if (estadoViaje === 'en_curso' && coordDestino) await actualizarRuta(ubicCond, coordDestino);
+
+      if (esCondutorRef.current) {
+        const ubicActual = miUbicacionRef.current;
+        const ev = estadoViajeRef.current;
+        if (ubicActual) {
+          if ((ev === 'aceptado' || ev === 'en_camino') && coordOrigenRef.current) {
+            await actualizarRuta(ubicActual, coordOrigenRef.current);
+          } else if (ev === 'en_curso' && coordDestinoRef.current) {
+            await actualizarRuta(ubicActual, coordDestinoRef.current);
+          }
         }
-      }
-      if (esCondutor) {
-        const ubicActual = miUbicacion || miCoord;
-        if ((estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && coordOrigen) await actualizarRuta(ubicActual, coordOrigen);
-        else if (estadoViaje === 'en_curso' && coordDestino) await actualizarRuta(ubicActual, coordDestino);
       }
     }, POLLING_INTERVAL);
   }
@@ -208,83 +252,85 @@ export default function MapaViaje() {
     if (limpio.startsWith('04') || limpio.startsWith('58')) return '58';
     return '57';
   }
+
   function llamar(tel) { if (tel) Linking.openURL(`tel:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
+
   function whatsapp(tel) {
-    if (!tel) {
-      Alert.alert('Sin número', 'No se encontró el número de teléfono.');
-      return;
-    }
+    if (!tel) { Alert.alert('Sin número', 'No se encontró el número de teléfono.'); return; }
     const limpio = tel.replace(/\D/g, '');
     const codigo = getCodigoPais(tel);
     Linking.openURL(`https://wa.me/${codigo}${limpio}`).catch(() => {
       Alert.alert('Error', 'No se pudo abrir WhatsApp. Verifica que esté instalado.');
     });
   }
+
   function sms(tel) { if (tel) Linking.openURL(`sms:+${getCodigoPais(tel)}${tel.replace(/\D/g, '')}`); }
 
   async function iniciarViaje() {
-  Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Iniciar', onPress: async () => {
-      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'en_curso' })
-      });
-      setEstadoViaje('en_curso');
-    }},
-  ]);
-}
+    Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Iniciar', onPress: async () => {
+        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'en_curso' })
+        });
+        setEstadoViaje('en_curso');
+        estadoViajeRef.current = 'en_curso';
+      }},
+    ]);
+  }
 
-async function cancelarViaje() {
-  Alert.alert('Cancelar viaje', '¿Estás seguro?', [
-    { text: 'No', style: 'cancel' },
-    { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
-      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'cancelado' })
-      });
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      if (locationSub.current) locationSub.current.remove();
-      router.back();
-    }},
-  ]);
-}
-async function calificar(estrellas) {
+  async function cancelarViaje() {
+    Alert.alert('Cancelar viaje', '¿Estás seguro?', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        if (locationSub.current) locationSub.current.remove();
+        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'cancelado' })
+        });
+        router.replace(esCondutorRef.current ? '/conductor' : '/home');
+      }},
+    ]);
+  }
+
+  async function calificar(estrellas) {
     try {
-      const idCalificar = esCondutor ? params.usuario_id : params.conductor_id;
-      const ruta = esCondutor ? 'usuarios' : 'conductores';
-      await fetch(`${BACKEND_URL}/api/${ruta}/calificar/${idCalificar}`, {
+      const idCalificar = esCondutorRef.current ? params.usuario_id : params.conductor_id;
+      const rutaApi = esCondutorRef.current ? 'usuarios' : 'conductores';
+      await fetch(`${BACKEND_URL}/api/${rutaApi}/calificar/${idCalificar}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ calificacion: estrellas })
       });
     } catch {}
-    if (esCondutor) {
-      router.replace('/conductor');
-    } else {
-      router.replace('/home');
-    }
+    router.replace(esCondutorRef.current ? '/conductor' : '/home');
   }
-async function terminarViaje() {
-  Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Terminar', onPress: async () => {
-      await fetch(`${BACKEND_URL}/api/viajes/estado/${params.viaje_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'completado' })
-      });
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      if (locationSub.current) locationSub.current.remove();
-      setCalificacionTitulo('¿Cómo fue el usuario?');
-      setMostrarCalificacion(true);
-    }},
-  ]);
-}
 
-  const regionInicial = miUbicacion ? { latitude: miUbicacion.latitude, longitude: miUbicacion.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 } : { latitude: 4.7110, longitude: -74.0721, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+  // ─── FIX: detener polling ANTES del fetch para evitar interferencia ───
+  async function terminarViaje() {
+    Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Terminar', onPress: async () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        if (locationSub.current) locationSub.current.remove();
+        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'completado' })
+        });
+        setCalificacionTitulo('¿Cómo fue el usuario?');
+        setMostrarCalificacion(true);
+      }},
+    ]);
+  }
+
+  const regionInicial = miUbicacion
+    ? { latitude: miUbicacion.latitude, longitude: miUbicacion.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
+    : { latitude: 4.7110, longitude: -74.0721, latitudeDelta: 0.05, longitudeDelta: 0.05 };
 
   const etiquetaEstado = () => {
     if (esCondutor) {
@@ -304,6 +350,7 @@ async function terminarViaje() {
   if (cargando) {
     return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /><Text style={styles.loadingText}>Cargando mapa...</Text></View>;
   }
+
   if (mostrarCalificacion) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
@@ -319,28 +366,20 @@ async function terminarViaje() {
             <TouchableOpacity
               key={estrella}
               style={{ backgroundColor: '#16213e', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#FFD700', minWidth: 52 }}
-              onPress={() => {
-                setMostrarCalificacion(false);
-                calificar(estrella);
-              }}
+              onPress={() => { setMostrarCalificacion(false); calificar(estrella); }}
             >
               <Text style={{ fontSize: 24 }}>⭐</Text>
               <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 14, marginTop: 4 }}>{estrella}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity
-          style={{ padding: 12 }}
-          onPress={() => {
-            setMostrarCalificacion(false);
-            calificar(5);
-          }}
-        >
+        <TouchableOpacity style={{ padding: 12 }} onPress={() => { setMostrarCalificacion(false); calificar(5); }}>
           <Text style={{ color: '#555', fontSize: 13 }}>Saltar calificación</Text>
         </TouchableOpacity>
       </View>
     );
   }
+
   if (mostrarPagoEfectivo) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
@@ -352,7 +391,7 @@ async function terminarViaje() {
           Recuerda pagar al conductor:
         </Text>
         <Text style={{ color: '#FFD700', fontSize: 32, fontWeight: 'bold', marginBottom: 32 }}>
-          ${params.monto_viaje || '0'}
+          ${montoViajeRef.current || params.monto_viaje || '0'}
         </Text>
         <TouchableOpacity
           style={{ backgroundColor: '#FFD700', borderRadius: 14, padding: 18, width: '100%', alignItems: 'center', marginBottom: 12 }}
@@ -367,7 +406,8 @@ async function terminarViaje() {
       </View>
     );
   }
-if (mostrarComprobante && pagoId) {
+
+  if (mostrarComprobante && pagoId) {
     return (
       <SubirComprobante
         pagoId={pagoId}
@@ -382,6 +422,34 @@ if (mostrarComprobante && pagoId) {
       />
     );
   }
+
+  if (mostrarComprobante && !pagoId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 60, marginBottom: 20 }}>💳</Text>
+        <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+          Confirmar pago
+        </Text>
+        <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', marginBottom: 8 }}>
+          Monto del viaje:
+        </Text>
+        <Text style={{ color: '#FFD700', fontSize: 32, fontWeight: 'bold', marginBottom: 32 }}>
+          ${montoViajeRef.current || '0'}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#FFD700', borderRadius: 14, padding: 18, width: '100%', alignItems: 'center', marginBottom: 12 }}
+          onPress={() => {
+            setMostrarComprobante(false);
+            setCalificacionTitulo('¿Cómo fue tu conductor?');
+            setMostrarCalificacion(true);
+          }}
+        >
+          <Text style={{ color: '#1A1A2E', fontWeight: 'bold', fontSize: 16 }}>✅ Pago realizado</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
@@ -409,63 +477,63 @@ if (mostrarComprobante && pagoId) {
 
       <View style={styles.cardInferior}>
         <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.infoRow}>
-          {fotoOtro ? (
-            <Image source={{ uri: fotoOtro }} style={styles.fotoCircle} />
-          ) : (
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarLetra}>{nombreOtro ? nombreOtro[0].toUpperCase() : '?'}</Text>
+          <View style={styles.infoRow}>
+            {fotoOtro ? (
+              <Image source={{ uri: fotoOtro }} style={styles.fotoCircle} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarLetra}>{nombreOtro ? nombreOtro[0].toUpperCase() : '?'}</Text>
+              </View>
+            )}
+            <View style={styles.infoTextos}>
+              <Text style={styles.nombreOtro}>{esCondutor ? 'Usuario' : 'Conductor'}</Text>
+              <Text style={styles.nombreOtroValor}>{nombreOtro || '-'}</Text>
+              {!esCondutor && params.conductor_placa ? <Text style={styles.placaTexto}>{params.conductor_modelo} - {params.conductor_placa}</Text> : null}
             </View>
-          )}
-          <View style={styles.infoTextos}>
-            <Text style={styles.nombreOtro}>{esCondutor ? 'Usuario' : 'Conductor'}</Text>
-            <Text style={styles.nombreOtroValor}>{nombreOtro || '-'}</Text>
-            {!esCondutor && params.conductor_placa ? <Text style={styles.placaTexto}>{params.conductor_modelo} - {params.conductor_placa}</Text> : null}
           </View>
-        </View>
 
-        <View style={styles.rutaInfo}>
-          <View style={styles.rutaFila}>
-            <View style={[styles.rutaPunto, { backgroundColor: '#F5A623' }]} />
-            <Text style={styles.rutaDireccion} numberOfLines={1}>{params.origen || '-'}</Text>
+          <View style={styles.rutaInfo}>
+            <View style={styles.rutaFila}>
+              <View style={[styles.rutaPunto, { backgroundColor: '#F5A623' }]} />
+              <Text style={styles.rutaDireccion} numberOfLines={1}>{params.origen || '-'}</Text>
+            </View>
+            <View style={styles.rutaLinea} />
+            <View style={styles.rutaFila}>
+              <View style={[styles.rutaPunto, { backgroundColor: '#E53935' }]} />
+              <Text style={styles.rutaDireccion} numberOfLines={1}>{params.destino || '-'}</Text>
+            </View>
           </View>
-          <View style={styles.rutaLinea} />
-          <View style={styles.rutaFila}>
-            <View style={[styles.rutaPunto, { backgroundColor: '#E53935' }]} />
-            <Text style={styles.rutaDireccion} numberOfLines={1}>{params.destino || '-'}</Text>
-          </View>
-        </View>
 
-        <View style={styles.botonesContacto}>
-          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#4CAF50' }]} onPress={() => llamar(telefonoOtro)}>
-            <Text style={styles.btnContactoTexto}>Llamar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#25D366' }]} onPress={() => whatsapp(telefonoOtro)}>
-            <Text style={styles.btnContactoTexto}>WhatsApp</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#2196F3' }]} onPress={() => sms(telefonoOtro)}>
-            <Text style={styles.btnContactoTexto}>SMS</Text>
-          </TouchableOpacity>
-        </View>
-
-        {esCondutor && (
-          <View>
-            {(estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && (
-              <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#F5A623' }]} onPress={iniciarViaje}>
-                <Text style={styles.btnAccionTexto}>Pasajero a bordo - Iniciar viaje</Text>
-              </TouchableOpacity>
-            )}
-            {estadoViaje === 'en_curso' && (
-              <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#E53935' }]} onPress={terminarViaje}>
-                <Text style={styles.btnAccionTexto}>Llegamos - Terminar viaje</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#3a1a1a', marginTop: 8 }]} onPress={cancelarViaje}>
-              <Text style={[styles.btnAccionTexto, { color: '#ff6b6b' }]}>Cancelar viaje</Text>
+          <View style={styles.botonesContacto}>
+            <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#4CAF50' }]} onPress={() => llamar(telefonoOtro)}>
+              <Text style={styles.btnContactoTexto}>Llamar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#25D366' }]} onPress={() => whatsapp(telefonoOtro)}>
+              <Text style={styles.btnContactoTexto}>WhatsApp</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.btnContacto, { backgroundColor: '#2196F3' }]} onPress={() => sms(telefonoOtro)}>
+              <Text style={styles.btnContactoTexto}>SMS</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
+
+          {esCondutor && (
+            <View>
+              {(estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && (
+                <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#F5A623' }]} onPress={iniciarViaje}>
+                  <Text style={styles.btnAccionTexto}>Pasajero a bordo - Iniciar viaje</Text>
+                </TouchableOpacity>
+              )}
+              {estadoViaje === 'en_curso' && (
+                <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#E53935' }]} onPress={terminarViaje}>
+                  <Text style={styles.btnAccionTexto}>Llegamos - Terminar viaje</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#3a1a1a', marginTop: 8 }]} onPress={cancelarViaje}>
+                <Text style={[styles.btnAccionTexto, { color: '#ff6b6b' }]}>Cancelar viaje</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
       </View>
     </View>
   );
