@@ -208,8 +208,9 @@ export default function MapaViaje() {
             setMontoViaje(montoViajeRef.current);
             setMetodoViaje(metodo);
             try {
-              const dzas = datosZasRef.current;
-              setDatosZas(dzas ? JSON.parse(dzas) : null);
+              const resDatos = await fetch(`${BACKEND_URL}/api/pagos/datos-pago/${metodo}`);
+              const jsonDatos = await resDatos.json();
+              setDatosZas(jsonDatos.ok ? jsonDatos.datos : null);
             } catch { setDatosZas(null); }
             setMostrarComprobante(true);
           } else {
@@ -407,7 +408,7 @@ export default function MapaViaje() {
     );
   }
 
-  if (mostrarComprobante && pagoId) {
+  if (mostrarComprobante) {
     return (
       <SubirComprobante
         pagoId={pagoId}
@@ -420,33 +421,6 @@ export default function MapaViaje() {
           setMostrarCalificacion(true);
         }}
       />
-    );
-  }
-
-  if (mostrarComprobante && !pagoId) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ fontSize: 60, marginBottom: 20 }}>💳</Text>
-        <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
-          Confirmar pago
-        </Text>
-        <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', marginBottom: 8 }}>
-          Monto del viaje:
-        </Text>
-        <Text style={{ color: '#FFD700', fontSize: 32, fontWeight: 'bold', marginBottom: 32 }}>
-          ${montoViajeRef.current || '0'}
-        </Text>
-        <TouchableOpacity
-          style={{ backgroundColor: '#FFD700', borderRadius: 14, padding: 18, width: '100%', alignItems: 'center', marginBottom: 12 }}
-          onPress={() => {
-            setMostrarComprobante(false);
-            setCalificacionTitulo('¿Cómo fue tu conductor?');
-            setMostrarCalificacion(true);
-          }}
-        >
-          <Text style={{ color: '#1A1A2E', fontWeight: 'bold', fontSize: 16 }}>✅ Pago realizado</Text>
-        </TouchableOpacity>
-      </View>
     );
   }
 

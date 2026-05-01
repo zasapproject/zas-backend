@@ -79,7 +79,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
 
       <View style={styles.montoBox}>
         <Text style={styles.montoLabel}>Monto a pagar</Text>
-        <Text style={styles.monto}>${Number(monto).toLocaleString('es-CO')} COP</Text>
+        <Text style={styles.monto}>${Number(monto).toLocaleString('es-VE')}</Text>
         <Text style={styles.metodoLabel}>Método: {metodo.replace(/_/g, ' ').toUpperCase()}</Text>
       </View>
 
