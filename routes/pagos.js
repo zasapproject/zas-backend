@@ -173,6 +173,7 @@ router.post('/nuevo', async (req, res) => {
           });
       }
     }
+    const respuesta = { ok: true, pago: data };
     if (METODOS_DIGITALES.includes(metodo)) {
       respuesta.datos_pago_zas = DATOS_PAGO_ZAS[metodo];
       respuesta.instruccion = `Transfiere $${monto} a ZAS y sube el comprobante para confirmar.`;
