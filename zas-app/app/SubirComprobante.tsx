@@ -4,13 +4,15 @@ import * as ImagePicker from 'expo-image-picker';
 
 const API_URL = 'https://zasapps.com';
 
-export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onComprobanteEnviado }: {
+export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onComprobanteEnviado, tasas }: {
   pagoId: string;
   metodo: string;
   monto: number;
   datosZas: any;
   onComprobanteEnviado: () => void;
+  tasas?: { usd_cop: number; usd_bs: number };
 }) {
+  const tasasDefault = tasas || { usd_cop: 4000, usd_bs: 487.12 };
   const [referencia, setReferencia] = useState('');
   const [fotoComprobante, setFotoComprobante] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -79,7 +81,17 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
 
       <View style={styles.montoBox}>
         <Text style={styles.montoLabel}>Monto a pagar</Text>
-        <Text style={styles.monto}>${Number(monto).toLocaleString('es-VE')}</Text>
+        <Text style={styles.monto}>
+          {Number(monto).toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>
+          <Text style={styles.montoSecundario}>
+            Bs {(Number(monto) / tasasDefault.usd_cop * tasasDefault.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}
+          </Text>
+          <Text style={styles.montoSecundario}>
+            $ {(Number(monto) / tasasDefault.usd_cop).toFixed(2)}
+          </Text>
+        </View>
         <Text style={styles.metodoLabel}>Método: {metodo.replace(/_/g, ' ').toUpperCase()}</Text>
       </View>
 
@@ -122,6 +134,7 @@ const styles = StyleSheet.create({
   montoLabel: { color: '#888', fontSize: 12, textTransform: 'uppercase', marginBottom: 8 },
   monto: { color: '#FFD700', fontSize: 32, fontWeight: 'bold' },
   metodoLabel: { color: '#aaa', fontSize: 13, marginTop: 8 },
+  montoSecundario: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   datosBox: { backgroundColor: '#16213e', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#0f3460' },
   datosTitle: { color: '#FFD700', fontSize: 14, fontWeight: 'bold', marginBottom: 12 },
   datoFila: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },

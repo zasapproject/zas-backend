@@ -103,6 +103,7 @@ export default function HomeScreen() {
   const datosZasRef = useRef<any>(null);
   const [datosZas, setDatosZas] = useState<any>(null);
   const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
+  const [tasas, setTasas] = useState({ usd_cop: 4000, usd_bs: 487.12 });
 
   // Sincronizar refs cuando cambian los estados
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
@@ -238,6 +239,11 @@ export default function HomeScreen() {
         setRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 });
       }
     } catch (e) { router.replace('/login'); return; }
+    try {
+      const resTasas = await fetch(`${API_URL}/api/tasas`);
+      const dataTasas = await resTasas.json();
+      if (dataTasas.ok) setTasas(dataTasas.tasas);
+    } catch {}
     setCargando(false);
   };
 
@@ -420,7 +426,10 @@ export default function HomeScreen() {
   };
 
   const formatearPrecio = (precio: number) => {
-    return '$' + precio.toLocaleString('es-CO') + ' COP';
+    const cop = precio.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    const usd = (precio / tasas.usd_cop).toFixed(2);
+    const bs = (precio / tasas.usd_cop * tasas.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    return { cop, usd, bs };
   };
 
   const ModalPerfil = () => (
@@ -465,7 +474,18 @@ export default function HomeScreen() {
           <View style={styles.viajeInfo}>
             <Text style={styles.viajeLabel}>Desde</Text><Text style={styles.viajeValor}>{viaje.origen}</Text>
             <Text style={styles.viajeLabel}>Hasta</Text><Text style={styles.viajeValor}>{viaje.destino}</Text>
-            <Text style={styles.viajeLabel}>Precio</Text><Text style={[styles.viajeEstado, { color: '#FFD700' }]}>{viaje.precio ? formatearPrecio(Number(viaje.precio)) : '—'}</Text>
+            <Text style={styles.viajeLabel}>Precio</Text>
+            {viaje.precio ? (
+              <View>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 20 }]}>
+                  {formatearPrecio(Number(viaje.precio)).cop} COP
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
+                  <Text style={{ color: '#aaa', fontSize: 12 }}>Bs {formatearPrecio(Number(viaje.precio)).bs}</Text>
+                  <Text style={{ color: '#aaa', fontSize: 12 }}>$ {formatearPrecio(Number(viaje.precio)).usd}</Text>
+                </View>
+              </View>
+            ) : <Text style={styles.viajeEstado}>—</Text>}
             <Text style={styles.viajeLabel}>Estado</Text><Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
@@ -523,7 +543,19 @@ export default function HomeScreen() {
             {calculandoPrecio ? (
               <ActivityIndicator color="#FFD700" style={{ marginTop: 8 }} />
             ) : (
-              <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 22 }]}>{formatearPrecio(precioCalculado)}</Text>
+              <View>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>
+                  {formatearPrecio(precioCalculado).cop} COP
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>
+                    Bs {formatearPrecio(precioCalculado).bs}
+                  </Text>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>
+                    $ {formatearPrecio(precioCalculado).usd}
+                  </Text>
+                </View>
+              </View>
             )}
             {municipioTarifa ? (
               <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text>

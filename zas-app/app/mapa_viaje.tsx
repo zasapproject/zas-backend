@@ -415,6 +415,7 @@ export default function MapaViaje() {
         metodo={metodoViaje}
         monto={montoViaje}
         datosZas={datosZas}
+        tasas={{ usd_cop: 4000, usd_bs: 487.12 }}
         onComprobanteEnviado={() => {
           setMostrarComprobante(false);
           setCalificacionTitulo('¿Cómo fue tu conductor?');
