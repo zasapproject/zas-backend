@@ -21,6 +21,15 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
   const [mostrarRetiro, setMostrarRetiro] = useState(false);
   const [montoRetiro, setMontoRetiro] = useState('');
   const [metodoRetiro, setMetodoRetiro] = useState('pago_movil');
+  // Formato: punto para miles, coma para decimales
+  const fmt = (n: number, decimales = 2) =>
+    n.toLocaleString('es-CO', { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+
+  // Moneda y símbolo según método de retiro
+  const monedaRetiro = () => {
+    if (metodoRetiro === 'pago_movil') return { simbolo: 'Bs', monto: (parseFloat(montoRetiro || '0') / tasas.usd_cop * tasas.usd_bs) };
+    return { simbolo: '$', monto: (parseFloat(montoRetiro || '0') / tasas.usd_cop) };
+  };
 
   const cargarSaldo = useCallback(async () => {
     try {
@@ -43,7 +52,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
     const monto = parseFloat(montoRetiro);
     if (!monto || monto <= 0) { Alert.alert('Error', 'Ingresa un monto válido'); return; }
     if (monto > parseFloat(saldo?.saldo_disponible || 0)) {
-      Alert.alert('Error', `Saldo insuficiente. Disponible: $${parseFloat(saldo?.saldo_disponible || 0).toLocaleString('es-CO')}`);
+      Alert.alert('Error', `Saldo insuficiente. Disponible: ${fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_cop)} COP`);
       return;
     }
     setSolicitando(true);
@@ -87,14 +96,14 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
       <View style={styles.saldoBox}>
         <Text style={styles.saldoLabel}>Saldo disponible</Text>
         <Text style={styles.saldoMonto}>
-          {(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_cop).toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP
+          {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_cop)} COP
         </Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
           <Text style={styles.saldoSecundario}>
-            Bs {(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}
+            Bs {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_bs)}
           </Text>
           <Text style={styles.saldoSecundario}>
-            $ {parseFloat(saldo?.saldo_disponible || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            $ {fmt(parseFloat(saldo?.saldo_disponible || 0))}
           </Text>
         </View>
       </View>
@@ -103,19 +112,19 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>En revisión</Text>
           <Text style={styles.statValor}>
-            {(parseFloat(saldo?.saldo_retenido || 0) * tasas.usd_cop).toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP
+            {fmt(parseFloat(saldo?.saldo_retenido || 0) * tasas.usd_cop)} COP
           </Text>
           <Text style={styles.statSecundario}>
-            $ {parseFloat(saldo?.saldo_retenido || 0).toFixed(2)}
+            $ {fmt(parseFloat(saldo?.saldo_retenido || 0))}
           </Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>Total ganado</Text>
           <Text style={styles.statValor}>
-            {(parseFloat(saldo?.total_ganado || 0) * tasas.usd_cop).toLocaleString('es-CO', { maximumFractionDigits: 0 })} COP
+            {fmt(parseFloat(saldo?.total_ganado || 0) * tasas.usd_cop)} COP
           </Text>
           <Text style={styles.statSecundario}>
-            $ {parseFloat(saldo?.total_ganado || 0).toFixed(2)}
+            $ {fmt(parseFloat(saldo?.total_ganado || 0))}
           </Text>
         </View>
       </View>
@@ -143,14 +152,30 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
             <Text style={styles.inputPrefix}>$</Text>
             <TextInput
               style={styles.input}
-              placeholder="0.00"
+              placeholder="0,00"
               placeholderTextColor="#555"
               value={montoRetiro}
-              onChangeText={setMontoRetiro}
+              onChangeText={(texto) => {
+                // Solo permitir números y coma
+                const limpio = texto.replace(/[^0-9,]/g, '');
+                setMontoRetiro(limpio);
+              }}
               keyboardType="numeric"
               autoFocus={true}
             />
           </View>
+          {montoRetiro ? (
+            <View style={{ flexDirection: 'row', gap: 16, marginBottom: 8 }}>
+              <Text style={styles.statSecundario}>
+                {metodoRetiro === 'pago_movil'
+                  ? `Bs ${fmt(monedaRetiro().monto)}`
+                  : `$ ${fmt(monedaRetiro().monto)}`}
+              </Text>
+              <Text style={{ color: '#555', fontSize: 11 }}>
+                {metodoRetiro === 'pago_movil' ? 'Recibes en Bs' : metodoRetiro === 'zelle' ? 'Recibes en USD' : 'Recibes en USDT'}
+              </Text>
+            </View>
+          ) : null}
 
           <Text style={styles.label}>Método de retiro</Text>
           <View style={styles.metodosGrid}>
