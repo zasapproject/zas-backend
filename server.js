@@ -65,6 +65,8 @@ const soporteRouter = require('./routes/soporte'); // v2
 app.use('/api/soporte', soporteRouter);
 const tarifasRouter = require('./routes/tarifas');
 app.use('/api/tarifas', tarifasRouter);
+const tasasRouter = require('./routes/tasas');
+app.use('/api/tasas', tasasRouter);
 const authAdmin = require('./middleware/authAdmin');
 const adminRouter = require('./routes/admin');
 app.use('/api/admin', adminRouter);
