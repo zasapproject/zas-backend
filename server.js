@@ -70,6 +70,35 @@ app.use('/api/tasas', tasasRouter);
 const authAdmin = require('./middleware/authAdmin');
 const adminRouter = require('./routes/admin');
 app.use('/api/admin', adminRouter);
+// ─────────────────────────────────────────────
+// CRON — Reset semanal lunes 00:00
+// En revisión y Total ganado vuelven a cero
+// Saldo disponible NO se toca
+// ─────────────────────────────────────────────
+const cron = require('node-cron');
+cron.schedule('0 0 * * 1', async () => {
+  console.log('🔄 Cron: reset semanal de contadores conductores...');
+  try {
+    const { error } = await supabase
+      .from('saldo_conductores')
+      .update({
+        saldo_retenido: 0,
+        total_ganado: 0,
+        ultima_actualizacion: new Date().toISOString(),
+      })
+      .neq('conductor_id', '00000000-0000-0000-0000-000000000000'); // aplica a todos
+
+    if (error) {
+      console.error('❌ Error reset semanal:', error.message);
+    } else {
+      console.log('✅ Reset semanal completado — lunes 00:00');
+    }
+  } catch (err) {
+    console.error('❌ Cron error:', err.message);
+  }
+}, {
+  timezone: 'America/Bogota' // UTC-5 — cubre Venezuela y Táchira
+});
 // Iniciar en el puerto 3000
 const PORT = process.env.PORT || process.env.RAILWAY_TCP_PROXY_PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {

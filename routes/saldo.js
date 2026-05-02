@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const { notificarRetiroAprobado, notificarRetiroRechazado } = require('../notificaciones');
 
 // ─────────────────────────────────────────────
 // GET /api/saldo/:conductor_id
@@ -181,6 +182,7 @@ router.patch('/retiro/aprobar/:id', async (req, res) => {
       })
       .eq('conductor_id', retiro.conductor_id);
 
+    await notificarRetiroAprobado(retiro.conductor_id, retiro.monto, retiro.metodo_retiro);
     res.json({ ok: true, retiro: data, mensaje: 'Retiro procesado correctamente.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -224,6 +226,7 @@ router.patch('/retiro/rechazar/:id', async (req, res) => {
       })
       .eq('conductor_id', retiro.conductor_id);
 
+    await notificarRetiroRechazado(retiro.conductor_id, retiro.monto, motivo);
     res.json({ ok: true, mensaje: 'Retiro rechazado y saldo devuelto al conductor.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });

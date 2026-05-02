@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const { notificarPagoAprobado, notificarPagoRechazado } = require('../notificaciones');
 
 // ─────────────────────────────────────────────
 // MÉTODOS DE PAGO VÁLIDOS
@@ -312,6 +313,10 @@ router.patch('/confirmar/:id', async (req, res) => {
       }
     }
 
+    // Notificar al usuario
+    if (pago.viajes?.usuario_id) {
+      await notificarPagoAprobado(pago.viajes.usuario_id, pago.monto);
+    }
     res.json({ ok: true, pago: data, mensaje: 'Pago confirmado y saldo acreditado al conductor.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -338,6 +343,15 @@ router.patch('/rechazar/:id', async (req, res) => {
     if (error) throw error;
     if (!data) return res.status(404).json({ ok: false, error: 'Pago no encontrado' });
 
+    // Notificar al usuario del rechazo
+    const { data: pagoCompleto } = await supabase
+      .from('pagos')
+      .select('*, viajes(usuario_id)')
+      .eq('id', req.params.id)
+      .single();
+    if (pagoCompleto?.viajes?.usuario_id) {
+      await notificarPagoRechazado(pagoCompleto.viajes.usuario_id, pagoCompleto.monto, motivo);
+    }
     res.json({ ok: true, pago: data });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
