@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "834771425940",
+    "project_id": "zas-app-9876e",
+    "storage_bucket": "zas-app-9876e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834771425940:android:1e130e51e43c9cd607b281",
+        "android_client_info": {
+          "package_name": "com.zasapps.mototaxi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRYwUAUApTvdbwUZOQr4bfVNh3K6XQyuQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
