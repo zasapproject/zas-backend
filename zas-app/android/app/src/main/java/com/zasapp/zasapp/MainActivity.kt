@@ -1,4 +1,4 @@
-package com.zasapps.mototaxi
+package com.zasapp.zasapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,4 +1,4 @@
-package com.zasapps.mototaxi
+package com.zasapp.zasapp
 
 import android.app.Application
 import android.content.res.Configuration
