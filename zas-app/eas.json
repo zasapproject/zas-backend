@@ -12,7 +12,8 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "prebuildCommand": "npx expo prebuild --platform android --clean"
     },
     "production": {
       "autoIncrement": true,
