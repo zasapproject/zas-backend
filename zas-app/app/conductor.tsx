@@ -1,7 +1,7 @@
 import { enviarNotificacion, registrarNotificaciones } from '../notificaciones';
 import BilleteraConductor from './BilleteraConductor';
 import DatosBancarios from './DatosBancarios';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, RefreshControl, Linking, TextInput, KeyboardAvoidingView, Platform, Image, Modal, BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,6 +36,9 @@ export default function ConductorScreen() {
   const [conductorLat, setConductorLat] = useState<number>(0);
   const [conductorLng, setConductorLng] = useState<number>(0);
 
+  const conductorLatRef = useRef<number>(0);
+  const conductorLngRef = useRef<number>(0);
+
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -56,56 +59,52 @@ export default function ConductorScreen() {
   const [cambCargando, setCambCargando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
-useEffect(() => {
-  const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-    return false;
-  });
-  return () => backHandler.remove();
-}, [sesion]);
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => false);
+    return () => backHandler.remove();
+  }, [sesion]);
+
   useEffect(() => {
     if (sesion) {
       (async () => {
         console.log('🔔 Intentando registrar notificaciones...');
-const token = await registrarNotificaciones();
-console.log('🔔 Token obtenido:', token);
-if (token) {
-  console.log('📡 Enviando token al backend...');
-  const resp = await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ push_token: token })
-  });
-  const respData = await resp.json();
-  console.log('📡 Respuesta backend:', JSON.stringify(respData));
-} else {
-  console.log('❌ Token es null — no se guardó');
-}
+        const token = await registrarNotificaciones();
+        console.log('🔔 Token obtenido:', token);
         if (token) {
-          await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
+          console.log('📡 Enviando token al backend...');
+          const resp = await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ push_token: token })
           });
+          const respData = await resp.json();
+          console.log('📡 Respuesta backend:', JSON.stringify(respData));
+        } else {
+          console.log('❌ Token es null — no se guardó');
         }
       })();
       verificarSuscripcion(sesion.id);
-      buscarViajes();
       const intervalo = setInterval(buscarViajes, 5000);
       const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
       return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
     }
   }, [sesion]);
-useEffect(() => {
-  (async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return;
-    Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-      (loc) => {
-        setConductorLat(loc.coords.latitude);
-        setConductorLng(loc.coords.longitude);
-      }
-    );
-  })();
-}, []);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+        (loc) => {
+          setConductorLat(loc.coords.latitude);
+          setConductorLng(loc.coords.longitude);
+          conductorLatRef.current = loc.coords.latitude;
+          conductorLngRef.current = loc.coords.longitude;
+        }
+      );
+    })();
+  }, []);
+
   const cargarSesion = async () => {
     try {
       const data = await AsyncStorage.getItem('conductor_sesion');
@@ -144,20 +143,14 @@ useEffect(() => {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
+
   const cambiarPasswordTemporal = async () => {
-    if (nuevaPassword.length < 4) {
-      Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres');
-      return;
-    }
-    if (nuevaPassword !== confirmarPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
-      return;
-    }
+    if (nuevaPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
+    if (nuevaPassword !== confirmarPassword) { Alert.alert('Error', 'Las contraseñas no coinciden'); return; }
     setCambCargando(true);
     try {
       const res = await fetch(`${API_URL}/api/conductores/reset-password/${conductorIdTemp}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: nuevaPassword }),
       });
       const data = await res.json();
@@ -168,22 +161,16 @@ useEffect(() => {
       } else {
         Alert.alert('Error', data.error || 'No se pudo actualizar la contraseña');
       }
-    } catch {
-      Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.');
-    } finally {
-      setCambCargando(false);
-    }
+    } catch { Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.'); }
+    finally { setCambCargando(false); }
   };
-const recuperarPassword = async () => {
-    if (!recEmail || !recEmail.includes('@')) {
-      Alert.alert('Error', 'Ingresa un email valido');
-      return;
-    }
+
+  const recuperarPassword = async () => {
+    if (!recEmail || !recEmail.includes('@')) { Alert.alert('Error', 'Ingresa un email valido'); return; }
     setRecCargando(true);
     try {
       const res = await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/recuperar-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: recEmail })
       });
       const data = await res.json();
@@ -194,12 +181,10 @@ const recuperarPassword = async () => {
       } else {
         Alert.alert('Error', data.error || 'No encontramos una cuenta con ese email');
       }
-    } catch {
-      Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.');
-    } finally {
-      setRecCargando(false);
-    }
+    } catch { Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.'); }
+    finally { setRecCargando(false); }
   };
+
   const login = async () => {
     if (!telefono || !password) { Alert.alert('Error', 'Ingresa telefono y contrasena'); return; }
     setCargando(true);
@@ -218,8 +203,7 @@ const recuperarPassword = async () => {
         await verificarSuscripcion(data.conductor.id);
         try {
           await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${data.conductor.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estado: 'disponible' })
           });
         } catch {}
@@ -227,11 +211,9 @@ const recuperarPassword = async () => {
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
   };
-
   const registrarConductor = async () => {
     if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro || !regFotoRcv || !regFotoAntecedentes) {
-      Alert.alert('Error', 'Debes subir todos los documentos');
-      return;
+      Alert.alert('Error', 'Debes subir todos los documentos'); return;
     }
     setCargando(true);
     try {
@@ -246,7 +228,6 @@ const recuperarPassword = async () => {
           return data.url;
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
-
       let urlFotoPerfil = regFoto;
       if (regFoto && regFoto.startsWith('data:')) {
         const resFoto = await fetch(`${API_URL}/api/storage/subir-foto`, {
@@ -256,7 +237,6 @@ const recuperarPassword = async () => {
         const dataFoto = await resFoto.json();
         if (dataFoto.ok) urlFotoPerfil = dataFoto.url;
       }
-
       const urlCedula = await subirAStorage(regFotoCedula, `cedula_${regTelefono}`);
       if (!urlCedula) { setCargando(false); return; }
       const urlLicencia = await subirAStorage(regFotoLicencia, `licencia_${regTelefono}`);
@@ -267,7 +247,6 @@ const recuperarPassword = async () => {
       if (!urlRcv) { setCargando(false); return; }
       const urlAntecedentes = await subirAStorage(regFotoAntecedentes, `antecedentes_${regTelefono}`);
       if (!urlAntecedentes) { setCargando(false); return; }
-
       const res = await fetch(API_URL + '/api/conductores/registro', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: regNombre, telefono: regTelefono, email: regEmail, password: regPassword, foto_url: urlFotoPerfil, placa_moto: regPlaca, modelo_moto: regModelo, foto_cedula: urlCedula, foto_licencia: urlLicencia, foto_registro_moto: urlRegistro, foto_rcv: urlRcv, foto_antecedentes: urlAntecedentes })
@@ -356,8 +335,7 @@ const recuperarPassword = async () => {
   const cerrarSesion = async () => {
     try {
       await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${sesion.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: 'inactivo' })
       });
     } catch {}
@@ -369,7 +347,10 @@ const recuperarPassword = async () => {
 
   const buscarViajes = async () => {
     try {
-      const url = `${API_URL}/api/viajes/conductor/${sesion.id}?estado=asignado`;
+      const lat = conductorLatRef.current;
+      const lng = conductorLngRef.current;
+      if (lat === 0 || lng === 0) return;
+      const url = `${API_URL}/api/viajes/cercanos/${lat}/${lng}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.ok) setViajes(data.viajes || []);
@@ -388,7 +369,12 @@ const recuperarPassword = async () => {
       if (data.ok) {
         enviarNotificacion('Viaje aceptado', 'Vas a recoger a ' + viaje.usuario_nombre);
         router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'conductor', conductor_id: sesion.id, usuario_nombre: viaje.usuario_nombre, usuario_telefono: viaje.usuario_telefono, usuario_foto: viaje.usuario_foto, origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '' } });
-      } else Alert.alert('Error', data.error || 'No se pudo aceptar');
+      } else if (data.error?.includes('ya fue tomado')) {
+        Alert.alert('Viaje no disponible', 'Otro conductor tomó este viaje primero.');
+        buscarViajes();
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo aceptar');
+      }
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
   };
 
@@ -396,13 +382,7 @@ const recuperarPassword = async () => {
     Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
       { text: 'No', style: 'cancel' },
       { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
-        try {
-          await fetch(API_URL + '/api/viajes/estado/' + viaje.id, {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ estado: 'cancelado' }),
-          });
-          buscarViajes();
-        } catch { Alert.alert('Error', 'No se pudo rechazar el viaje'); }
+        setViajes(prev => prev.filter(v => v.id !== viaje.id));
       }},
     ]);
   };
@@ -411,7 +391,6 @@ const recuperarPassword = async () => {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-
           {pantalla === 'login' && (
             <>
               <Text style={styles.titulo}>Login Conductor</Text>
@@ -441,49 +420,22 @@ const recuperarPassword = async () => {
           {pantalla === 'cambiar-password' && (
             <>
               <Text style={styles.titulo}>Crea tu contraseña</Text>
-              <Text style={[styles.pasoTexto, { marginBottom: 16 }]}>
-                Recibiste una contraseña temporal. Por seguridad, crea una nueva antes de continuar.
-              </Text>
+              <Text style={[styles.pasoTexto, { marginBottom: 16 }]}>Recibiste una contraseña temporal. Por seguridad, crea una nueva antes de continuar.</Text>
               <Text style={styles.label}>Nueva contraseña</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Mínimo 4 caracteres"
-                placeholderTextColor="#888"
-                secureTextEntry
-                value={nuevaPassword}
-                onChangeText={setNuevaPassword}
-              />
+              <TextInput style={styles.input} placeholder="Mínimo 4 caracteres" placeholderTextColor="#888" secureTextEntry value={nuevaPassword} onChangeText={setNuevaPassword} />
               <Text style={styles.label}>Confirmar contraseña</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Repite tu contraseña"
-                placeholderTextColor="#888"
-                secureTextEntry
-                value={confirmarPassword}
-                onChangeText={setConfirmarPassword}
-              />
+              <TextInput style={styles.input} placeholder="Repite tu contraseña" placeholderTextColor="#888" secureTextEntry value={confirmarPassword} onChangeText={setConfirmarPassword} />
               <TouchableOpacity style={styles.boton} onPress={cambiarPasswordTemporal} disabled={cambCargando}>
                 {cambCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar contraseña</Text>}
               </TouchableOpacity>
             </>
           )}
-{pantalla === 'recuperar' && (
+          {pantalla === 'recuperar' && (
             <>
               <Text style={styles.titulo}>Recuperar contraseña</Text>
-              <Text style={[styles.pasoTexto, { marginBottom: 20 }]}>
-                Ingresa tu correo y te enviaremos una contraseña temporal.
-              </Text>
+              <Text style={[styles.pasoTexto, { marginBottom: 20 }]}>Ingresa tu correo y te enviaremos una contraseña temporal.</Text>
               <Text style={styles.label}>Correo electrónico</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="tu@email.com"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={recEmail}
-                onChangeText={setRecEmail}
-              />
+              <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} value={recEmail} onChangeText={setRecEmail} />
               <TouchableOpacity style={styles.boton} onPress={recuperarPassword} disabled={recCargando}>
                 {recCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar contraseña temporal</Text>}
               </TouchableOpacity>
@@ -514,7 +466,7 @@ const recuperarPassword = async () => {
               </View>
               <TouchableOpacity style={styles.boton} onPress={() => {
                 if (!regNombre || !regTelefono || !regPassword || !regEmail) { Alert.alert('Error', 'Todos los campos son obligatorios incluyendo el correo'); return; }
-if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
+                if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
                 if (regPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
                 setPantalla('reg2');
               }}>
@@ -525,7 +477,6 @@ if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return
               </TouchableOpacity>
             </>
           )}
-
           {pantalla === 'reg2' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 2/3</Text>
@@ -545,7 +496,6 @@ if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return
               </TouchableOpacity>
             </>
           )}
-
           {pantalla === 'reg3' && (
             <>
               <Text style={styles.titulo}>Registro — Paso 3/3</Text>
@@ -578,37 +528,33 @@ if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return
               </TouchableOpacity>
             </>
           )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     );
   }
+
   if (mostrarDatosBancarios) {
     return (
       <View style={{ flex: 1 }}>
         <TouchableOpacity onPress={() => setMostrarDatosBancarios(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
           <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
         </TouchableOpacity>
-        <DatosBancarios
-          conductorId={sesion.id}
-          onGuardado={() => setMostrarDatosBancarios(false)}
-        />
+        <DatosBancarios conductorId={sesion.id} onGuardado={() => setMostrarDatosBancarios(false)} />
       </View>
     );
   }
-if (mostrarBilletera) {
+
+  if (mostrarBilletera) {
     return (
       <View style={{ flex: 1 }}>
         <TouchableOpacity onPress={() => setMostrarBilletera(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
           <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
         </TouchableOpacity>
-        <BilleteraConductor
-          conductorId={sesion.id}
-          onIrDatosBancarios={() => { setMostrarBilletera(false); setMostrarDatosBancarios(true); }}
-        />
+        <BilleteraConductor conductorId={sesion.id} onIrDatosBancarios={() => { setMostrarBilletera(false); setMostrarDatosBancarios(true); }} />
       </View>
     );
   }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -661,109 +607,59 @@ if (mostrarBilletera) {
               <Text style={styles.sinViajes}>Esperando viajes...</Text>
             ) : (
               viajes.map(viaje => {
-        const coordenadasRuta = viaje.polyline
-          ? polyline.decode(viaje.polyline).map(([lat, lng]: [number, number]) => ({
-              latitude: lat,
-              longitude: lng,
-            }))
-          : [];
-        const latitudCentro = viaje.origen_lat && viaje.destino_lat
-          ? (viaje.origen_lat + viaje.destino_lat) / 2
-          : viaje.origen_lat || 0;
-        const longitudCentro = viaje.origen_lng && viaje.destino_lng
-          ? (viaje.origen_lng + viaje.destino_lng) / 2
-          : viaje.origen_lng || 0;
-        const latDelta = viaje.origen_lat && viaje.destino_lat
-          ? Math.abs(viaje.origen_lat - viaje.destino_lat) * 2.5 + 0.01
-          : 0.05;
-        const lngDelta = viaje.origen_lng && viaje.destino_lng
-          ? Math.abs(viaje.origen_lng - viaje.destino_lng) * 2.5 + 0.01
-          : 0.05;
-        return (
-                <View key={viaje.id} style={styles.card}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                    {viaje.usuario_foto
-                      ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} />
-                      : <View style={[styles.foto, { backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' }]}>
-                          <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 22 }}>{viaje.usuario_nombre?.[0]?.toUpperCase() || '?'}</Text>
-                        </View>
-                    }
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
-                      <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
+                const coordenadasRuta = viaje.polyline
+                  ? polyline.decode(viaje.polyline).map(([lat, lng]: [number, number]) => ({ latitude: lat, longitude: lng }))
+                  : [];
+                const latitudCentro = viaje.origen_lat && viaje.destino_lat ? (viaje.origen_lat + viaje.destino_lat) / 2 : viaje.origen_lat || 0;
+                const longitudCentro = viaje.origen_lng && viaje.destino_lng ? (viaje.origen_lng + viaje.destino_lng) / 2 : viaje.origen_lng || 0;
+                const latDelta = viaje.origen_lat && viaje.destino_lat ? Math.abs(viaje.origen_lat - viaje.destino_lat) * 2.5 + 0.01 : 0.05;
+                const lngDelta = viaje.origen_lng && viaje.destino_lng ? Math.abs(viaje.origen_lng - viaje.destino_lng) * 2.5 + 0.01 : 0.05;
+                return (
+                  <View key={viaje.id} style={styles.card}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      {viaje.usuario_foto
+                        ? <Image source={{ uri: viaje.usuario_foto }} style={styles.foto} />
+                        : <View style={[styles.foto, { backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 22 }}>{viaje.usuario_nombre?.[0]?.toUpperCase() || '?'}</Text>
+                          </View>
+                      }
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
+                        <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
+                      </View>
+                    </View>
+                    <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+                      <MapView
+                        style={{ width: '100%', height: 180 }}
+                        scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false} pointerEvents="none"
+                        initialRegion={{ latitude: latitudCentro, longitude: longitudCentro, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
+                      >
+                        {conductorLat !== 0 && <Marker coordinate={{ latitude: conductorLat, longitude: conductorLng }} pinColor="#2196F3" title="Tu ubicación" />}
+                        {viaje.origen_lat && <Marker coordinate={{ latitude: viaje.origen_lat, longitude: viaje.origen_lng }} pinColor="#4CAF50" title="Origen" />}
+                        {viaje.destino_lat && <Marker coordinate={{ latitude: viaje.destino_lat, longitude: viaje.destino_lng }} pinColor="#F44336" title="Destino" />}
+                        {coordenadasRuta.length > 0 && <Polyline coordinates={coordenadasRuta} strokeColor="#1565C0" strokeWidth={3} />}
+                      </MapView>
+                      <View style={{ backgroundColor: '#0f3460', padding: 12 }}>
+                        <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
+                        <Text style={{ color: '#fff', fontSize: 13, marginBottom: 8 }} numberOfLines={2}>{viaje.origen_texto || viaje.origen}</Text>
+                        <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
+                        <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino_texto || viaje.destino}</Text>
+                        {viaje.distancia_km && (
+                          <Text style={{ color: '#FFD700', fontSize: 13, marginTop: 6 }}>📏 {viaje.distancia_km} km · ⏱ {viaje.duracion_minutos} min</Text>
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.botones}>
+                      <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
+                        <Text style={styles.botonTexto}>⚡ Aceptar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
+                        <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
-                    <MapView
-                      style={{ width: '100%', height: 180 }}
-                      scrollEnabled={false}
-                      zoomEnabled={false}
-                      rotateEnabled={false}
-                      pitchEnabled={false}
-                      pointerEvents="none"
-                      initialRegion={{
-                        latitude: latitudCentro,
-                        longitude: longitudCentro,
-                        latitudeDelta: latDelta,
-                        longitudeDelta: lngDelta,
-                      }}
-                    >
-                      {conductorLat !== 0 && (
-                        <Marker
-                          coordinate={{ latitude: conductorLat, longitude: conductorLng }}
-                          pinColor="#2196F3"
-                          title="Tu ubicación"
-                        />
-                      )}
-                      {viaje.origen_lat && (
-                        <Marker
-                          coordinate={{ latitude: viaje.origen_lat, longitude: viaje.origen_lng }}
-                          pinColor="#4CAF50"
-                          title="Origen"
-                        />
-                      )}
-                      {viaje.destino_lat && (
-                        <Marker
-                          coordinate={{ latitude: viaje.destino_lat, longitude: viaje.destino_lng }}
-                          pinColor="#F44336"
-                          title="Destino"
-                        />
-                      )}
-                      {coordenadasRuta.length > 0 && (
-                        <Polyline
-                          coordinates={coordenadasRuta}
-                          strokeColor="#1565C0"
-                          strokeWidth={3}
-                        />
-                      )}
-                    </MapView>
-                    <View style={{ backgroundColor: '#0f3460', padding: 12 }}>
-                      <Text style={{ color: '#00c853', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>ORIGEN</Text>
-                      <Text style={{ color: '#fff', fontSize: 13, marginBottom: 8 }} numberOfLines={2}>
-                        {viaje.origen_texto || viaje.origen}
-                      </Text>
-                      <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
-                      <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>
-                        {viaje.destino_texto || viaje.destino}
-                      </Text>
-                      {viaje.distancia_km && (
-                        <Text style={{ color: '#FFD700', fontSize: 13, marginTop: 6 }}>
-                          📏 {viaje.distancia_km} km · ⏱ {viaje.duracion_minutos} min
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <View style={styles.botones}>
-                    <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-                      <Text style={styles.botonTexto}>⚡ Aceptar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
-                      <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-        );
-      })
+                );
+              })
             )}
           </>
         )}
