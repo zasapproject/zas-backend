@@ -181,7 +181,12 @@
   </div>
   <div class="card">
     <div class="lbl">Método de pago</div>
-    <div class="pago-ops">
+    <div class="pago-ops" style="flex-wrap:wrap">
+  <div class="pago-op active" onclick="selectPago('efectivo',this)">💵 Efectivo</div>
+  <div class="pago-op" onclick="selectPago('pago_movil',this)">📱 Pago Móvil</div>
+  <div class="pago-op" onclick="selectPago('zelle',this)">💸 Zelle</div>
+  <div class="pago-op" onclick="selectPago('usdt',this)">🔐 USDT</div>
+</div>
       <div class="pago-op active" onclick="selectPago('efectivo',this)">💵 Efectivo</div>
       <div class="pago-op" onclick="selectPago('transferencia',this)">💳 Transferencia</div>
     </div>
@@ -550,12 +555,13 @@ async function solicitarViaje() {
     const res = await fetch(`${API}/api/viajes/nuevo`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        usuario_id: usuarioId,
-        origen: nombreOrigen, destino: nombreDestino,
-        origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
-        destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
-        precio: precioCalculado
-      })
+  usuario_id: usuarioId,
+  origen: nombreOrigen, destino: nombreDestino,
+  origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
+  destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
+  precio: precioCalculado,
+  metodo_pago: metodoPago
+})      
     });
     const data = await res.json();
     if (data.ok) {
