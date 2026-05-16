@@ -1281,6 +1281,8 @@ async function rechazarRetiro(id) {
           <td><span style="color:${estadoColor};font-weight:700;font-size:12px;font-family:'Space Mono',monospace">${v.estado?.toUpperCase()}</span></td>
           <td style="color:var(--gold);font-weight:700;font-size:13px">${v.precio ? '$' + Number(v.precio).toLocaleString() : '—'}</td>
           <td style="font-size:12px;color:${semaforo==='🔴'?'var(--red)':semaforo==='🟡'?'var(--orange)':'var(--muted)'};font-weight:700">${alerta}</td>
+          <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleDateString('es-VE')}</td>
+          <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleTimeString('es-VE', {hour:'2-digit',minute:'2-digit'})}</td>
           <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${minutos}min</td>
         </tr>`;
       }).join('');
@@ -1297,6 +1299,8 @@ async function rechazarRetiro(id) {
               <th>Fase</th>
               <th>Precio</th>
               <th>Alerta</th>
+              <th>Fecha</th>
+              <th>Hora inicio</th>
               <th>Tiempo</th>
             </tr>
           </thead>
