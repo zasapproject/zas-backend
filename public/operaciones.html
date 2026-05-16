@@ -170,6 +170,7 @@
    <div class="nav-item" onclick="showPage('pagos-digitales', this)"><span class="nav-icon">💳</span> Pagos Digitales</div>
 <div class="nav-item" onclick="showPage('retiros', this)"><span class="nav-icon">💸</span> Retiros</div>
     <div class="nav-item" onclick="showPage('soporte', this)"><span class="nav-icon">🆘</span> Soporte</div>
+    <div class="nav-item" onclick="showPage('monitor', this)"><span class="nav-icon">🔴</span> Monitor en vivo</div>
     <div class="nav-item" onclick="sessionStorage.removeItem('zas_admin');location.reload()" style="color:var(--red)"><span class="nav-icon">🚪</span> Cerrar sesión</div>
   </nav>
   <div class="sidebar-footer">ZAS v1.0.0<br><span id="last-update">—</span></div>
@@ -272,6 +273,32 @@
   </div>
   <div id="lista-retiros"><div class="loading"><div class="spinner"></div>Cargando retiros...</div></div>
 </div>
+<!-- ═══ MONITOR EN VIVO ═══ -->
+  <div class="page" id="page-monitor">
+    <div class="topbar">
+      <div class="page-title">Monitor <span>en vivo</span></div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span id="monitor-last-update" style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px">—</span>
+        <button class="refresh-btn" onclick="cargarMonitor()">↻ Actualizar</button>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card green"><div class="stat-label">Conductores disponibles</div><div class="stat-value" id="mon-disponibles">—</div></div>
+      <div class="stat-card gold"><div class="stat-label">Viajes activos</div><div class="stat-value" id="mon-activos">—</div></div>
+      <div class="stat-card red"><div class="stat-label">Pagos pendientes</div><div class="stat-value" id="mon-pagos">—</div></div>
+    </div>
+    <div class="table-container">
+      <div class="table-header">
+        <div class="table-title">Flujo de viajes en tiempo real</div>
+        <div style="display:flex;gap:16px;font-size:12px;font-family:'Space Mono',monospace">
+          <span>🟢 OK</span>
+          <span>🟡 Atención</span>
+          <span>🔴 Urgente</span>
+        </div>
+      </div>
+      <div id="monitor-table"><div class="loading"><div class="spinner"></div>Cargando monitor...</div></div>
+    </div>
+  </div>
   <!-- ═══ SOPORTE ═══ -->
   <div class="page" id="page-soporte">
     <div class="topbar"><div class="page-title">Sop<span>orte</span></div><button class="refresh-btn" onclick="cargarSoporte()">↻ Actualizar</button></div>
@@ -415,6 +442,7 @@
     if (page === 'pagos-digitales') cargarPagosDigitales();
 if (page === 'retiros') cargarRetiros();
     if (page === 'soporte') cargarSoporte();
+    if (page === 'monitor') cargarMonitor();
   }
 
   function mostrarToast(msg) {
@@ -940,6 +968,7 @@ if (page === 'retiros') cargarRetiros();
     if (activa === 'page-documentos') cargarDocumentos();
     if (activa === 'page-vencimientos') cargarVencimientos();
     if (activa === 'page-pagos-suscripcion') cargarPagosSuscripcion();
+  if (activa === 'page-monitor') cargarMonitor();
   }, 30000);
 function mostrarRecuperacion() {
     const div = document.getElementById('recuperacion');
@@ -1176,6 +1205,107 @@ async function rechazarRetiro(id) {
     else mostrarToast('❌ Error: ' + data.error);
   } catch { mostrarToast('❌ Error de conexión'); }
 }
+// ═══════════════════════════════════════════
+  // MONITOR EN VIVO
+  // ═══════════════════════════════════════════
+  async function cargarMonitor() {
+    const tabla = document.getElementById('monitor-table');
+    try {
+      const [viajesRes, conductoresRes, pagosRes] = await Promise.all([
+        fetch(`${API}/api/viajes`),
+        fetch(`${API}/api/conductores/disponibles`),
+        fetch(`${API}/api/pagos/en-revision`)
+      ]);
+      const viajesData = await viajesRes.json();
+      const conductoresData = await conductoresRes.json();
+      const pagosData = await pagosRes.json();
+
+      const viajes = viajesData.viajes || [];
+      const disponibles = conductoresData.conductores || [];
+      const pagos = pagosData.pagos || [];
+
+      // Filtrar viajes activos (no completados ni cancelados)
+      const viajesActivos = viajes.filter(v =>
+        ['solicitado','asignado','aceptado','en_camino','en_curso'].includes(v.estado)
+      );
+
+      document.getElementById('mon-disponibles').textContent = disponibles.length;
+      document.getElementById('mon-activos').textContent = viajesActivos.length;
+      document.getElementById('mon-pagos').textContent = pagos.length;
+      document.getElementById('monitor-last-update').textContent = 'Act: ' + new Date().toLocaleTimeString('es-VE');
+
+      if (!viajes.length) {
+        tabla.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay viajes activos ahora mismo</div></div>`;
+        return;
+      }
+
+      // Calcular alertas por viaje
+      const ahora = new Date();
+      const filas = viajes.slice(0, 50).map(v => {
+        const minutos = Math.floor((ahora - new Date(v.created_at)) / 60000);
+        let semaforo = '🟢';
+        let alerta = '—';
+
+        if (v.estado === 'solicitado' && minutos > 5) {
+          semaforo = '🟡'; alerta = `Sin conductor ${minutos}min`;
+        }
+        if (v.estado === 'solicitado' && minutos > 10) {
+          semaforo = '🔴'; alerta = `⚠️ Sin conductor ${minutos}min`;
+        }
+        if (v.estado === 'completado' && !v.pago_confirmado && minutos > 30) {
+          semaforo = '🟡'; alerta = 'Sin comprobante';
+        }
+        if (v.estado === 'completado' && !v.pago_confirmado && minutos > 60) {
+          semaforo = '🔴'; alerta = '🚨 Sin pago 1h+';
+        }
+        if (v.estado === 'cancelado') {
+          semaforo = '⚫'; alerta = 'Cancelado';
+        }
+
+        const estadoColor = {
+          solicitado: 'var(--gold)',
+          asignado: 'var(--gold)',
+          aceptado: '#2196F3',
+          en_camino: '#2196F3',
+          en_curso: 'var(--green)',
+          completado: 'var(--muted)',
+          cancelado: 'var(--red)',
+        }[v.estado] || 'var(--muted)';
+
+        return `<tr>
+          <td style="font-size:20px;text-align:center">${semaforo}</td>
+          <td style="font-size:13px">${v.usuario_nombre || '—'}</td>
+          <td style="font-size:13px">${v.conductor_nombre || '<span style="color:var(--red)">Sin asignar</span>'}</td>
+          <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.origen || '—'}</td>
+          <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.destino || '—'}</td>
+          <td><span style="color:${estadoColor};font-weight:700;font-size:12px;font-family:'Space Mono',monospace">${v.estado?.toUpperCase()}</span></td>
+          <td style="color:var(--gold);font-weight:700;font-size:13px">${v.precio ? '$' + Number(v.precio).toLocaleString() : '—'}</td>
+          <td style="font-size:12px;color:${semaforo==='🔴'?'var(--red)':semaforo==='🟡'?'var(--orange)':'var(--muted)'};font-weight:700">${alerta}</td>
+          <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${minutos}min</td>
+        </tr>`;
+      }).join('');
+
+      tabla.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Estado</th>
+              <th>Usuario</th>
+              <th>Conductor</th>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Fase</th>
+              <th>Precio</th>
+              <th>Alerta</th>
+              <th>Tiempo</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>`;
+    } catch(e) {
+      tabla.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar monitor</div></div>`;
+    }
+  }
   if (sessionStorage.getItem('zas_admin') === 'true') cargarConductores();
 </script>
 </body>
