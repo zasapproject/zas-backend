@@ -198,6 +198,25 @@ router.get('/disponibles', async (req, res) => {
   }
 });
 // ─────────────────────────────────────────────
+// Conductores ocupados — para mapa admin
+// ─────────────────────────────────────────────
+router.get('/ocupados', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
+      .eq('estado', 'ocupado')
+      .eq('activo', true)
+      .not('latitud', 'is', null)
+      .not('longitud', 'is', null);
+
+    if (error) throw error;
+    res.json({ ok: true, conductores: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+// ─────────────────────────────────────────────
 // Actualizar ubicación (patch)
 // ─────────────────────────────────────────────
 router.patch('/ubicacion/:id', async (req, res) => {
