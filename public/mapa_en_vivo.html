@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZAS — Mapa en Vivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a28;
+      --gold: #FFD700; --gold2: #ffec6e; --green: #00e676;
+      --red: #ff1744; --blue: #2196F3; --orange: #ff9100;
+      --text: #f0f0f0; --muted: #666680; --border: #2a2a3f;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; height: 100vh; overflow: hidden; }
+
+    /* ── LOGIN ── */
+    #login-overlay {
+      position: fixed; inset: 0; background: #1a1a2e;
+      display: flex; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .login-box {
+      background: #16213e; border-radius: 20px; padding: 40px;
+      width: 320px; border: 1px solid var(--gold);
+    }
+    .login-logo { color: var(--gold); font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+    .login-sub { color: var(--muted); text-align: center; font-size: 13px; margin-bottom: 24px; font-family: 'Space Mono', monospace; }
+    .login-input {
+      width: 100%; background: #0f3460; border: 1px solid #0f3460;
+      border-radius: 10px; padding: 12px; color: #fff; font-size: 14px;
+      margin-bottom: 12px; box-sizing: border-box; font-family: 'Syne', sans-serif;
+      outline: none; transition: border-color 0.2s;
+    }
+    .login-input:focus { border-color: var(--gold); }
+    .login-btn {
+      width: 100%; background: var(--gold); color: #1a1a2e; border: none;
+      border-radius: 10px; padding: 14px; font-weight: 800; font-size: 15px;
+      cursor: pointer; font-family: 'Syne', sans-serif; transition: background 0.2s;
+    }
+    .login-btn:hover { background: var(--gold2); }
+    .login-error { color: #ff6b6b; text-align: center; margin-top: 10px; font-size: 13px; display: none; }
+
+    /* ── LAYOUT ── */
+    .app { display: flex; height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 280px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-text { font-size: 24px; font-weight: 800; color: var(--gold); }
+    .logo-badge {
+      background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3);
+      color: var(--gold); padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-family: 'Space Mono', monospace; font-weight: 700;
+    }
+
+    /* ── CONTADORES ── */
+    .counters { padding: 16px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); }
+    .counter-card {
+      background: var(--surface2); border-radius: 12px; padding: 14px 16px;
+      border-left: 4px solid transparent; display: flex; justify-content: space-between; align-items: center;
+    }
+    .counter-card.verde { border-left-color: var(--green); }
+    .counter-card.rojo { border-left-color: var(--red); }
+    .counter-card.azul { border-left-color: var(--blue); }
+    .counter-card.gold { border-left-color: var(--gold); }
+    .counter-label { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+    .counter-value { font-size: 28px; font-weight: 800; }
+    .counter-card.verde .counter-value { color: var(--green); }
+    .counter-card.rojo .counter-value { color: var(--red); }
+    .counter-card.azul .counter-value { color: var(--blue); }
+    .counter-card.gold .counter-value { color: var(--gold); }
+
+    /* ── LISTA CONDUCTORES ── */
+    .lista-header {
+      padding: 16px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .lista-titulo { font-size: 13px; font-weight: 700; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+    .lista-scroll { flex: 1; overflow-y: auto; padding: 12px; }
+    .lista-scroll::-webkit-scrollbar { width: 4px; }
+    .lista-scroll::-webkit-scrollbar-track { background: transparent; }
+    .lista-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .conductor-item {
+      background: var(--surface2); border-radius: 10px; padding: 12px;
+      margin-bottom: 8px; cursor: pointer; border: 1px solid transparent;
+      transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+    }
+    .conductor-item:hover { border-color: var(--gold); }
+    .conductor-item.selected { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+    .conductor-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .conductor-dot.verde { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .conductor-dot.rojo { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .conductor-info { flex: 1; min-width: 0; }
+    .conductor-nombre { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conductor-detalle { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 2px; }
+    .conductor-estado {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+      font-family: 'Space Mono', monospace; flex-shrink: 0;
+    }
+    .conductor-estado.disponible { background: rgba(0,230,118,0.15); color: var(--green); }
+    .conductor-estado.ocupado { background: rgba(255,23,68,0.15); color: var(--red); }
+
+    /* ── SIDEBAR FOOTER ── */
+    .sidebar-footer {
+      padding: 16px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .refresh-info { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+    .btn-volver {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+      padding: 10px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif;
+      font-size: 12px; font-weight: 600; transition: all 0.2s; text-align: center; text-decoration: none; display: block;
+    }
+    .btn-volver:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-logout {
+      background: transparent; border: 1px solid rgba(255,23,68,0.3); color: var(--red);
+      padding: 10px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif;
+      font-size: 12px; font-weight: 600; transition: all 0.2s; text-align: center;
+    }
+    .btn-logout:hover { background: rgba(255,23,68,0.1); }
+
+    /* ── MAPA ── */
+    .map-container { flex: 1; position: relative; }
+    #mapa { width: 100%; height: 100%; }
+
+    /* ── TOPBAR FLOTANTE ── */
+    .map-topbar {
+      position: absolute; top: 16px; left: 16px; right: 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      pointer-events: none; z-index: 5;
+    }
+    .map-title {
+      background: rgba(10,10,15,0.92); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 20px; font-size: 15px; font-weight: 800;
+      color: var(--gold); letter-spacing: -0.5px;
+    }
+    .map-refresh-badge {
+      background: rgba(10,10,15,0.92); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 16px; font-size: 11px; color: var(--muted);
+      font-family: 'Space Mono', monospace; pointer-events: all;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .map-refresh-badge:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── LEYENDA ── */
+    .map-legend {
+      position: absolute; bottom: 32px; left: 16px;
+      background: rgba(10,10,15,0.92); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 18px; z-index: 5;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .legend-dot.verde { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .legend-dot.rojo { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    .legend-dot.azul { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+
+    /* ── INFO WINDOW CUSTOM ── */
+    .info-popup {
+      position: absolute; background: var(--surface);
+      border: 1px solid var(--gold); border-radius: 12px;
+      padding: 16px; min-width: 200px; z-index: 20;
+      display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .info-popup.show { display: block; }
+    .info-popup-nombre { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+    .info-popup-detalle { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+    .info-popup-close {
+      position: absolute; top: 8px; right: 12px; cursor: pointer;
+      color: var(--muted); font-size: 16px; line-height: 1;
+    }
+    .info-popup-close:hover { color: var(--text); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 32px; right: 32px;
+      background: var(--surface); border: 1px solid var(--green);
+      color: var(--green); padding: 14px 24px; border-radius: 10px;
+      font-size: 14px; font-weight: 700; z-index: 2000; display: none;
+    }
+
+    /* ── LOADING OVERLAY ── */
+    .map-loading {
+      position: absolute; inset: 0; background: rgba(10,10,15,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 15; backdrop-filter: blur(4px);
+    }
+    .map-loading.hidden { display: none; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--gold); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── PULSE ANIMATION ── */
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">⚡ ZAS</div>
+    <div class="login-sub">Mapa en Vivo</div>
+    <input id="login-user" class="login-input" type="text" placeholder="Usuario" />
+    <input id="login-pass" class="login-input" type="password" placeholder="Contraseña" />
+    <button class="login-btn" onclick="verificarLogin()">Entrar al mapa</button>
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div>
+        <div class="logo-text">⚡ ZAS</div>
+      </div>
+      <div class="logo-badge">EN VIVO</div>
+    </div>
+
+    <!-- CONTADORES -->
+    <div class="counters">
+      <div class="counter-card verde">
+        <div>
+          <div class="counter-label">Disponibles</div>
+          <div class="counter-value" id="cnt-disponibles">—</div>
+        </div>
+        <div style="font-size:28px">🟢</div>
+      </div>
+      <div class="counter-card rojo">
+        <div>
+          <div class="counter-label">En viaje</div>
+          <div class="counter-value" id="cnt-ocupados">—</div>
+        </div>
+        <div style="font-size:28px">🔴</div>
+      </div>
+      <div class="counter-card gold">
+        <div>
+          <div class="counter-label">Total activos</div>
+          <div class="counter-value" id="cnt-total">—</div>
+        </div>
+        <div style="font-size:28px">🏍</div>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="lista-header">
+      <div class="lista-titulo">Conductores</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace" id="last-update">—</div>
+    </div>
+    <div class="lista-scroll" id="lista-conductores">
+      <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Cargando...</div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="sidebar-footer">
+      <div class="refresh-info" id="refresh-info">↻ Actualiza cada 10 seg</div>
+      <a href="/operaciones.html" class="btn-volver">← Volver al panel</a>
+      <button class="btn-logout" onclick="logout()">🚪 Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- MAPA -->
+  <div class="map-container">
+    <div id="mapa"></div>
+
+    <!-- TOPBAR -->
+    <div class="map-topbar">
+      <div class="map-title">🗺 Mapa en vivo — ZAS Mototaxi</div>
+      <div class="map-refresh-badge" onclick="actualizarMapa()">↻ Actualizar ahora</div>
+    </div>
+
+    <!-- LEYENDA -->
+    <div class="map-legend">
+      <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Leyenda</div>
+      <div class="legend-item"><div class="legend-dot verde"></div><span>Conductor disponible</span></div>
+      <div class="legend-item"><div class="legend-dot rojo"></div><span>Conductor en viaje</span></div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="map-loading" id="map-loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- GOOGLE MAPS -->
+<script>
+  const API = 'https://zasapps.com';
+  const GOOGLE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+  let mapa = null;
+  let marcadores = [];
+  let intervalo = null;
+  let conductorSeleccionado = null;
+
+  // ── LOGIN ──
+  async function verificarLogin() {
+    const user = document.getElementById('login-user').value;
+    const pass = document.getElementById('login-pass').value;
+    try {
+      const res = await fetch(`${API}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario: user, password: pass })
+      });
+      const data = await res.json();
+      if (data.ok && data.token) {
+        sessionStorage.setItem('zas_admin', 'true');
+        sessionStorage.setItem('zas_token', data.token);
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        iniciarMapa();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    } catch {
+      document.getElementById('login-error').textContent = 'Error de conexión';
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+
+  document.addEventListener('keypress', e => { if (e.key === 'Enter') verificarLogin(); });
+
+  if (sessionStorage.getItem('zas_admin') === 'true') {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    window.addEventListener('load', () => { if (window.google) iniciarMapa(); });
+  }
+
+  function logout() {
+    sessionStorage.removeItem('zas_admin');
+    sessionStorage.removeItem('zas_token');
+    location.reload();
+  }
+
+  // ── INICIAR GOOGLE MAPS ──
+  function iniciarMapa() {
+    mapa = new google.maps.Map(document.getElementById('mapa'), {
+      center: { lat: 7.7633, lng: -72.2249 }, // San Cristóbal por defecto
+      zoom: 14,
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#0a0a0f' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0a0f' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#666680' }] },
+        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1a1a28' }] },
+        { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#2a2a3f' }] },
+        { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#12121a' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#05050a' }] },
+        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+        { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2a2a3f' }] },
+        { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#FFD700' }] },
+        { featureType: 'road.arterial', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+        { featureType: 'road.highway', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
+      ],
+      disableDefaultUI: false,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+    });
+
+    document.getElementById('map-loading').classList.add('hidden');
+    actualizarMapa();
+    intervalo = setInterval(actualizarMapa, 10000);
+  }
+
+  // ── ACTUALIZAR MAPA ──
+  async function actualizarMapa() {
+    try {
+      const [dispRes, ocupRes] = await Promise.all([
+        fetch(`${API}/api/conductores/disponibles`),
+        fetch(`${API}/api/conductores/ocupados`)
+      ]);
+      const dispData = await dispRes.json();
+      const ocupData = await ocupRes.json();
+
+      const disponibles = dispData.conductores || [];
+      const ocupados = ocupData.conductores || [];
+      const todos = [
+        ...disponibles.map(c => ({ ...c, estadoActual: 'disponible' })),
+        ...ocupados.map(c => ({ ...c, estadoActual: 'ocupado' }))
+      ];
+
+      // Actualizar contadores
+      document.getElementById('cnt-disponibles').textContent = disponibles.length;
+      document.getElementById('cnt-ocupados').textContent = ocupados.length;
+      document.getElementById('cnt-total').textContent = todos.length;
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString('es-VE');
+
+      // Limpiar marcadores anteriores
+      marcadores.forEach(m => m.setMap(null));
+      marcadores = [];
+
+      // Crear nuevos marcadores
+      todos.forEach(conductor => {
+        if (!conductor.latitud || !conductor.longitud) return;
+
+        const esDisponible = conductor.estadoActual === 'disponible';
+        const color = esDisponible ? '#00e676' : '#ff1744';
+        const colorBorde = esDisponible ? '#00a152' : '#b2102f';
+
+        const svgMarcador = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="56" viewBox="0 0 48 56">
+            <defs>
+              <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/>
+              </filter>
+            </defs>
+            <!-- Pin base -->
+            <path d="M24 2 C13 2 4 11 4 22 C4 36 24 54 24 54 C24 54 44 36 44 22 C44 11 35 2 24 2 Z"
+              fill="${color}" stroke="${colorBorde}" stroke-width="2" filter="url(#sombra)"/>
+            <!-- Círculo interior -->
+            <circle cx="24" cy="22" r="12" fill="rgba(0,0,0,0.3)"/>
+            <!-- Icono moto -->
+            <text x="24" y="27" text-anchor="middle" font-size="14" fill="white">🏍</text>
+            <!-- Pulso si disponible -->
+            ${esDisponible ? `<circle cx="24" cy="22" r="18" fill="none" stroke="${color}" stroke-width="2" opacity="0.4"/>` : ''}
+          </svg>`;
+
+        const marcador = new google.maps.Marker({
+          position: { lat: Number(conductor.latitud), lng: Number(conductor.longitud) },
+          map: mapa,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgMarcador),
+            scaledSize: new google.maps.Size(48, 56),
+            anchor: new google.maps.Point(24, 54),
+          },
+          title: conductor.nombre,
+          zIndex: esDisponible ? 10 : 5,
+        });
+
+        // Info window al hacer clic
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="background:#12121a;border:1px solid ${color};border-radius:12px;padding:16px;min-width:200px;font-family:'Syne',sans-serif;color:#f0f0f0">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <div style="width:10px;height:10px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color};flex-shrink:0"></div>
+                <div style="font-size:15px;font-weight:800">${conductor.nombre}</div>
+              </div>
+              <div style="font-size:12px;color:#666680;font-family:'Space Mono',monospace;margin-bottom:6px">
+                ${conductor.modelo_moto || '—'} · ${conductor.placa_moto || '—'}
+              </div>
+              <div style="font-size:12px;color:#666680;margin-bottom:8px">
+                ⭐ ${conductor.calificacion || '—'}
+              </div>
+              <div style="background:${esDisponible ? 'rgba(0,230,118,0.15)' : 'rgba(255,23,68,0.15)'};
+                color:${color};padding:4px 10px;border-radius:20px;font-size:11px;
+                font-weight:700;font-family:'Space Mono',monospace;display:inline-block">
+                ${esDisponible ? '● DISPONIBLE' : '● EN VIAJE'}
+              </div>
+            </div>`,
+          pixelOffset: new google.maps.Size(0, -10),
+        });
+
+        marcador.addListener('click', () => {
+          // Cerrar todas las info windows abiertas
+          marcadores.forEach(m => { if (m._iw) m._iw.close(); });
+          infoWindow.open(mapa, marcador);
+          mapa.panTo(marcador.getPosition());
+          marcador._iw = infoWindow;
+
+          // Resaltar en lista
+          document.querySelectorAll('.conductor-item').forEach(el => el.classList.remove('selected'));
+          const item = document.getElementById('conductor-' + conductor.id);
+          if (item) {
+            item.classList.add('selected');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+
+        marcador._conductor = conductor;
+        marcador._iw = null;
+        marcadores.push(marcador);
+      });
+
+      // Actualizar lista sidebar
+      renderLista(todos);
+
+      // Centrar mapa si hay conductores y es la primera carga
+      if (todos.length > 0 && !conductorSeleccionado) {
+        const bounds = new google.maps.LatLngBounds();
+        todos.forEach(c => {
+          if (c.latitud && c.longitud) {
+            bounds.extend({ lat: Number(c.latitud), lng: Number(c.longitud) });
+          }
+        });
+        if (!bounds.isEmpty()) mapa.fitBounds(bounds);
+      }
+
+    } catch(e) {
+      console.error('Error actualizando mapa:', e);
+    }
+  }
+
+  // ── RENDER LISTA ──
+  function renderLista(conductores) {
+    const lista = document.getElementById('lista-conductores');
+    if (!conductores.length) {
+      lista.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">
+        Sin conductores activos
+      </div>`;
+      return;
+    }
+
+    // Primero disponibles, luego ocupados
+    const ordenados = [...conductores].sort((a, b) => {
+      if (a.estadoActual === 'disponible' && b.estadoActual !== 'disponible') return -1;
+      if (a.estadoActual !== 'disponible' && b.estadoActual === 'disponible') return 1;
+      return a.nombre.localeCompare(b.nombre);
+    });
+
+    lista.innerHTML = ordenados.map(c => `
+      <div class="conductor-item" id="conductor-${c.id}" onclick="centrarConductor('${c.id}')">
+        <div class="conductor-dot ${c.estadoActual === 'disponible' ? 'verde' : 'rojo'}"></div>
+        <div class="conductor-info">
+          <div class="conductor-nombre">${c.nombre}</div>
+          <div class="conductor-detalle">${c.placa_moto || '—'} · ${c.modelo_moto || '—'}</div>
+        </div>
+        <div class="conductor-estado ${c.estadoActual}">
+          ${c.estadoActual === 'disponible' ? 'LIBRE' : 'EN VIAJE'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── CENTRAR EN CONDUCTOR ──
+  function centrarConductor(id) {
+    conductorSeleccionado = id;
+    const marcador = marcadores.find(m => m._conductor?.id === id);
+    if (!marcador) return;
+
+    // Cerrar info windows anteriores
+    marcadores.forEach(m => { if (m._iw) m._iw.close(); });
+
+    mapa.panTo(marcador.getPosition());
+    mapa.setZoom(16);
+
+    // Abrir info window
+    const infoWindow = new google.maps.InfoWindow({
+      content: marcador.getTitle(),
+    });
+    google.maps.event.trigger(marcador, 'click');
+
+    // Resaltar en lista
+    document.querySelectorAll('.conductor-item').forEach(el => el.classList.remove('selected'));
+    const item = document.getElementById('conductor-' + id);
+    if (item) item.classList.add('selected');
+  }
+
+  // ── TOAST ──
+  function mostrarToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  // ── CARGAR GOOGLE MAPS DINÁMICAMENTE ──
+  function cargarGoogleMaps() {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&callback=onGoogleMapsReady&language=es`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
+  window.onGoogleMapsReady = function() {
+    if (sessionStorage.getItem('zas_admin') === 'true') {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      iniciarMapa();
+    }
+  };
+
+  // Iniciar carga de Google Maps
+  cargarGoogleMaps();
+</script>
+</body>
+</html>
