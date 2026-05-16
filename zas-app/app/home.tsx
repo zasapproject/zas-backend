@@ -104,6 +104,7 @@ export default function HomeScreen() {
   const [datosZas, setDatosZas] = useState<any>(null);
   const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
   const [tasas, setTasas] = useState({ usd_cop: 4000, usd_bs: 487.12 });
+  const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
 
   // Sincronizar refs cuando cambian los estados
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
@@ -246,7 +247,20 @@ export default function HomeScreen() {
     } catch {}
     setCargando(false);
   };
+const obtenerConductoresActivos = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/conductores/disponibles`);
+      const data = await res.json();
+      if (data.ok) setConductoresActivos(data.conductores || []);
+    } catch {}
+  };
 
+  useEffect(() => {
+    if (viaje) return; // no buscar conductores si hay viaje activo
+    obtenerConductoresActivos();
+    const intervalo = setInterval(obtenerConductoresActivos, 10000);
+    return () => clearInterval(intervalo);
+  }, [viaje]);
   const onRegionChangeComplete = (reg: any) => {
     setPinCoord({ latitude: reg.latitude, longitude: reg.longitude });
   };
@@ -593,6 +607,33 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
         {paso === 'destino' && coordOrigen && <Marker coordinate={coordOrigen} pinColor="#00c853" title="Origen" />}
+        {conductoresActivos.map(conductor => (
+          conductor.latitud && conductor.longitud ? (
+            <Marker
+              key={conductor.id}
+              coordinate={{ latitude: Number(conductor.latitud), longitude: Number(conductor.longitud) }}
+              title={conductor.nombre}
+              description={conductor.modelo_moto || 'Mototaxi ZAS'}
+            >
+              <View style={{
+                backgroundColor: '#FFD700',
+                borderRadius: 20,
+                padding: 6,
+                borderWidth: 2,
+                borderColor: '#1a1a2e',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 3,
+                elevation: 5,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Text style={{ fontSize: 18 }}>🏍</Text>
+              </View>
+            </Marker>
+          ) : null
+        ))}
       </MapView>
 
       <View style={styles.pinContainer} pointerEvents="none">

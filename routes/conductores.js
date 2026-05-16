@@ -178,7 +178,25 @@ router.get('/', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Conductores disponibles con ubicación — para mapa usuario
+// ─────────────────────────────────────────────
+router.get('/disponibles', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
+      .eq('estado', 'disponible')
+      .eq('activo', true)
+      .not('latitud', 'is', null)
+      .not('longitud', 'is', null);
 
+    if (error) throw error;
+    res.json({ ok: true, conductores: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 // ─────────────────────────────────────────────
 // Actualizar ubicación (patch)
 // ─────────────────────────────────────────────
