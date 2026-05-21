@@ -31,6 +31,7 @@
     .input-group input::placeholder { color: var(--muted); }
     .btn-primary { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-outline { width: 100%; background: transparent; color: var(--gold); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
     .error-msg { background: rgba(255,23,68,0.1); border: 1px solid rgba(255,23,68,0.3); color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
     #screen-mapa { position: relative; }
     #map { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -70,10 +71,12 @@
     .val { font-size: 14px; }
     .precio-row { display: flex; justify-content: space-between; align-items: center; }
     .precio-num { color: var(--gold); font-size: 26px; font-weight: 700; }
+    .precio-secundario { color: var(--muted); font-size: 13px; margin-top: 4px; display: flex; gap: 16px; }
     .precio-municipio { color: var(--muted); font-size: 12px; margin-top: 4px; }
-    .pago-ops { display: flex; gap: 10px; margin-top: 12px; }
-    .pago-op { flex: 1; padding: 12px; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .pago-ops { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .pago-op { flex: 1; min-width: calc(50% - 4px); padding: 12px; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
     .pago-op.active { border-color: var(--gold); color: var(--gold); }
+    .pago-nota { color: var(--muted); font-size: 12px; margin-top: 8px; text-align: center; }
     #screen-viaje { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
     .viaje-titulo { font-size: 22px; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 4px; }
     .viaje-sub { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
@@ -87,11 +90,37 @@
     .buscando-icon { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
     .btn-cancelar { width: 100%; background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.3); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+
+    /* COMPROBANTE */
+    #screen-comprobante { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
+    .datos-pago-box { background: var(--surface2); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    .datos-pago-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+    .datos-pago-row:last-child { border-bottom: none; }
+    .datos-pago-key { color: var(--muted); }
+    .datos-pago-val { color: var(--text); font-weight: 600; text-align: right; max-width: 60%; word-break: break-all; }
+    .upload-area { border: 2px dashed var(--surface2); border-radius: 14px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 16px; transition: border-color 0.2s; }
+    .upload-area:hover { border-color: var(--gold); }
+    .upload-area img { max-width: 100%; max-height: 200px; border-radius: 10px; margin-top: 12px; }
+
+    /* CALIFICACIÓN */
+    #screen-calificacion { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); align-items: center; justify-content: center; max-width: 500px; margin: 0 auto; width: 100%; }
+    .cal-titulo { font-size: 26px; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 8px; }
+    .cal-sub { color: var(--muted); font-size: 15px; text-align: center; margin-bottom: 32px; }
+    .estrellas { display: flex; justify-content: center; gap: 12px; margin-bottom: 32px; }
+    .estrella { font-size: 48px; cursor: pointer; opacity: 0.3; transition: all 0.2s; }
+    .estrella.activa { opacity: 1; transform: scale(1.1); }
+    .cal-conductor { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 24px; width: 100%; }
+
+    /* RECUPERAR PASSWORD */
+    #screen-recuperar { align-items: center; justify-content: center; padding: 24px; }
+    .rec-box { background: var(--surface); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 400px; border: 1px solid var(--surface2); }
+
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; display: none; white-space: nowrap; }
   </style>
 </head>
 <body>
 
+<!-- LOADING -->
 <div class="screen active" id="screen-loading">
   <div style="text-align:center">
     <div class="spin"></div>
@@ -99,37 +128,64 @@
   </div>
 </div>
 
+<!-- AUTH -->
 <div class="screen" id="screen-auth">
   <div class="auth-box">
     <div class="auth-logo">⚡ ZAS</div>
     <div class="auth-sub">Tu mototaxi al instante</div>
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchTab('login')">Iniciar sesión</button>
-      <button class="auth-tab" onclick="switchTab('registro')">Crear cuenta</button>
+      <button class="auth-tab active" onclick="switchTab('login',this)">Iniciar sesión</button>
+      <button class="auth-tab" onclick="switchTab('registro',this)">Crear cuenta</button>
     </div>
     <div id="form-login">
       <div class="input-group"><label>Teléfono</label><input type="tel" id="login-tel" placeholder="04121234567" maxlength="11" /></div>
-      <div class="input-group"><label>Contraseña</label><div style="position:relative"><input type="password" id="login-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()" /><span onclick="togglePass('login-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span></div></div>
+      <div class="input-group"><label>Contraseña</label>
+        <div style="position:relative">
+          <input type="password" id="login-pass" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()" />
+          <span onclick="togglePass('login-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span>
+        </div>
+      </div>
       <button class="btn-primary" onclick="iniciarSesion()" id="btn-login">Entrar</button>
       <div class="error-msg" id="login-error">Teléfono o contraseña incorrectos</div>
-      <p style="text-align:center;margin-top:12px"><a href="https://wa.me/573113003100?text=Hola,%20necesito%20recuperar%20mi%20contraseña%20de%20ZAS" style="color:var(--gold);font-size:13px;text-decoration:none">¿Olvidaste tu contraseña?</a></p>
+      <p style="text-align:center;margin-top:12px">
+        <a href="#" onclick="showScreen('recuperar');return false;" style="color:var(--gold);font-size:13px;text-decoration:none">¿Olvidaste tu contraseña?</a>
+      </p>
     </div>
     <div id="form-registro" style="display:none">
       <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre" /></div>
       <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
-      <div class="input-group"><label>Contraseña</label><div style="position:relative"><input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" /><span onclick="togglePass('reg-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span></div></div>
+      <div class="input-group"><label>Contraseña</label>
+        <div style="position:relative">
+          <input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" />
+          <span onclick="togglePass('reg-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span>
+        </div>
+      </div>
       <div class="input-group"><label>Email <span style="color:#ff1744">*obligatorio</span></label><input type="email" id="reg-email" placeholder="tu@email.com" /></div>
       <div class="input-group">
-  <label>Foto de perfil <span style="color:#ff1744">*obligatoria</span></label>
-  <input type="file" id="reg-foto" accept="image/*" capture="user" style="width:100%;background:var(--bg);border:1px solid var(--surface2);border-radius:10px;padding:12px;color:var(--text);font-size:14px;" />
-  <img id="reg-foto-preview" style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover;margin-top:8px;border:2px solid var(--gold);" />
-</div>
+        <label>Foto de perfil <span style="color:#ff1744">*obligatoria</span></label>
+        <input type="file" id="reg-foto" accept="image/*" capture="user" style="width:100%;background:var(--bg);border:1px solid var(--surface2);border-radius:10px;padding:12px;color:var(--text);font-size:14px;" />
+        <img id="reg-foto-preview" style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover;margin-top:8px;border:2px solid var(--gold);" />
+      </div>
       <button class="btn-primary" onclick="registrarUsuario()" id="btn-registro">Crear cuenta</button>
       <div class="error-msg" id="registro-error"></div>
     </div>
   </div>
 </div>
 
+<!-- RECUPERAR CONTRASEÑA -->
+<div class="screen" id="screen-recuperar">
+  <div class="rec-box">
+    <div class="auth-logo">⚡ ZAS</div>
+    <div class="auth-sub" style="margin-bottom:24px">Recuperar contraseña</div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px;text-align:center">Ingresa tu email y te enviaremos una contraseña temporal.</p>
+    <div class="input-group"><label>Email</label><input type="email" id="rec-email" placeholder="tu@email.com" /></div>
+    <button class="btn-primary" onclick="recuperarPassword()" id="btn-recuperar">Enviar contraseña temporal</button>
+    <div class="error-msg" id="rec-error"></div>
+    <button class="btn-outline" onclick="showScreen('auth')" style="margin-top:12px">← Volver al login</button>
+  </div>
+</div>
+
+<!-- MAPA -->
 <div class="screen" id="screen-mapa">
   <div id="map"></div>
   <div class="pin-center">📍</div>
@@ -155,13 +211,14 @@
       <p id="origen-tag-texto"></p>
     </div>
   </div>
-  <button id="btn-mi-ubicacion" onclick="irAMiUbicacion()" style="position:absolute;bottom:100px;right:16px;z-index:10;width:48px;height:48px;border-radius:50%;background:#1a1a2e;border:2px solid #FFD700;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">🎯</button>
+  <button onclick="irAMiUbicacion()" style="position:absolute;bottom:100px;right:16px;z-index:10;width:48px;height:48px;border-radius:50%;background:#1a1a2e;border:2px solid #FFD700;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">🎯</button>
   <div class="map-footer">
     <button class="btn-confirmar" id="btn-confirmar" onclick="confirmarPunto()">✅ Confirmar origen</button>
     <button class="btn-texto-rojo" onclick="cerrarSesion()">Cerrar sesión</button>
   </div>
 </div>
 
+<!-- CONFIRMAR VIAJE -->
 <div class="screen" id="screen-confirmar">
   <div class="confirmar-header">
     <button class="btn-back" onclick="volverAlMapa()">←</button>
@@ -173,24 +230,28 @@
     <div class="ruta-punto"><div class="ruta-dot d"></div><div><div class="lbl">Destino</div><div class="val" id="conf-destino">—</div></div></div>
   </div>
   <div class="card">
-    <div class="precio-row">
-      <div style="color:var(--muted);font-size:14px">Precio del viaje</div>
-      <div class="precio-num" id="conf-precio">Calculando...</div>
+    <div class="lbl">Precio del viaje</div>
+    <div class="precio-num" id="conf-precio" style="margin-top:4px">Calculando...</div>
+    <div class="precio-secundario" id="conf-precio-sec" style="display:none">
+      <span id="conf-precio-bs"></span>
+      <span id="conf-precio-usd"></span>
     </div>
     <div class="precio-municipio" id="conf-municipio"></div>
   </div>
   <div class="card">
     <div class="lbl">Método de pago</div>
-    <div class="pago-ops" style="flex-wrap:wrap">
-  <div class="pago-op active" onclick="selectPago('efectivo',this)">💵 Efectivo</div>
-  <div class="pago-op" onclick="selectPago('pago_movil',this)">📱 Pago Móvil</div>
-  <div class="pago-op" onclick="selectPago('zelle',this)">💸 Zelle</div>
-  <div class="pago-op" onclick="selectPago('usdt',this)">🔐 USDT</div>
-</div>
+    <div class="pago-ops">
+      <div class="pago-op active" onclick="selectPago('efectivo',this)">💵 Efectivo</div>
+      <div class="pago-op" onclick="selectPago('pago_movil',this)">📱 Pago Móvil</div>
+      <div class="pago-op" onclick="selectPago('zelle',this)">💸 Zelle</div>
+      <div class="pago-op" onclick="selectPago('usdt',this)">🔐 USDT</div>
+    </div>
+    <p class="pago-nota" id="pago-nota" style="display:none">Después del viaje deberás subir el comprobante de pago</p>
   </div>
   <button class="btn-primary" onclick="solicitarViaje()" id="btn-solicitar" disabled>⚡ Solicitar ZAS</button>
 </div>
 
+<!-- VIAJE ACTIVO -->
 <div class="screen" id="screen-viaje">
   <div id="viaje-mapa" style="width:100%;height:220px;border-radius:16px;margin-bottom:16px;display:none;"></div>
   <div class="viaje-titulo" id="viaje-titulo">Buscando conductor...</div>
@@ -212,10 +273,63 @@
   <div class="card">
     <div class="lbl">Desde</div><div class="val" id="v-origen">—</div>
     <div class="lbl" style="margin-top:10px">Hasta</div><div class="val" id="v-destino">—</div>
-    <div class="lbl" style="margin-top:10px">Precio</div><div style="color:var(--gold);font-size:15px;font-weight:700" id="v-precio">—</div>
+    <div class="lbl" style="margin-top:10px">Precio</div>
+    <div style="color:var(--gold);font-size:18px;font-weight:700" id="v-precio">—</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:2px" id="v-precio-sec"></div>
     <div class="lbl" style="margin-top:10px">Estado</div><div style="color:var(--gold);font-size:15px;font-weight:700" id="v-estado">—</div>
   </div>
   <button class="btn-cancelar" onclick="cancelarViaje()">Cancelar viaje</button>
+</div>
+
+<!-- COMPROBANTE DE PAGO -->
+<div class="screen" id="screen-comprobante">
+  <div style="font-size:22px;font-weight:700;margin-bottom:8px">💳 Subir comprobante</div>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:20px">El viaje terminó. Sube tu comprobante de pago para confirmar.</p>
+  <div class="card">
+    <div class="lbl">Monto a pagar</div>
+    <div style="color:var(--gold);font-size:22px;font-weight:700;margin-top:4px" id="comp-precio">—</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:2px" id="comp-precio-sec"></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px">Datos de pago ZAS</div>
+    <div class="datos-pago-box" id="datos-pago-contenido"></div>
+  </div>
+  <div class="input-group">
+    <label>Número de referencia (opcional)</label>
+    <input type="text" id="comp-referencia" placeholder="Número de transacción" />
+  </div>
+  <div class="upload-area" onclick="document.getElementById('comp-foto-input').click()">
+    <div style="font-size:40px;margin-bottom:8px">📷</div>
+    <p style="color:var(--muted);font-size:14px">Toca para subir foto del comprobante</p>
+    <img id="comp-foto-preview" style="display:none" />
+  </div>
+  <input type="file" id="comp-foto-input" accept="image/*" capture="environment" style="display:none" onchange="onComprobanteSeleccionado(this)" />
+  <button class="btn-primary" onclick="subirComprobante()" id="btn-subir-comp">Enviar comprobante</button>
+  <button class="btn-cancelar" onclick="saltarComprobante()" style="margin-top:8px">Omitir por ahora</button>
+</div>
+
+<!-- CALIFICACIÓN -->
+<div class="screen" id="screen-calificacion">
+  <div style="width:100%;max-width:400px;margin:0 auto;padding:24px;">
+    <div class="cal-titulo">¿Cómo fue tu viaje?</div>
+    <div class="cal-sub">Califica a tu conductor</div>
+    <div class="cal-conductor" id="cal-conductor-card">
+      <div class="c-avatar" id="cal-avatar">?</div>
+      <div>
+        <div class="c-nombre" id="cal-nombre">—</div>
+        <div class="c-detalle" id="cal-detalle">—</div>
+      </div>
+    </div>
+    <div class="estrellas" id="estrellas">
+      <span class="estrella" onclick="seleccionarEstrella(1)">⭐</span>
+      <span class="estrella" onclick="seleccionarEstrella(2)">⭐</span>
+      <span class="estrella" onclick="seleccionarEstrella(3)">⭐</span>
+      <span class="estrella" onclick="seleccionarEstrella(4)">⭐</span>
+      <span class="estrella" onclick="seleccionarEstrella(5)">⭐</span>
+    </div>
+    <button class="btn-primary" onclick="enviarCalificacion()" id="btn-calificar" disabled>Enviar calificación</button>
+    <button class="btn-cancelar" onclick="finalizarViaje()" style="margin-top:8px">Omitir</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -230,36 +344,22 @@ let nombreOrigen = '', nombreDestino = '';
 let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
 let conductorMarker = null, viajeMap = null;
-let busquedaTimeout = null;
 let searchTimeout = null;
 let precioCalculado = 0;
+let pagoId = null;
+let datosZas = null;
+let calificacionSeleccionada = 0;
+let tasas = { usd_cop: 4000, usd_bs: 487.12 };
+let fotoBase64 = '';
+let compFotoBase64 = '';
 
+// ── UTILS ──
 function togglePass(id, el) {
   const inp = document.getElementById(id);
   if (inp.type === 'password') { inp.type = 'text'; el.textContent = '🙈'; }
   else { inp.type = 'password'; el.textContent = '👁️'; }
 }
-let fotoBase64 = '';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const fotoInput = document.getElementById('reg-foto');
-  if (fotoInput) {
-    fotoInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        fotoBase64 = ev.target.result;
-        const preview = document.getElementById('reg-foto-preview');
-        preview.src = fotoBase64;
-        preview.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-});
-
-// ── UTILS ──
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -269,7 +369,14 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 function formatearPrecio(precio) {
-  return '$' + Number(precio).toLocaleString('es-CO') + ' COP';
+  return Number(precio).toLocaleString('es-CO') + ' COP';
+}
+
+function formatearMultimoneda(precio) {
+  const cop = Number(precio).toLocaleString('es-CO') + ' COP';
+  const usd = '$ ' + (precio / tasas.usd_cop).toFixed(2);
+  const bs = 'Bs ' + (precio / tasas.usd_cop * tasas.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+  return { cop, usd, bs };
 }
 
 function mostrarToast(msg, color='#00c853') {
@@ -288,8 +395,37 @@ function showScreen(id) {
 
 function setLoading(btnId, loading, texto) {
   const btn = document.getElementById(btnId);
+  if (!btn) return;
   btn.disabled = loading;
   btn.textContent = loading ? 'Cargando...' : texto;
+}
+
+// ── FOTO REGISTRO ──
+document.addEventListener('DOMContentLoaded', () => {
+  const fotoInput = document.getElementById('reg-foto');
+  if (fotoInput) {
+    fotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        fotoBase64 = ev.target.result;
+        const preview = document.getElementById('reg-foto-preview');
+        preview.src = fotoBase64;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+});
+
+// ── TASAS ──
+async function cargarTasas() {
+  try {
+    const res = await fetch(`${API}/api/tasas`);
+    const data = await res.json();
+    if (data.ok) tasas = data.tasas;
+  } catch {}
 }
 
 // ── CALCULAR PRECIO ──
@@ -297,6 +433,7 @@ async function calcularPrecioViaje() {
   if (!coordOrigen || !coordDestino) return;
   const distKm = haversineKm(coordOrigen.lat, coordOrigen.lng, coordDestino.lat, coordDestino.lng);
   document.getElementById('conf-precio').textContent = 'Calculando...';
+  document.getElementById('conf-precio-sec').style.display = 'none';
   document.getElementById('conf-municipio').textContent = '';
   document.getElementById('btn-solicitar').disabled = true;
   try {
@@ -304,27 +441,27 @@ async function calcularPrecioViaje() {
     const data = await res.json();
     if (data.ok) {
       precioCalculado = data.precio;
-      document.getElementById('conf-precio').textContent = formatearPrecio(data.precio);
-      if (data.municipio) {
-        document.getElementById('conf-municipio').textContent = 'Tarifa ' + data.tipo + ' — ' + data.municipio;
-      }
+      if (data.municipio) document.getElementById('conf-municipio').textContent = 'Tarifa ' + data.tipo + ' — ' + data.municipio;
     } else {
       precioCalculado = Math.max(3000, Math.round(distKm * 800));
-      document.getElementById('conf-precio').textContent = formatearPrecio(precioCalculado);
     }
   } catch {
     precioCalculado = Math.max(3000, Math.round(distKm * 800));
-    document.getElementById('conf-precio').textContent = formatearPrecio(precioCalculado);
   }
+  const m = formatearMultimoneda(precioCalculado);
+  document.getElementById('conf-precio').textContent = m.cop;
+  document.getElementById('conf-precio-bs').textContent = m.bs;
+  document.getElementById('conf-precio-usd').textContent = m.usd;
+  document.getElementById('conf-precio-sec').style.display = 'flex';
   document.getElementById('btn-solicitar').disabled = false;
 }
 
 // ── AUTH ──
-function switchTab(tab) {
+function switchTab(tab, el) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
   document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('form-registro').style.display = tab === 'registro' ? 'block' : 'none';
-  event.target.classList.add('active');
 }
 
 async function iniciarSesion() {
@@ -340,10 +477,12 @@ async function iniciarSesion() {
       usuarioId = data.usuario.id;
       localStorage.setItem('zas_usuario', JSON.stringify(data.usuario));
       document.getElementById('header-nombre').textContent = data.usuario.nombre;
+      await cargarTasas();
       showScreen('mapa');
       iniciarMapa();
     } else {
       document.getElementById('login-error').style.display = 'block';
+      document.getElementById('login-error').textContent = data.error || 'Teléfono o contraseña incorrectos';
     }
   } catch { mostrarToast('Error de conexión', '#ff1744'); }
   setLoading('btn-login', false, 'Entrar');
@@ -355,18 +494,19 @@ async function registrarUsuario() {
   const pass = document.getElementById('reg-pass').value;
   const email = document.getElementById('reg-email').value.trim();
   const errEl = document.getElementById('registro-error');
-  if (!nombre || !tel || !pass || !email) { errEl.textContent = 'Nombre, teléfono y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  if (!nombre || !tel || !pass || !email) { errEl.textContent = 'Todos los campos son obligatorios'; errEl.style.display = 'block'; return; }
   if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener mínimo 4 caracteres'; errEl.style.display = 'block'; return; }
   if (!fotoBase64) { errEl.textContent = 'La foto de perfil es obligatoria'; errEl.style.display = 'block'; return; }
   setLoading('btn-registro', true, 'Crear cuenta');
-  errEl.style.display = 'none';
   try {
-    const res = await fetch(`${API}/api/usuarios/registro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono: tel, password: pass, email: email || null, foto: fotoBase64 }) });
+    const res = await fetch(`${API}/api/usuarios/registro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono: tel, password: pass, email, foto: fotoBase64 }) });
     const data = await res.json();
     if (data.ok) {
       usuarioId = data.usuario.id;
       localStorage.setItem('zas_usuario', JSON.stringify(data.usuario));
       document.getElementById('header-nombre').textContent = data.usuario.nombre;
+      await cargarTasas();
       mostrarToast('¡Cuenta creada! Bienvenido a ZAS');
       showScreen('mapa');
       iniciarMapa();
@@ -378,29 +518,42 @@ async function registrarUsuario() {
   setLoading('btn-registro', false, 'Crear cuenta');
 }
 
+// ── RECUPERAR CONTRASEÑA ──
+async function recuperarPassword() {
+  const email = document.getElementById('rec-email').value.trim();
+  const errEl = document.getElementById('rec-error');
+  errEl.style.display = 'none';
+  if (!email || !email.includes('@')) { errEl.textContent = 'Ingresa un email válido'; errEl.style.display = 'block'; return; }
+  setLoading('btn-recuperar', true, 'Enviar contraseña temporal');
+  try {
+    const res = await fetch(`${API}/api/usuarios/recuperar-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const data = await res.json();
+    if (data.ok) {
+      mostrarToast('✅ Te enviamos una contraseña temporal a tu correo');
+      setTimeout(() => showScreen('auth'), 2000);
+    } else {
+      errEl.textContent = data.error || 'No encontramos esa cuenta';
+      errEl.style.display = 'block';
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-recuperar', false, 'Enviar contraseña temporal');
+}
+
 function cerrarSesion() {
   localStorage.removeItem('zas_usuario');
   if (pollingInterval) clearInterval(pollingInterval);
-  viajeActivo = null;
-  usuarioId = '';
-  paso = 'origen';
+  viajeActivo = null; usuarioId = ''; paso = 'origen';
   coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = '';
-  precioCalculado = 0;
+  precioCalculado = 0; pagoId = null; datosZas = null;
   showScreen('auth');
 }
 
 // ── MAPA ──
 function iniciarMapa() {
-  if (map) {
-    actualizarPaso();
-    return;
-  }
+  if (map) { actualizarPaso(); return; }
   map = new google.maps.Map(document.getElementById('map'), {
-    center: pinCoord,
-    zoom: 16,
-    disableDefaultUI: true,
-    zoomControl: true,
+    center: pinCoord, zoom: 16, disableDefaultUI: true, zoomControl: true,
     styles: [
       { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
       { elementType: 'labels.text.fill', stylers: [{ color: '#aaaaaa' }] },
@@ -458,20 +611,16 @@ async function geocodificarInverso(lat, lng) {
 
 async function confirmarPunto() {
   const btn = document.getElementById('btn-confirmar');
-  btn.disabled = true;
-  btn.textContent = 'Detectando ubicación...';
+  btn.disabled = true; btn.textContent = 'Detectando ubicación...';
   const nombre = await geocodificarInverso(pinCoord.lat, pinCoord.lng);
   btn.disabled = false;
   if (paso === 'origen') {
-    coordOrigen = { ...pinCoord };
-    nombreOrigen = nombre;
-    paso = 'destino';
+    coordOrigen = { ...pinCoord }; nombreOrigen = nombre; paso = 'destino';
     document.getElementById('search-input').value = '';
     document.getElementById('sugerencias').style.display = 'none';
     actualizarPaso();
   } else {
-    coordDestino = { ...pinCoord };
-    nombreDestino = nombre;
+    coordDestino = { ...pinCoord }; nombreDestino = nombre;
     document.getElementById('conf-origen').textContent = nombreOrigen;
     document.getElementById('conf-destino').textContent = nombreDestino;
     showScreen('confirmar');
@@ -500,6 +649,7 @@ function onBusqueda(texto) {
     );
   }, 400);
 }
+
 function seleccionarSugerencia(placeId, desc) {
   document.getElementById('sugerencias').style.display = 'none';
   document.getElementById('search-input').value = '';
@@ -507,8 +657,7 @@ function seleccionarSugerencia(placeId, desc) {
   placesService.getDetails({ placeId, fields: ['geometry'] }, (place, status) => {
     if (status === google.maps.places.PlacesServiceStatus.OK) {
       pinCoord = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
-      map.setCenter(pinCoord);
-      map.setZoom(17);
+      map.setCenter(pinCoord); map.setZoom(17);
       if (paso === 'origen') {
         coordOrigen = {...pinCoord}; nombreOrigen = desc; paso = 'destino'; actualizarPaso();
       } else {
@@ -523,25 +672,25 @@ function seleccionarSugerencia(placeId, desc) {
 }
 
 function volverAlMapa() {
-  paso = 'destino';
-  precioCalculado = 0;
-  showScreen('mapa');
-  actualizarPaso();
+  paso = 'destino'; precioCalculado = 0; showScreen('mapa'); actualizarPaso();
 }
+
 function irAMiUbicacion() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       pinCoord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      map.setCenter(pinCoord);
-      map.setZoom(17);
+      map.setCenter(pinCoord); map.setZoom(17);
     }, () => mostrarToast('No se pudo obtener tu ubicación', '#ff1744'));
   }
 }
+
 // ── PAGO ──
 function selectPago(metodo, el) {
   metodoPago = metodo;
   document.querySelectorAll('.pago-op').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
+  const nota = document.getElementById('pago-nota');
+  nota.style.display = metodo !== 'efectivo' ? 'block' : 'none';
 }
 
 // ── SOLICITAR VIAJE ──
@@ -552,18 +701,28 @@ async function solicitarViaje() {
     const res = await fetch(`${API}/api/viajes/nuevo`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-  usuario_id: usuarioId,
-  origen: nombreOrigen, destino: nombreDestino,
-  origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
-  destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
-  precio: precioCalculado,
-  metodo_pago: metodoPago
-})      
+        usuario_id: usuarioId, origen: nombreOrigen, destino: nombreDestino,
+        origen_lat: coordOrigen.lat, origen_lng: coordOrigen.lng,
+        destino_lat: coordDestino.lat, destino_lng: coordDestino.lng,
+        precio: precioCalculado,
+      })
     });
     const data = await res.json();
     if (data.ok) {
       viajeActivo = data.viaje;
-      mostrarViaje(viajeActivo);
+      // Crear pago
+      try {
+        const resPago = await fetch(`${API}/api/pagos/nuevo`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
+        });
+        const dataPago = await resPago.json();
+        if (dataPago.ok) {
+          pagoId = dataPago.pago.id;
+          if (dataPago.datos_pago_zas) datosZas = dataPago.datos_pago_zas;
+        }
+      } catch {}
+      mostrarViajeActivo(viajeActivo);
       showScreen('viaje');
       iniciarPolling();
     } else {
@@ -573,25 +732,24 @@ async function solicitarViaje() {
   setLoading('btn-solicitar', false, '⚡ Solicitar ZAS');
 }
 
-function mostrarViaje(v) {
+function mostrarViajeActivo(v) {
   document.getElementById('v-origen').textContent = v.origen || '—';
   document.getElementById('v-destino').textContent = v.destino || '—';
-  document.getElementById('v-precio').textContent = v.precio ? formatearPrecio(Number(v.precio)) : '—';
+  const m = formatearMultimoneda(Number(v.precio || precioCalculado));
+  document.getElementById('v-precio').textContent = m.cop;
+  document.getElementById('v-precio-sec').textContent = m.bs + ' · ' + m.usd;
   document.getElementById('v-estado').textContent = (v.estado || '—').toUpperCase();
   const esAceptado = v.estado === 'aceptado' || v.estado === 'en_curso';
   document.getElementById('buscando-anim').style.display = esAceptado ? 'none' : 'block';
   document.getElementById('conductor-info').style.display = esAceptado ? 'block' : 'none';
   if (esAceptado) {
     document.getElementById('viaje-titulo').textContent = v.estado === 'en_curso' ? '🏍️ Viaje en curso' : 'Conductor en camino';
-    document.getElementById('viaje-sub').textContent = v.estado === 'en_curso' ? 'El conductor está llevando al pasajero' : 'Tu conductor va hacia ti';
+    document.getElementById('viaje-sub').textContent = v.estado === 'en_curso' ? 'Tu conductor te lleva al destino' : 'Tu conductor va hacia ti';
     document.getElementById('c-nombre').textContent = v.conductor_nombre || 'Conductor';
     document.getElementById('c-detalle').textContent = v.conductor_modelo && v.conductor_placa ? `${v.conductor_modelo} · ${v.conductor_placa}` : '';
     const avatarEl = document.getElementById('c-avatar');
-    if (v.conductor_foto) {
-      avatarEl.innerHTML = `<img src="${v.conductor_foto}" alt="foto" />`;
-    } else {
-      avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
-    }
+    if (v.conductor_foto) avatarEl.innerHTML = `<img src="${v.conductor_foto}" alt="foto" />`;
+    else avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
   } else {
     document.getElementById('viaje-titulo').textContent = 'Buscando conductor...';
     document.getElementById('viaje-sub').textContent = 'ZAS está buscando el conductor más cercano';
@@ -609,28 +767,162 @@ function iniciarPolling() {
         const v = data.viajes.find(x => x.id === viajeActivo.id) || data.viajes[0];
         if (v) {
           viajeActivo = v;
-          mostrarViaje(v);
-          if (v.conductor_id && (v.estado === 'aceptado' || v.estado === 'en_camino')) {
+          mostrarViajeActivo(v);
+          if (v.conductor_id && (v.estado === 'aceptado' || v.estado === 'en_curso')) {
             actualizarConductorEnMapa(v.conductor_id);
           }
-          if (v.estado === 'completado' || v.estado === 'cancelado') {
+          if (v.estado === 'completado') {
             clearInterval(pollingInterval);
-            mostrarToast(v.estado === 'completado' ? '✅ Viaje completado' : 'Viaje cancelado', v.estado === 'completado' ? '#00c853' : '#ff1744');
-            setTimeout(() => {
-              viajeActivo = null;
-              paso = 'origen';
-              coordOrigen = null; coordDestino = null;
-              nombreOrigen = ''; nombreDestino = '';
-              precioCalculado = 0;
-              showScreen('mapa');
-              actualizarPaso();
-            }, 2000);
+            mostrarToast('✅ Viaje completado');
+            setTimeout(() => mostrarPostViaje(v), 1500);
+          }
+          if (v.estado === 'cancelado') {
+            clearInterval(pollingInterval);
+            mostrarToast('Viaje cancelado', '#ff1744');
+            setTimeout(() => reiniciarFlujo(), 2000);
           }
         }
       }
     } catch {}
   }, 5000);
 }
+
+// ── POST VIAJE ──
+function mostrarPostViaje(v) {
+  if (metodoPago !== 'efectivo' && pagoId && datosZas) {
+    mostrarComprobante(v);
+  } else {
+    mostrarCalificacion(v);
+  }
+}
+
+// ── COMPROBANTE ──
+function mostrarComprobante(v) {
+  const m = formatearMultimoneda(Number(v.precio || precioCalculado));
+  document.getElementById('comp-precio').textContent = m.cop;
+  document.getElementById('comp-precio-sec').textContent = m.bs + ' · ' + m.usd;
+  const contenido = document.getElementById('datos-pago-contenido');
+  contenido.innerHTML = '';
+  if (datosZas) {
+    Object.entries(datosZas).forEach(([k, val]) => {
+      contenido.innerHTML += `<div class="datos-pago-row"><span class="datos-pago-key">${k.replace(/_/g,' ')}</span><span class="datos-pago-val">${val}</span></div>`;
+    });
+  }
+  compFotoBase64 = '';
+  document.getElementById('comp-foto-preview').style.display = 'none';
+  document.getElementById('comp-referencia').value = '';
+  showScreen('comprobante');
+}
+
+function onComprobanteSeleccionado(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    compFotoBase64 = ev.target.result;
+    const preview = document.getElementById('comp-foto-preview');
+    preview.src = compFotoBase64;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function subirComprobante() {
+  if (!compFotoBase64) { mostrarToast('Selecciona una foto del comprobante', '#ff1744'); return; }
+  if (!pagoId) { mostrarToast('Error: ID de pago no encontrado', '#ff1744'); return; }
+  setLoading('btn-subir-comp', true, 'Enviando...');
+  try {
+    // Subir imagen a storage
+    const resStorage = await fetch(`${API}/api/storage/subir-foto`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: compFotoBase64, nombre: `comprobante_${pagoId}`, carpeta: 'comprobantes' })
+    });
+    const dataStorage = await resStorage.json();
+    const urlComprobante = dataStorage.ok ? dataStorage.url : compFotoBase64;
+    const referencia = document.getElementById('comp-referencia').value.trim();
+    const res = await fetch(`${API}/api/pagos/subir-comprobante/${pagoId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comprobante_url: urlComprobante, referencia: referencia || null })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      mostrarToast('✅ Comprobante enviado. ZAS lo revisará pronto.');
+      setTimeout(() => mostrarCalificacion(viajeActivo), 1500);
+    } else {
+      mostrarToast(data.error || 'No se pudo enviar', '#ff1744');
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-subir-comp', false, 'Enviar comprobante');
+}
+
+function saltarComprobante() {
+  mostrarCalificacion(viajeActivo);
+}
+
+// ── CALIFICACIÓN ──
+function mostrarCalificacion(v) {
+  calificacionSeleccionada = 0;
+  document.querySelectorAll('.estrella').forEach(e => e.classList.remove('activa'));
+  document.getElementById('btn-calificar').disabled = true;
+  if (v && v.conductor_nombre) {
+    document.getElementById('cal-nombre').textContent = v.conductor_nombre;
+    document.getElementById('cal-detalle').textContent = v.conductor_modelo && v.conductor_placa ? `${v.conductor_modelo} · ${v.conductor_placa}` : '';
+    const avatarEl = document.getElementById('cal-avatar');
+    if (v.conductor_foto) avatarEl.innerHTML = `<img src="${v.conductor_foto}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;" />`;
+    else avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
+  }
+  showScreen('calificacion');
+}
+
+function seleccionarEstrella(n) {
+  calificacionSeleccionada = n;
+  document.querySelectorAll('.estrella').forEach((e, i) => {
+    e.classList.toggle('activa', i < n);
+  });
+  document.getElementById('btn-calificar').disabled = false;
+}
+
+async function enviarCalificacion() {
+  if (!calificacionSeleccionada || !viajeActivo?.conductor_id) { finalizarViaje(); return; }
+  setLoading('btn-calificar', true, 'Enviando...');
+  try {
+    await fetch(`${API}/api/conductores/calificar/${viajeActivo.conductor_id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calificacion: calificacionSeleccionada })
+    });
+    mostrarToast('⭐ ¡Gracias por tu calificación!');
+  } catch {}
+  setTimeout(() => finalizarViaje(), 1500);
+}
+
+function finalizarViaje() {
+  reiniciarFlujo();
+}
+
+function reiniciarFlujo() {
+  viajeActivo = null; pagoId = null; datosZas = null;
+  paso = 'origen'; coordOrigen = null; coordDestino = null;
+  nombreOrigen = ''; nombreDestino = ''; precioCalculado = 0;
+  metodoPago = 'efectivo';
+  document.querySelectorAll('.pago-op').forEach((b, i) => { b.classList.toggle('active', i === 0); });
+  showScreen('mapa');
+  actualizarPaso();
+}
+
+async function cancelarViaje() {
+  if (!viajeActivo) return;
+  try {
+    await fetch(`${API}/api/viajes/estado/${viajeActivo.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'cancelado' })
+    });
+  } catch {}
+  if (pollingInterval) clearInterval(pollingInterval);
+  conductorMarker = null; viajeMap = null;
+  document.getElementById('viaje-mapa').style.display = 'none';
+  reiniciarFlujo();
+}
+
 async function actualizarConductorEnMapa(conductorId) {
   try {
     const res = await fetch(`${API}/api/conductores/ubicacion/${conductorId}`);
@@ -651,44 +943,22 @@ async function actualizarConductorEnMapa(conductorId) {
       });
     }
     if (!conductorMarker) {
-      conductorMarker = new google.maps.Marker({
-        position: pos, map: viajeMap, title: 'Conductor',
-        label: { text: '🏍️', fontSize: '24px', color: '#FFD700' }
-      });
+      conductorMarker = new google.maps.Marker({ position: pos, map: viajeMap, title: 'Conductor', label: { text: '🏍️', fontSize: '24px' } });
     } else {
       conductorMarker.setPosition(pos);
     }
     viajeMap.panTo(pos);
   } catch {}
 }
-async function cancelarViaje() {
-  if (!viajeActivo) return;
-  try {
-    await fetch(`${API}/api/viajes/estado/${viajeActivo.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: 'cancelado' })
-    });
-  } catch {}
-  if (pollingInterval) clearInterval(pollingInterval);
-  viajeActivo = null;
-  conductorMarker = null;
-  viajeMap = null;
-  document.getElementById('viaje-mapa').style.display = 'none';
-  paso = 'origen';
-  coordOrigen = null; coordDestino = null;
-  nombreOrigen = ''; nombreDestino = '';
-  precioCalculado = 0;
-  showScreen('mapa');
-  actualizarPaso();
-}
 
 // ── INIT ──
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   const sesion = localStorage.getItem('zas_usuario');
   if (sesion) {
     const u = JSON.parse(sesion);
     usuarioId = u.id;
     document.getElementById('header-nombre').textContent = u.nombre;
+    await cargarTasas();
     showScreen('mapa');
     iniciarMapa();
   } else {
