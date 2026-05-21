@@ -477,7 +477,7 @@ router.patch('/estado/:id', async (req, res) => {
   }
   const { data, error } = await supabase
     .from('conductores')
-    .update({ estado })
+    .update({ estado, activo: estado !== 'inactivo' })
     .eq('id', req.params.id)
     .select()
     .single();
