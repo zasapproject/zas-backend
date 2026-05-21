@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
+import { AppState } from 'react-native';
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk';
 
@@ -69,6 +70,31 @@ export default function HomeScreen() {
   const [isOnline, setIsOnline] = useState(true);
   const mapRef = useRef<MapView>(null);
   const busquedaTimeout = useRef<any>(null);
+  const inactividadTimer = useRef<any>(null);
+
+  const resetearTimer = () => {
+    if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
+    inactividadTimer.current = setTimeout(async () => {
+      await AsyncStorage.removeItem('usuario_sesion');
+      await AsyncStorage.removeItem('viaje_activo');
+      router.replace('/login');
+    }, 3 * 60 * 1000);
+  };
+
+  useEffect(() => {
+    if (viaje) {
+      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
+      return;
+    }
+    resetearTimer();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') resetearTimer();
+    });
+    return () => {
+      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
+      sub.remove();
+    };
+  }, [viaje]);
 
   const [usuarioId, setUsuarioId] = useState('');
   const [usuarioNombre, setUsuarioNombre] = useState('');
@@ -621,7 +647,7 @@ const obtenerConductoresActivos = async () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onTouchStart={resetearTimer}>
       <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
         {paso === 'destino' && coordOrigen && <Marker coordinate={coordOrigen} pinColor="#00c853" title="Origen" />}
         {conductoresActivos.map(conductor => (
