@@ -14,6 +14,7 @@ const API_URL = 'https://zasapps.com';
 
 export default function ConductorScreen() {
   const router = useRouter();
+  const [isOnline, setIsOnline] = useState(true);
   const [pantalla, setPantalla] = useState('login');
   const [sesion, setSesion] = useState<any>(null);
   const [telefono, setTelefono] = useState('');
@@ -122,8 +123,18 @@ export default function ConductorScreen() {
       const data = await res.json();
       setSuscripcionActiva(data.activo);
       setDiasRestantes(data.dias_restantes || 0);
+      await AsyncStorage.setItem('cache_suscripcion_' + conductorId, JSON.stringify(data));
       return data.activo;
-    } catch { return false; }
+    } catch {
+      const cached = await AsyncStorage.getItem('cache_suscripcion_' + conductorId);
+      if (cached) {
+        const data = JSON.parse(cached);
+        setSuscripcionActiva(data.activo);
+        setDiasRestantes(data.dias_restantes || 0);
+        return data.activo;
+      }
+      return false;
+    }
   };
 
   const tomarOSeleccionarFoto = async (setter: (v: string) => void) => {
@@ -557,6 +568,16 @@ export default function ConductorScreen() {
 
   return (
     <View style={styles.container}>
+      {!isOnline && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999,
+          backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center'
+        }}>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
+            Sin conexión — no puedes recibir viajes
+          </Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={styles.titulo}>Hola, {sesion.nombre}</Text>

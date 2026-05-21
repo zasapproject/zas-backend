@@ -2,7 +2,6 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -18,17 +17,17 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      <Stack.Screen name="home" options={{ headerShown: false }} />
-      <Stack.Screen name="conductor" options={{ headerShown: false }} />
-      <Stack.Screen name="mapa" options={{ headerShown: false }} />
-      <Stack.Screen name="calificacion" options={{ headerShown: false }} />
-      <Stack.Screen name="suscripcion" options={{ headerShown: false }} /> 
-      <Stack.Screen name="perfil_conductor" options={{ headerShown: false }} />
-      <Stack.Screen name="mapa_viaje" options={{ headerShown: false }} />
-      <Stack.Screen name="documentos_conductor" options={{ headerShown: false }} />
-      <Stack.Screen name="documentos_usuario" options={{ headerShown: false }} />
-      <Stack.Screen name="historial" options={{ headerShown: false }} />
-      <Stack.Screen name="terminos" options={{ headerShown: false }} />
+        <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen name="conductor" options={{ headerShown: false }} />
+        <Stack.Screen name="mapa" options={{ headerShown: false }} />
+        <Stack.Screen name="calificacion" options={{ headerShown: false }} />
+        <Stack.Screen name="suscripcion" options={{ headerShown: false }} />
+        <Stack.Screen name="perfil_conductor" options={{ headerShown: false }} />
+        <Stack.Screen name="mapa_viaje" options={{ headerShown: false }} />
+        <Stack.Screen name="documentos_conductor" options={{ headerShown: false }} />
+        <Stack.Screen name="documentos_usuario" options={{ headerShown: false }} />
+        <Stack.Screen name="historial" options={{ headerShown: false }} />
+        <Stack.Screen name="terminos" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

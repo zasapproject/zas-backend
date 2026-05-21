@@ -18,7 +18,7 @@
       },
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q"
+          "apiKey": "AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk"
         }
       },
       "package": "com.zasapps.mototaxi",
@@ -54,7 +54,8 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

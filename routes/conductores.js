@@ -36,8 +36,8 @@ router.post('/registro', registroLimiter, async (req, res) => {
   if (!email || !email.includes('@')) {
   return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
 }
-  if (password.length < 4) {
-    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
+  if (!/^(0412|0414|0416|0422|0424|0426)[0-9]{7}$/.test(telefono)) {
+    return res.status(400).json({ ok: false, error: 'Número inválido. Usa formato venezolano: 04XX-XXXXXXX' });
   }
 
   try {

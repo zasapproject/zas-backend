@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc2nncTMor2988Q';
+const GOOGLE_KEY = 'AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk';
 
 type Coord = { latitude: number; longitude: number };
 
@@ -66,6 +66,7 @@ async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: 
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [isOnline, setIsOnline] = useState(true);
   const mapRef = useRef<MapView>(null);
   const busquedaTimeout = useRef<any>(null);
 
@@ -243,8 +244,14 @@ export default function HomeScreen() {
     try {
       const resTasas = await fetch(`${API_URL}/api/tasas`);
       const dataTasas = await resTasas.json();
-      if (dataTasas.ok) setTasas(dataTasas.tasas);
-    } catch {}
+      if (dataTasas.ok) {
+        setTasas(dataTasas.tasas);
+        await AsyncStorage.setItem('cache_tasas', JSON.stringify(dataTasas.tasas));
+      }
+    } catch {
+      const cached = await AsyncStorage.getItem('cache_tasas');
+      if (cached) setTasas(JSON.parse(cached));
+    }
     setCargando(false);
   };
 const obtenerConductoresActivos = async () => {
@@ -472,6 +479,16 @@ const obtenerConductoresActivos = async () => {
   if (viaje) {
     return (
       <View style={styles.container}>
+        {!isOnline && (
+  <View style={{
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999,
+    backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center'
+  }}>
+    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
+      Sin conexión — algunas funciones no están disponibles
+    </Text>
+  </View>
+)}
         <View style={styles.header}><Text style={styles.logo}>ZAS</Text><Text style={styles.saludo}>Hola, {usuarioNombre}</Text></View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={styles.viajeActivoTitulo}>{viaje.estado === 'aceptado' || viaje.estado === 'en_curso' ? 'Conductor en camino' : 'Buscando conductor...'}</Text>

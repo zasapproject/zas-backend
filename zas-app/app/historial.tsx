@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
-const API_URL = 'https://zasapps.com';
+const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function HistorialScreen() {
   const router = useRouter();
@@ -16,7 +16,6 @@ export default function HistorialScreen() {
 
   const cargarHistorial = async () => {
     try {
-      // Detectar si es usuario o conductor
       const sesionUsuario = await AsyncStorage.getItem('usuario_sesion');
       const sesionConductor = await AsyncStorage.getItem('conductor_sesion');
 
@@ -40,14 +39,11 @@ export default function HistorialScreen() {
 
       const res = await fetch(`${API_URL}/api/viajes/${tipo}/${id}`);
       const data = await res.json();
-
       if (data.ok) {
         setViajes(data.viajes || []);
-      } else {
-        Alert.alert('Error', 'No se pudo cargar el historial');
       }
     } catch {
-      Alert.alert('Sin conexión', 'Revisa tu internet e intenta de nuevo.');
+      Alert.alert('Error', 'No se pudo cargar el historial.');
     } finally {
       setCargando(false);
       setRefreshing(false);
