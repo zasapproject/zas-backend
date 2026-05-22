@@ -53,7 +53,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
     const monto = parseFloat(montoRetiro);
     if (!monto || monto <= 0) { Alert.alert('Error', 'Ingresa un monto válido'); return; }
     if (monto > parseFloat(saldo?.saldo_disponible || 0)) {
-      Alert.alert('Error', `Saldo insuficiente. Disponible: ${fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.cop_bs / tasas.usd_bs)} COP`);
+      Alert.alert('Error', `Saldo insuficiente. Disponible: ${fmt(parseFloat(saldo?.saldo_disponible || 0))} COP`);
       return;
     }
     setSolicitando(true);
@@ -97,14 +97,14 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
       <View style={styles.saldoBox}>
         <Text style={styles.saldoLabel}>Saldo disponible</Text>
         <Text style={styles.saldoMonto}>
-          {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.cop_bs / tasas.usd_bs)} COP
+          {fmt(parseFloat(saldo?.saldo_disponible || 0))} COP
         </Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
           <Text style={styles.saldoSecundario}>
-            Bs {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_bs)}
+            Bs {fmt(parseFloat(saldo?.saldo_disponible || 0) / tasas.cop_bs)}
           </Text>
           <Text style={styles.saldoSecundario}>
-            $ {fmt(parseFloat(saldo?.saldo_disponible || 0))}
+            $ {fmt(parseFloat(saldo?.saldo_disponible || 0) / tasas.cop_bs / tasas.usd_bs)}
           </Text>
         </View>
       </View>
@@ -113,19 +113,19 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>En revisión</Text>
           <Text style={styles.statValor}>
-            {fmt(parseFloat(saldo?.saldo_retenido || 0) * tasas.cop_bs / tasas.usd_bs)} COP
+            {fmt(parseFloat(saldo?.saldo_retenido || 0))} COP
           </Text>
           <Text style={styles.statSecundario}>
-            $ {fmt(parseFloat(saldo?.saldo_retenido || 0))}
+            $ {fmt(parseFloat(saldo?.saldo_retenido || 0) / tasas.cop_bs / tasas.usd_bs)}
           </Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>Total ganado</Text>
           <Text style={styles.statValor}>
-            {fmt(parseFloat(saldo?.total_ganado || 0) * tasas.cop_bs / tasas.usd_bs)} COP
+            {fmt(parseFloat(saldo?.total_ganado || 0))} COP
           </Text>
           <Text style={styles.statSecundario}>
-            $ {fmt(parseFloat(saldo?.total_ganado || 0))}
+            $ {fmt(parseFloat(saldo?.total_ganado || 0) / tasas.cop_bs / tasas.usd_bs)}
           </Text>
         </View>
       </View>
