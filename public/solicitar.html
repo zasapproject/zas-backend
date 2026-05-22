@@ -349,7 +349,7 @@ let precioCalculado = 0;
 let pagoId = null;
 let datosZas = null;
 let calificacionSeleccionada = 0;
-let tasas = { usd_cop: 4000, usd_bs: 487.12 };
+let tasas = { cop_bs: 5.5, usd_bs: 36 };
 let fotoBase64 = '';
 let compFotoBase64 = '';
 
@@ -374,8 +374,8 @@ function formatearPrecio(precio) {
 
 function formatearMultimoneda(precio) {
   const cop = Number(precio).toLocaleString('es-CO') + ' COP';
-  const usd = '$ ' + (precio / tasas.usd_cop).toFixed(2);
-  const bs = 'Bs ' + (precio / tasas.usd_cop * tasas.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+  const bs = 'Bs ' + (precio / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+  const usd = '$ ' + (precio / tasas.cop_bs / tasas.usd_bs).toFixed(2);
   return { cop, usd, bs };
 }
 

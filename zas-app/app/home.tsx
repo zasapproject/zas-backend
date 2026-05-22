@@ -130,7 +130,7 @@ export default function HomeScreen() {
   const datosZasRef = useRef<any>(null);
   const [datosZas, setDatosZas] = useState<any>(null);
   const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
-  const [tasas, setTasas] = useState({ usd_cop: 4000, usd_bs: 487.12 });
+  const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 36 });
   const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
 
   // Sincronizar refs cuando cambian los estados
@@ -289,10 +289,20 @@ const obtenerConductoresActivos = async () => {
   };
 
   useEffect(() => {
-    if (viaje) return; // no buscar conductores si hay viaje activo
+    if (viaje) return;
     obtenerConductoresActivos();
     const intervalo = setInterval(obtenerConductoresActivos, 10000);
-    return () => clearInterval(intervalo);
+    const intervaloTasas = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/tasas`);
+        const data = await res.json();
+        if (data.ok) setTasas(data.tasas);
+      } catch {}
+    }, 60000);
+    return () => {
+      clearInterval(intervalo);
+      clearInterval(intervaloTasas);
+    };
   }, [viaje]);
   const onRegionChangeComplete = (reg: any) => {
     setPinCoord({ latitude: reg.latitude, longitude: reg.longitude });
@@ -474,8 +484,8 @@ const obtenerConductoresActivos = async () => {
 
   const formatearPrecio = (precio: number) => {
     const cop = precio.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-    const usd = (precio / tasas.usd_cop).toFixed(2);
-    const bs = (precio / tasas.usd_cop * tasas.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const bs = (precio / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const usd = (precio / tasas.cop_bs / tasas.usd_bs).toFixed(2);
     return { cop, usd, bs };
   };
 

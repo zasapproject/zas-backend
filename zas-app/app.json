@@ -21,7 +21,8 @@
           "apiKey": "AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk"
         }
       },
-      "package": "com.zasapps.mototaxi",
+      "package": "com.zasapp.zasapp",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
