@@ -513,23 +513,7 @@ const obtenerConductoresActivos = async () => {
       </TouchableOpacity>
     </Modal>
   );
-          <Text style={styles.modalTitulo}>Editar perfil</Text>
-          <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-            {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
-          </TouchableOpacity>
-          <Text style={styles.modalLabel}>Teléfono</Text>
-          <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
-          <Text style={styles.modalLabel}>Email</Text>
-          <TextInput style={styles.modalInput} value={editEmail} onChangeText={setEditEmail} keyboardType="email-address" placeholderTextColor="#888" placeholder="tu@email.com" />
-          <TouchableOpacity style={styles.boton} onPress={guardarPerfil} disabled={guardando}>
-            {guardando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar cambios</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setEditandoPerfil(false)}><Text style={styles.linkTexto}>Cancelar</Text></TouchableOpacity>
-        </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
+          
 
   if (cargando && !viaje) return <View style={styles.loadingContainer}><ActivityIndicator color="#FFD700" size="large" /></View>;
 
