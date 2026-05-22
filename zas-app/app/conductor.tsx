@@ -34,6 +34,7 @@ export default function ConductorScreen() {
   const [diasRestantes, setDiasRestantes] = useState(0);
   const [mostrarBilletera, setMostrarBilletera] = useState(false);
   const [mostrarDatosBancarios, setMostrarDatosBancarios] = useState(false);
+  const viajesRechazados = useRef<{ [id: string]: number }>({});
   const [conductorLat, setConductorLat] = useState<number>(0);
   const [conductorLng, setConductorLng] = useState<number>(0);
 
@@ -364,7 +365,17 @@ export default function ConductorScreen() {
       const url = `${API_URL}/api/viajes/cercanos/${lat}/${lng}`;
       const res = await fetch(url);
       const data = await res.json();
-      if (data.ok) setViajes(data.viajes || []);
+      if (data.ok) {
+        const ahora = Date.now();
+        const BLOQUEO_MS = 3 * 60 * 1000;
+        const filtrados = (data.viajes || []).filter((v: any) => {
+          const rechazadoEn = viajesRechazados.current[v.id];
+          if (rechazadoEn && ahora - rechazadoEn < BLOQUEO_MS) return false;
+          if (rechazadoEn && ahora - rechazadoEn >= BLOQUEO_MS) delete viajesRechazados.current[v.id];
+          return true;
+        });
+        setViajes(filtrados);
+      }
     } catch {}
     setRefreshing(false);
   };
@@ -393,6 +404,7 @@ export default function ConductorScreen() {
     Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
       { text: 'No', style: 'cancel' },
       { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
+        viajesRechazados.current[viaje.id] = Date.now();
         setViajes(prev => prev.filter(v => v.id !== viaje.id));
       }},
     ]);

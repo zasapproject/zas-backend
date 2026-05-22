@@ -14,7 +14,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
   onIrDatosBancarios: () => void;
 }) {
   const [saldo, setSaldo] = useState<any>(null);
-  const [tasas, setTasas] = useState({ usd_cop: 4000, usd_bs: 487.12 });
+  const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 526 });
   const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
@@ -27,8 +27,9 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
 
   // Moneda y símbolo según método de retiro
   const monedaRetiro = () => {
-    if (metodoRetiro === 'pago_movil') return { simbolo: 'Bs', monto: (parseFloat(montoRetiro || '0') / tasas.usd_cop * tasas.usd_bs) };
-    return { simbolo: '$', monto: (parseFloat(montoRetiro || '0') / tasas.usd_cop) };
+    const usd = parseFloat(montoRetiro || '0') * tasas.usd_bs / tasas.cop_bs;
+    if (metodoRetiro === 'pago_movil') return { simbolo: 'Bs', monto: usd * tasas.usd_bs };
+    return { simbolo: '$', monto: usd };
   };
 
   const cargarSaldo = useCallback(async () => {
@@ -52,7 +53,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
     const monto = parseFloat(montoRetiro);
     if (!monto || monto <= 0) { Alert.alert('Error', 'Ingresa un monto válido'); return; }
     if (monto > parseFloat(saldo?.saldo_disponible || 0)) {
-      Alert.alert('Error', `Saldo insuficiente. Disponible: ${fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_cop)} COP`);
+      Alert.alert('Error', `Saldo insuficiente. Disponible: ${fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.cop_bs / tasas.usd_bs)} COP`);
       return;
     }
     setSolicitando(true);
@@ -96,7 +97,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
       <View style={styles.saldoBox}>
         <Text style={styles.saldoLabel}>Saldo disponible</Text>
         <Text style={styles.saldoMonto}>
-          {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.usd_cop)} COP
+          {fmt(parseFloat(saldo?.saldo_disponible || 0) * tasas.cop_bs / tasas.usd_bs)} COP
         </Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
           <Text style={styles.saldoSecundario}>
@@ -112,7 +113,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>En revisión</Text>
           <Text style={styles.statValor}>
-            {fmt(parseFloat(saldo?.saldo_retenido || 0) * tasas.usd_cop)} COP
+            {fmt(parseFloat(saldo?.saldo_retenido || 0) * tasas.cop_bs / tasas.usd_bs)} COP
           </Text>
           <Text style={styles.statSecundario}>
             $ {fmt(parseFloat(saldo?.saldo_retenido || 0))}
@@ -121,7 +122,7 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>Total ganado</Text>
           <Text style={styles.statValor}>
-            {fmt(parseFloat(saldo?.total_ganado || 0) * tasas.usd_cop)} COP
+            {fmt(parseFloat(saldo?.total_ganado || 0) * tasas.cop_bs / tasas.usd_bs)} COP
           </Text>
           <Text style={styles.statSecundario}>
             $ {fmt(parseFloat(saldo?.total_ganado || 0))}

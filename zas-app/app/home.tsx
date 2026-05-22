@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
-  ScrollView, Image, TextInput, Modal, Platform, BackHandler
+  ScrollView, Image, TextInput, Modal, Platform, BackHandler, KeyboardAvoidingView
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -492,7 +492,8 @@ const obtenerConductoresActivos = async () => {
   const ModalPerfil = () => (
     <Modal visible={editandoPerfil} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContenido}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
+<View style={styles.modalContenido}>
           <Text style={styles.modalTitulo}>Editar perfil</Text>
           <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
             {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
@@ -506,6 +507,7 @@ const obtenerConductoresActivos = async () => {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setEditandoPerfil(false)}><Text style={styles.linkTexto}>Cancelar</Text></TouchableOpacity>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

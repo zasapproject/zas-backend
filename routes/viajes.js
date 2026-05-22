@@ -75,6 +75,27 @@ router.post('/nuevo', async (req, res) => {
     // y el primero en aceptar se lo lleva (modelo marketplace)
     console.log(`✅ Viaje ${viaje.id} creado — esperando conductor cercano`);
 
+// Auto-cancelar si pasan 10 minutos sin conductor
+setTimeout(async () => {
+  try {
+    const { data: viajeActual } = await supabase
+      .from('viajes')
+      .select('estado')
+      .eq('id', viaje.id)
+      .single();
+
+    if (viajeActual?.estado === 'buscando') {
+      await supabase
+        .from('viajes')
+        .update({ estado: 'cancelado' })
+        .eq('id', viaje.id);
+      console.log(`⏱ Viaje ${viaje.id} cancelado por timeout — sin conductor en 10 minutos`);
+    }
+  } catch (e) {
+    console.error('Error auto-cancelando viaje:', e.message);
+  }
+}, 10 * 60 * 1000);
+
     res.json({ ok: true, viaje });
 
   } catch (error) {
