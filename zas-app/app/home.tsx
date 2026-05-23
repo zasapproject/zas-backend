@@ -11,7 +11,7 @@ import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
 
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk';
+const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 
 type Coord = { latitude: number; longitude: number };
 
