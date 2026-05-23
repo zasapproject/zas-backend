@@ -11,7 +11,7 @@ import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
 
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
+const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q'; // Key Android correcta
 
 type Coord = { latitude: number; longitude: number };
 
@@ -75,6 +75,7 @@ export default function HomeScreen() {
     inactividadTimer.current = setTimeout(async () => {
       await AsyncStorage.removeItem('usuario_sesion');
       await AsyncStorage.removeItem('viaje_activo');
+      await AsyncStorage.removeItem('session_token');
       router.replace('/login');
     }, 3 * 60 * 1000);
   };
@@ -228,15 +229,35 @@ export default function HomeScreen() {
       const sesion = await AsyncStorage.getItem('usuario_sesion');
       if (sesion) {
         const usuario = JSON.parse(sesion);
+
+        // Verificar que la sesión sigue activa en el servidor (anti-sesión múltiple)
+        try {
+          const tokenLocal = await AsyncStorage.getItem('session_token');
+          const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuario.id}`, {
+            headers: { 'x-session-token': tokenLocal || '' }
+          });
+          const dataVerif = await resVerif.json();
+          if (!dataVerif.ok) {
+            await AsyncStorage.removeItem('usuario_sesion');
+            await AsyncStorage.removeItem('session_token');
+            await AsyncStorage.removeItem('viaje_activo');
+            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            router.replace('/login');
+            return;
+          }
+        } catch {} // Si falla la red, dejar pasar para no bloquear al usuario
+
         setUsuarioId(usuario.id);
         setUsuarioNombre(usuario.nombre);
       } else { router.replace('/login'); return; }
+
       const viajeGuardado = await AsyncStorage.getItem('viaje_activo');
       if (viajeGuardado) {
         const v = JSON.parse(viajeGuardado);
         if (v.estado !== 'completado' && v.estado !== 'cancelado') setViaje(v);
         else await AsyncStorage.removeItem('viaje_activo');
       }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -245,6 +266,7 @@ export default function HomeScreen() {
         setRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 });
       }
     } catch (e) { router.replace('/login'); return; }
+
     try {
       const resTasas = await fetch(`${API_URL}/api/tasas`);
       const dataTasas = await resTasas.json();
@@ -411,6 +433,13 @@ export default function HomeScreen() {
     setViaje(null); setNavegandoAlMapa(false); reiniciarFlujo();
   };
 
+  const cerrarSesion = async () => {
+    await AsyncStorage.removeItem('usuario_sesion');
+    await AsyncStorage.removeItem('session_token');
+    await AsyncStorage.removeItem('viaje_activo');
+    router.replace('/login');
+  };
+
   const abrirPerfil = () => router.push('/editar_perfil');
 
   const formatearPrecio = (precio: number) => {
@@ -499,7 +528,10 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.logo}>ZAS</Text>
-            <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfil}><Text style={styles.botonPerfilTexto}>✏️ Perfil</Text></TouchableOpacity>
+            {/* Botón cerrar sesión en el header — accesible y fuera de los botones del sistema */}
+            <TouchableOpacity onPress={cerrarSesion} style={styles.botonCerrarHeader}>
+              <Text style={styles.botonCerrarHeaderTexto}>Salir</Text>
+            </TouchableOpacity>
           </View>
           <Text style={styles.saludo}>Hola, {usuarioNombre}</Text>
         </View>
@@ -541,7 +573,6 @@ export default function HomeScreen() {
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>⚡ Solicitar ZAS</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}><Text style={styles.botonCancelarTexto}>Cambiar ruta</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 8 }]} onPress={async () => { await AsyncStorage.removeItem('usuario_sesion'); router.replace('/login'); }}><Text style={styles.botonCancelarTexto}>Cerrar sesión</Text></TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -570,7 +601,11 @@ export default function HomeScreen() {
       <View style={styles.headerFlotante}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <Text style={styles.logoFlotante}>⚡ ZAS — {usuarioNombre}</Text>
-          <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfilFlotante}><Text style={styles.botonPerfilTexto}>✏️</Text></TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfilFlotante}><Text style={styles.botonPerfilTexto}>✏️</Text></TouchableOpacity>
+            {/* Botón cerrar sesión en el header flotante — visible y accesible */}
+            <TouchableOpacity onPress={cerrarSesion} style={styles.botonCerrarFlotante}><Text style={styles.botonCerrarFlotanteTexto}>Salir</Text></TouchableOpacity>
+          </View>
         </View>
         <View style={styles.progreso}>
           <View style={[styles.progresoStep, paso === 'origen' && styles.progresoStepActivo]}><Text style={[styles.progresoTexto, paso === 'origen' && styles.progresoTextoActivo]}>1. Origen</Text></View>
@@ -604,9 +639,6 @@ export default function HomeScreen() {
         <TouchableOpacity style={[styles.botonConfirmar, cargandoDireccion && { opacity: 0.7 }]} onPress={confirmarPunto} disabled={cargandoDireccion}>
           {cargandoDireccion ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonConfirmarTexto}>{paso === 'origen' ? '✅ Confirmar origen' : '✅ Confirmar destino'}</Text>}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.botonCerrarSesion} onPress={async () => { await AsyncStorage.removeItem('usuario_sesion'); router.replace('/login'); }}>
-          <Text style={styles.botonCerrarSesionTexto}>Cerrar sesión</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -622,6 +654,10 @@ const styles = StyleSheet.create({
   headerFlotante: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(26,26,46,0.97)', paddingTop: Platform.OS === 'ios' ? 54 : 40, paddingHorizontal: 16, paddingBottom: 12, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, zIndex: 20 },
   logoFlotante: { fontSize: 16, fontWeight: 'bold', color: '#FFD700' },
   botonPerfilFlotante: { backgroundColor: '#16213e', borderRadius: 8, padding: 6, borderWidth: 1, borderColor: '#FFD700' },
+  botonCerrarFlotante: { backgroundColor: '#16213e', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderColor: '#ff6b6b' },
+  botonCerrarFlotanteTexto: { color: '#ff6b6b', fontSize: 12, fontWeight: '600' },
+  botonCerrarHeader: { backgroundColor: '#16213e', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: '#ff6b6b' },
+  botonCerrarHeaderTexto: { color: '#ff6b6b', fontSize: 13, fontWeight: '600' },
   progreso: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   progresoStep: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 8, backgroundColor: '#16213e' },
   progresoStepActivo: { backgroundColor: '#FFD700' },
@@ -641,8 +677,6 @@ const styles = StyleSheet.create({
   botonConfirmarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, backgroundColor: 'rgba(26,26,46,0.97)', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   botonConfirmar: { backgroundColor: '#FFD700', borderRadius: 14, padding: 16, alignItems: 'center' },
   botonConfirmarTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
-  botonCerrarSesion: { marginTop: 10, alignItems: 'center', padding: 8 },
-  botonCerrarSesionTexto: { color: '#ff6b6b', fontSize: 13 },
   header: { padding: 24, paddingTop: Platform.OS === 'ios' ? 54 : 40, backgroundColor: '#1a1a2e' },
   logo: { fontSize: 28, fontWeight: 'bold', color: '#FFD700' },
   saludo: { fontSize: 18, color: '#fff', fontWeight: '600', marginTop: 4 },

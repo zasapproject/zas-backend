@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
 const { emailConductorAprobado } = require('../mailer');
@@ -9,7 +10,7 @@ const { emailConductorAprobado } = require('../mailer');
 // Rate limiting
 // ─────────────────────────────────────────────
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 5,
   message: { ok: false, error: 'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.' },
   standardHeaders: true,
@@ -17,7 +18,7 @@ const loginLimiter = rateLimit({
 });
 
 const registroLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
+  windowMs: 60 * 60 * 1000,
   max: 10,
   message: { ok: false, error: 'Demasiados registros desde esta conexión. Intenta más tarde.' },
   standardHeaders: true,
@@ -34,14 +35,13 @@ router.post('/registro', registroLimiter, async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Nombre, teléfono y contraseña son obligatorios' });
   }
   if (!email || !email.includes('@')) {
-  return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
-}
+    return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
+  }
   if (!/^(0412|0414|0416|0422|0424|0426)[0-9]{7}$/.test(telefono)) {
     return res.status(400).json({ ok: false, error: 'Número inválido. Usa formato venezolano: 04XX-XXXXXXX' });
   }
 
   try {
-    // Verificar si ya existe
     const { data: existe } = await supabase
       .from('conductores')
       .select('id')
@@ -51,6 +51,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
     if (existe) {
       return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese teléfono' });
     }
+
     const { data: existeEmail } = await supabase
       .from('conductores')
       .select('id')
@@ -83,7 +84,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Login conductor
+// Login conductor — genera session_token único
 // ─────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
   const { telefono, password } = req.body;
@@ -102,7 +103,6 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Conductor no encontrado' });
     }
 
-    // Soporta hash y texto plano (migración gradual)
     let passwordValida = false;
     if (data.password && data.password.startsWith('$2')) {
       passwordValida = await bcrypt.compare(password, data.password);
@@ -118,11 +118,36 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
     }
 
+    // Generar session_token único — invalida sesiones anteriores
+    const session_token = crypto.randomUUID();
+    await supabase.from('conductores').update({ session_token }).eq('id', data.id);
+
     const { password: _, ...conductorSeguro } = data;
-    res.json({ ok: true, conductor: conductorSeguro });
+    res.json({ ok: true, conductor: { ...conductorSeguro, session_token } });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Verificar sesión activa del conductor
+// ─────────────────────────────────────────────
+router.get('/verificar-sesion/:id', async (req, res) => {
+  const tokenEnviado = req.headers['x-session-token'];
+  if (!tokenEnviado) return res.json({ ok: false });
+
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .select('session_token')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !data) return res.json({ ok: false });
+    res.json({ ok: data.session_token === tokenEnviado });
+  } catch {
+    res.json({ ok: false });
   }
 });
 
@@ -152,7 +177,6 @@ router.get('/todos', async (req, res) => {
     const { data, error } = await supabase
       .from('conductores')
       .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta')
-      
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -178,8 +202,9 @@ router.get('/', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
-// Conductores disponibles con ubicación — para mapa usuario
+// Conductores disponibles — para mapa usuario
 // ─────────────────────────────────────────────
 router.get('/disponibles', async (req, res) => {
   try {
@@ -197,6 +222,7 @@ router.get('/disponibles', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Conductores ocupados — para mapa admin
 // ─────────────────────────────────────────────
@@ -216,6 +242,7 @@ router.get('/ocupados', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Actualizar ubicación (patch)
 // ─────────────────────────────────────────────
@@ -305,6 +332,7 @@ router.patch('/perfil/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Subir documentos del conductor
 // ─────────────────────────────────────────────
@@ -425,8 +453,9 @@ router.patch('/reset-password/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
-// Buscar conductor por email (para recuperar contraseña)
+// Buscar conductor por email
 // ─────────────────────────────────────────────
 router.get('/buscar-email/:email', async (req, res) => {
   try {
@@ -445,6 +474,7 @@ router.get('/buscar-email/:email', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Logout conductor — cambia estado a inactivo
 // ─────────────────────────────────────────────
@@ -452,7 +482,7 @@ router.post('/logout/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .update({ estado: 'inactivo', activo: false })
+      .update({ estado: 'inactivo', activo: false, session_token: null })
       .eq('id', req.params.id)
       .select('id, nombre, estado');
 
@@ -466,6 +496,7 @@ router.post('/logout/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Cambiar estado del conductor
 // ─────────────────────────────────────────────
@@ -484,9 +515,9 @@ router.patch('/estado/:id', async (req, res) => {
   if (error) return res.status(400).json({ ok: false, error: error.message });
   res.json({ ok: true, conductor: data });
 });
+
 // ─────────────────────────────────────────────
-// POST /api/conductores/recuperar-password
-// Conductor solicita recuperación de contraseña
+// Recuperar password conductor
 // ─────────────────────────────────────────────
 router.post('/recuperar-password', async (req, res) => {
   const { email } = req.body;
@@ -546,4 +577,5 @@ router.post('/recuperar-password', async (req, res) => {
     res.status(500).json({ ok: false, error: 'Error interno. Intenta de nuevo.' });
   }
 });
+
 module.exports = router;

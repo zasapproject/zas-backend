@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
 
 // ─────────────────────────────────────────────
-// Rate limiting — máximo 5 intentos de login
-// por IP cada 15 minutos
+// Rate limiting
 // ─────────────────────────────────────────────
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 5,
   message: { ok: false, error: 'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.' },
   standardHeaders: true,
@@ -17,7 +17,7 @@ const loginLimiter = rateLimit({
 });
 
 const registroLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
+  windowMs: 60 * 60 * 1000,
   max: 10,
   message: { ok: false, error: 'Demasiados registros desde esta conexión. Intenta más tarde.' },
   standardHeaders: true,
@@ -30,7 +30,6 @@ const registroLimiter = rateLimit({
 router.post('/registro', registroLimiter, async (req, res) => {
   const { nombre, telefono, email, password, foto, foto_url, foto_cedula } = req.body;
 
-  // Validaciones
   if (!nombre || !telefono || !password || !email) {
     return res.status(400).json({ ok: false, error: 'Nombre, teléfono, contraseña y correo son obligatorios' });
   }
@@ -47,7 +46,6 @@ router.post('/registro', registroLimiter, async (req, res) => {
   const fotoFinal = foto || foto_url || null;
 
   try {
-    // Verificar si ya existe
     const { data: existe } = await supabase
       .from('usuarios')
       .select('id')
@@ -57,7 +55,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
     if (existe) {
       return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese teléfono' });
     }
-    // Verificar si el email ya está registrado
+
     const { data: emailExiste } = await supabase
       .from('usuarios')
       .select('id')
@@ -68,7 +66,6 @@ router.post('/registro', registroLimiter, async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Ya existe una cuenta con ese correo electrónico' });
     }
 
-    // Encriptar contraseña
     const passwordHash = await bcrypt.hash(password, 10);
 
     const { data, error } = await supabase
@@ -85,7 +82,6 @@ router.post('/registro', registroLimiter, async (req, res) => {
 
     if (error) throw error;
 
-    // No devolver el password hash al cliente
     const { password: _, ...usuarioSeguro } = data[0];
     res.json({ ok: true, usuario: usuarioSeguro });
 
@@ -95,7 +91,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Login con teléfono y contraseña
+// Login usuario — genera session_token único
 // ─────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
   const { telefono, password } = req.body;
@@ -115,16 +111,12 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
     }
 
-    // Comparar contraseña — soporta tanto hash como texto plano (migración gradual)
     let passwordValida = false;
     if (data.password.startsWith('$2')) {
-      // Ya está hasheada con bcrypt
       passwordValida = await bcrypt.compare(password, data.password);
     } else {
-      // Contraseña en texto plano (usuarios viejos) — migrar al vuelo
       passwordValida = data.password === password;
       if (passwordValida) {
-        // Migrar a bcrypt automáticamente
         const nuevoHash = await bcrypt.hash(password, 10);
         await supabase.from('usuarios').update({ password: nuevoHash }).eq('id', data.id);
       }
@@ -134,12 +126,36 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
     }
 
-    // No devolver el password hash al cliente
+    // Generar session_token único — invalida sesiones anteriores
+    const session_token = crypto.randomUUID();
+    await supabase.from('usuarios').update({ session_token }).eq('id', data.id);
+
     const { password: _, ...usuarioSeguro } = data;
-    res.json({ ok: true, usuario: usuarioSeguro });
+    res.json({ ok: true, usuario: { ...usuarioSeguro, session_token } });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Verificar sesión activa del usuario
+// ─────────────────────────────────────────────
+router.get('/verificar-sesion/:id', async (req, res) => {
+  const tokenEnviado = req.headers['x-session-token'];
+  if (!tokenEnviado) return res.json({ ok: false });
+
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('session_token')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !data) return res.json({ ok: false });
+    res.json({ ok: data.session_token === tokenEnviado });
+  } catch {
+    res.json({ ok: false });
   }
 });
 
@@ -239,6 +255,7 @@ router.patch('/reset-password/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Guardar push token usuario
 // ─────────────────────────────────────────────
@@ -257,6 +274,7 @@ router.patch('/push-token/:id', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
 // Solicitar reset de contraseña por email
 // ─────────────────────────────────────────────
@@ -282,17 +300,14 @@ router.post('/solicitar-reset', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Esta cuenta no tiene email registrado. Contacta a soporte.' });
     }
 
-    // Generar código de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    const expira = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    const expira = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Guardar código en Supabase
     await supabase
       .from('usuarios')
       .update({ reset_codigo: codigo, reset_expira: expira.toISOString() })
       .eq('id', usuario.id);
 
-    // Enviar email con el código
     const { enviarRecuperacionPassword } = require('../mailer');
     await enviarRecuperacionPassword(usuario.email, usuario.nombre, codigo);
 
@@ -336,15 +351,10 @@ router.post('/confirmar-reset', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'El código ha expirado. Solicita uno nuevo.' });
     }
 
-    // Actualizar contraseña y limpiar código
     const passwordHash = await bcrypt.hash(nueva_password, 10);
     await supabase
       .from('usuarios')
-      .update({ 
-        password: passwordHash, 
-        reset_codigo: null, 
-        reset_expira: null 
-      })
+      .update({ password: passwordHash, reset_codigo: null, reset_expira: null })
       .eq('id', usuario.id);
 
     res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
@@ -353,9 +363,9 @@ router.post('/confirmar-reset', async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
+
 // ─────────────────────────────────────────────
-// POST /api/usuarios/recuperar-password
-// Usuario solicita recuperación de contraseña
+// Recuperar password usuario
 // ─────────────────────────────────────────────
 router.post('/recuperar-password', async (req, res) => {
   const { email } = req.body;
@@ -416,4 +426,5 @@ router.post('/recuperar-password', async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
+
 module.exports = router;

@@ -146,6 +146,7 @@ const recuperarPassword = async () => {
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
+await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         if (data.usuario.contrasena_temporal === true) {
           setUsuarioIdTemp(data.usuario.id);
           setPantalla('cambiar-password');
@@ -184,6 +185,7 @@ const recuperarPassword = async () => {
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
+await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         Alert.alert("Registro exitoso", "Bienvenido a ZAS " + data.usuario.nombre);
         router.push("/home");
       } else Alert.alert("Error", data.error || "No se pudo registrar");
