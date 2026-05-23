@@ -134,6 +134,28 @@ export default function HomeScreen() {
   }, [viaje]);
 
   useEffect(() => { cargarSesion(); }, []);
+  // Verificación continua de sesión — evita sesiones simultáneas
+useEffect(() => {
+  if (!usuarioId) return;
+  const intervaloSesion = setInterval(async () => {
+    try {
+      const tokenLocal = await AsyncStorage.getItem('session_token');
+      const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuarioId}`, {
+        headers: { 'x-session-token': tokenLocal || '' }
+      });
+      const dataVerif = await resVerif.json();
+      if (!dataVerif.ok) {
+        clearInterval(intervaloSesion);
+        await AsyncStorage.removeItem('usuario_sesion');
+        await AsyncStorage.removeItem('session_token');
+        await AsyncStorage.removeItem('viaje_activo');
+        Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+        router.replace('/login');
+      }
+    } catch {} // Si falla la red, no bloquear
+  }, 10000);
+  return () => clearInterval(intervaloSesion);
+}, [usuarioId]);
 
   useEffect(() => {
     if (usuarioId) {
@@ -704,8 +726,7 @@ const styles = StyleSheet.create({
   pagoBotonActivo: { borderColor: '#FFD700' },
   pagoTexto: { color: '#888', fontSize: 13, fontWeight: '600' },
   pagoTextoActivo: { color: '#FFD700' },
-  boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
-  botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
+  boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },  botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#FFD700' },
   botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
   linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },

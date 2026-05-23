@@ -37,7 +37,6 @@ export default function ConductorScreen() {
   const viajesRechazados = useRef<{ [id: string]: number }>({});
   const [conductorLat, setConductorLat] = useState<number>(0);
   const [conductorLng, setConductorLng] = useState<number>(0);
-
   const conductorLatRef = useRef<number>(0);
   const conductorLngRef = useRef<number>(0);
 
@@ -61,6 +60,7 @@ export default function ConductorScreen() {
   const [cambCargando, setCambCargando] = useState(false);
 
   useEffect(() => { cargarSesion(); }, []);
+
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => false);
     return () => backHandler.remove();
@@ -69,23 +69,39 @@ export default function ConductorScreen() {
   useEffect(() => {
     if (sesion) {
       (async () => {
-        console.log('🔔 Intentando registrar notificaciones...');
         const token = await registrarNotificaciones();
-        console.log('🔔 Token obtenido:', token);
         if (token) {
-          console.log('📡 Enviando token al backend...');
           const resp = await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ push_token: token })
           });
-          const respData = await resp.json();
-          console.log('📡 Respuesta backend:', JSON.stringify(respData));
-        } else {
-          console.log('❌ Token es null — no se guardó');
         }
       })();
       verificarSuscripcion(sesion.id);
-      const intervalo = setInterval(buscarViajes, 5000);
+
+      // Polling de viajes con verificación de sesión cada ciclo
+      const intervalo = setInterval(async () => {
+        // Verificar sesión activa — si otro celular inició sesión, cerrar este
+        try {
+          const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
+          const resVerif = await fetch(`${API_URL}/api/conductores/verificar-sesion/${sesion.id}`, {
+            headers: { 'x-session-token': tokenLocal || '' }
+          });
+          const dataVerif = await resVerif.json();
+          if (!dataVerif.ok) {
+            await AsyncStorage.removeItem('conductor_sesion');
+            await AsyncStorage.removeItem('conductor_session_token');
+            setSesion(null);
+            setViajes([]);
+            setSuscripcionActiva(false);
+            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            return;
+          }
+        } catch {} // Si falla la red, no bloquear
+
+        buscarViajes();
+      }, 5000);
+
       const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
       return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
     }
@@ -112,6 +128,22 @@ export default function ConductorScreen() {
       const data = await AsyncStorage.getItem('conductor_sesion');
       if (data) {
         const conductor = JSON.parse(data);
+
+        // Verificar sesión activa en servidor — anti-sesión múltiple
+        try {
+          const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
+          const resVerif = await fetch(`${API_URL}/api/conductores/verificar-sesion/${conductor.id}`, {
+            headers: { 'x-session-token': tokenLocal || '' }
+          });
+          const dataVerif = await resVerif.json();
+          if (!dataVerif.ok) {
+            await AsyncStorage.removeItem('conductor_sesion');
+            await AsyncStorage.removeItem('conductor_session_token');
+            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            return;
+          }
+        } catch {} // Si falla la red, dejar pasar
+
         setSesion(conductor);
         await verificarSuscripcion(conductor.id);
       }
@@ -181,7 +213,7 @@ export default function ConductorScreen() {
     if (!recEmail || !recEmail.includes('@')) { Alert.alert('Error', 'Ingresa un email valido'); return; }
     setRecCargando(true);
     try {
-      const res = await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/recuperar-password`, {
+      const res = await fetch(`${API_URL}/api/conductores/recuperar-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: recEmail })
       });
@@ -201,10 +233,16 @@ export default function ConductorScreen() {
     if (!telefono || !password) { Alert.alert('Error', 'Ingresa telefono y contrasena'); return; }
     setCargando(true);
     try {
-      const res = await fetch(API_URL + '/api/conductores/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telefono, password }) });
+      const res = await fetch(API_URL + '/api/conductores/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono, password })
+      });
       const data = await res.json();
       if (data.ok) {
+        // Guardar sesión y session_token — invalida sesiones anteriores en otros celulares
         await AsyncStorage.setItem('conductor_sesion', JSON.stringify(data.conductor));
+        await AsyncStorage.setItem('conductor_session_token', data.conductor.session_token || '');
+
         if (data.conductor.contrasena_temporal === true) {
           setConductorIdTemp(data.conductor.id);
           setPantalla('cambiar-password');
@@ -214,7 +252,7 @@ export default function ConductorScreen() {
         setSesion(data.conductor);
         await verificarSuscripcion(data.conductor.id);
         try {
-          await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${data.conductor.id}`, {
+          await fetch(`${API_URL}/api/conductores/estado/${data.conductor.id}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estado: 'disponible' })
           });
@@ -223,6 +261,7 @@ export default function ConductorScreen() {
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
   };
+
   const registrarConductor = async () => {
     if (!regFotoCedula || !regFotoLicencia || !regFotoRegistro || !regFotoRcv || !regFotoAntecedentes) {
       Alert.alert('Error', 'Debes subir todos los documentos'); return;
@@ -307,9 +346,9 @@ export default function ConductorScreen() {
   };
 
   const subirFotoStorage = async (base64: string) => {
-    const sesion = await AsyncStorage.getItem('conductor_sesion');
-    if (!sesion) return null;
-    const c = JSON.parse(sesion);
+    const sesionData = await AsyncStorage.getItem('conductor_sesion');
+    if (!sesionData) return null;
+    const c = JSON.parse(sesionData);
     try {
       const res = await fetch(`${API_URL}/api/storage/subir-foto`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -346,12 +385,12 @@ export default function ConductorScreen() {
 
   const cerrarSesion = async () => {
     try {
-      await fetch(`https://zas-backend-production-fb4e.up.railway.app/api/conductores/estado/${sesion.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'inactivo' })
+      await fetch(`${API_URL}/api/conductores/logout/${sesion.id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }
       });
     } catch {}
     await AsyncStorage.removeItem('conductor_sesion');
+    await AsyncStorage.removeItem('conductor_session_token');
     setSesion(null);
     setViajes([]);
     setSuscripcionActiva(false);
@@ -581,13 +620,8 @@ export default function ConductorScreen() {
   return (
     <View style={styles.container}>
       {!isOnline && (
-        <View style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999,
-          backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center'
-        }}>
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-            Sin conexión — no puedes recibir viajes
-          </Text>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Sin conexión — no puedes recibir viajes</Text>
         </View>
       )}
       <View style={styles.header}>
