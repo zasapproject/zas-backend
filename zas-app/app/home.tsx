@@ -2,14 +2,14 @@
 import { useRouter } from 'expo-router';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
-  ScrollView, Image, TextInput, Modal, Platform, BackHandler, KeyboardAvoidingView
+  ScrollView, Image, TextInput, Platform, BackHandler
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
+
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk';
 
@@ -57,9 +57,7 @@ async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: 
       `${API_URL}/api/tarifas/calcular?lat=${origen.latitude}&lng=${origen.longitude}&distancia_km=${distancia_km.toFixed(2)}`
     );
     const data = await res.json();
-    if (data.ok) {
-      return { precio: data.precio, tipo: data.tipo, municipio: data.municipio };
-    }
+    if (data.ok) return { precio: data.precio, tipo: data.tipo, municipio: data.municipio };
   } catch (e) {}
   const precioFallback = Math.max(3000, Math.round(distancia_km * 800));
   return { precio: precioFallback, tipo: 'fallback', municipio: null };
@@ -81,21 +79,6 @@ export default function HomeScreen() {
     }, 3 * 60 * 1000);
   };
 
-  useEffect(() => {
-    if (viaje) {
-      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
-      return;
-    }
-    resetearTimer();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') resetearTimer();
-    });
-    return () => {
-      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
-      sub.remove();
-    };
-  }, [viaje]);
-
   const [usuarioId, setUsuarioId] = useState('');
   const [usuarioNombre, setUsuarioNombre] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -115,34 +98,39 @@ export default function HomeScreen() {
   const [sugerencias, setSugerencias] = useState<any[]>([]);
   const [buscando, setBuscando] = useState(false);
 
-  // ── Precio dinámico ──
   const [precioCalculado, setPrecioCalculado] = useState<number>(0);
-  const precioCalculadoRef = useRef<number>(0); // ← FIX: ref para que el polling siempre tenga el precio correcto
+  const precioCalculadoRef = useRef<number>(0);
   const [tipoTarifa, setTipoTarifa] = useState<string>('');
   const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
   const [calculandoPrecio, setCalculandoPrecio] = useState(false);
 
-  // ── Pago ──
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [pagoId, setPagoId] = useState<string | null>(null);
   const pagoIdRef = useRef<string | null>(null);
   const metodoPagoRef = useRef<string>('efectivo');
   const datosZasRef = useRef<any>(null);
   const [datosZas, setDatosZas] = useState<any>(null);
-  const [mostrarSeleccionPago, setMostrarSeleccionPago] = useState(false);
   const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 36 });
   const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
 
-  // Sincronizar refs cuando cambian los estados
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
   useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
   useEffect(() => { datosZasRef.current = datosZas; }, [datosZas]);
 
-  const [editandoPerfil, setEditandoPerfil] = useState(false);
-  const [editTelefono, setEditTelefono] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editFoto, setEditFoto] = useState('');
-  const [guardando, setGuardando] = useState(false);
+  useEffect(() => {
+    if (viaje) {
+      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
+      return;
+    }
+    resetearTimer();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') resetearTimer();
+    });
+    return () => {
+      if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
+      sub.remove();
+    };
+  }, [viaje]);
 
   useEffect(() => { cargarSesion(); }, []);
 
@@ -162,18 +150,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (viaje) {
-        BackHandler.exitApp();
-        return true;
-      }
-      if (paso === 'destino') {
-        setPaso('origen');
-        return true;
-      }
-      if (paso === 'confirmar') {
-        setPaso('destino');
-        return true;
-      }
+      if (viaje) { BackHandler.exitApp(); return true; }
+      if (paso === 'destino') { setPaso('origen'); return true; }
+      if (paso === 'confirmar') { setPaso('destino'); return true; }
       return false;
     });
     return () => backHandler.remove();
@@ -193,7 +172,6 @@ export default function HomeScreen() {
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
-              // ── FIX: usar refs para que el polling siempre tenga los valores correctos ──
               router.push({
                 pathname: '/mapa_viaje',
                 params: {
@@ -280,7 +258,8 @@ export default function HomeScreen() {
     }
     setCargando(false);
   };
-const obtenerConductoresActivos = async () => {
+
+  const obtenerConductoresActivos = async () => {
     try {
       const res = await fetch(`${API_URL}/api/conductores/disponibles`);
       const data = await res.json();
@@ -304,6 +283,7 @@ const obtenerConductoresActivos = async () => {
       clearInterval(intervaloTasas);
     };
   }, [viaje]);
+
   const onRegionChangeComplete = (reg: any) => {
     setPinCoord({ latitude: reg.latitude, longitude: reg.longitude });
   };
@@ -322,7 +302,7 @@ const obtenerConductoresActivos = async () => {
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, pinCoord);
       setPrecioCalculado(resultado.precio);
-      precioCalculadoRef.current = resultado.precio; // ← sincronizar ref
+      precioCalculadoRef.current = resultado.precio;
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
@@ -354,7 +334,7 @@ const obtenerConductoresActivos = async () => {
       setPaso('confirmar');
       const resultado = await calcularPrecio(coordOrigen!, coords);
       setPrecioCalculado(resultado.precio);
-      precioCalculadoRef.current = resultado.precio; // ← sincronizar ref
+      precioCalculadoRef.current = resultado.precio;
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
@@ -431,56 +411,7 @@ const obtenerConductoresActivos = async () => {
     setViaje(null); setNavegandoAlMapa(false); reiniciarFlujo();
   };
 
-  const abrirPerfil = async () => {
-    const sesion = await AsyncStorage.getItem('usuario_sesion');
-    if (sesion) { const u = JSON.parse(sesion); setEditTelefono(u.telefono || ''); setEditEmail(u.email || ''); setEditFoto(u.foto_url || ''); }
-    setEditandoPerfil(true);
-  };
-
-  const subirFotoStorage = async (base64: string) => {
-    const sesion = await AsyncStorage.getItem('usuario_sesion');
-    if (!sesion) return null;
-    const u = JSON.parse(sesion);
-    try {
-      const res = await fetch(`${API_URL}/api/storage/subir-foto`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64, nombre: `usuario_${u.id}`, carpeta: 'usuarios' }) });
-      const data = await res.json();
-      return data.ok ? data.url : null;
-    } catch { return null; }
-  };
-
-  const seleccionarFotoPerfil = async () => {
-    Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
-      { text: 'Cámara', onPress: async () => {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') return;
-        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
-        if (!result.canceled) { const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64); if (url) setEditFoto(url); }
-      }},
-      { text: 'Galería', onPress: async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') return;
-        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
-        if (!result.canceled) { const url = await subirFotoStorage('data:image/jpeg;base64,' + result.assets[0].base64); if (url) setEditFoto(url); }
-      }},
-      { text: 'Cancelar', style: 'cancel' }
-    ]);
-  };
-
-  const guardarPerfil = async () => {
-    const sesion = await AsyncStorage.getItem('usuario_sesion');
-    if (!sesion) return;
-    const u = JSON.parse(sesion);
-    setGuardando(true);
-    try {
-      const res = await fetch(`${API_URL}/api/usuarios/perfil/${u.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telefono: editTelefono, email: editEmail || null, foto_url: editFoto }) });
-      const data = await res.json();
-      if (data.ok) {
-        await AsyncStorage.setItem('usuario_sesion', JSON.stringify({ ...u, telefono: editTelefono, email: editEmail, foto_url: editFoto }));
-        setEditandoPerfil(false); Alert.alert('✅ Perfil actualizado');
-      } else Alert.alert('Error', data.error || 'No se pudo guardar');
-    } catch { Alert.alert('Error', 'No se pudo conectar'); }
-    finally { setGuardando(false); }
-  };
+  const abrirPerfil = () => router.push('/editar_perfil');
 
   const formatearPrecio = (precio: number) => {
     const cop = precio.toLocaleString('es-CO', { maximumFractionDigits: 0 });
@@ -489,53 +420,25 @@ const obtenerConductoresActivos = async () => {
     return { cop, usd, bs };
   };
 
-  const ModalPerfil = () => (
-    <Modal visible={editandoPerfil} animationType="slide" transparent onRequestClose={() => setEditandoPerfil(false)}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditandoPerfil(false)}>
-        <TouchableOpacity activeOpacity={1} style={{ width: '100%' }}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.modalContenido}>
-              <Text style={styles.modalTitulo}>Editar perfil</Text>
-              <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-                {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
-              </TouchableOpacity>
-              <Text style={styles.modalLabel}>Teléfono</Text>
-              <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
-              <Text style={styles.modalLabel}>Email</Text>
-              <TextInput style={styles.modalInput} value={editEmail} onChangeText={setEditEmail} keyboardType="email-address" placeholderTextColor="#888" placeholder="tu@email.com" />
-              <TouchableOpacity style={styles.boton} onPress={guardarPerfil} disabled={guardando}>
-                {guardando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar cambios</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setEditandoPerfil(false)}><Text style={styles.linkTexto}>Cancelar</Text></TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
-  );
-          
-
   if (cargando && !viaje) return <View style={styles.loadingContainer}><ActivityIndicator color="#FFD700" size="large" /></View>;
 
   if (viaje) {
     return (
       <View style={styles.container}>
         {!isOnline && (
-  <View style={{
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999,
-    backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center'
-  }}>
-    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-      Sin conexión — algunas funciones no están disponibles
-    </Text>
-  </View>
-)}
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Sin conexión — algunas funciones no están disponibles</Text>
+          </View>
+        )}
         <View style={styles.header}><Text style={styles.logo}>ZAS</Text><Text style={styles.saludo}>Hola, {usuarioNombre}</Text></View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={styles.viajeActivoTitulo}>{viaje.estado === 'aceptado' || viaje.estado === 'en_curso' ? 'Conductor en camino' : 'Buscando conductor...'}</Text>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
             <View style={styles.conductorCard}>
-              {viaje.conductor_foto ? <Image source={{ uri: viaje.conductor_foto }} style={styles.conductorFoto} /> : <View style={styles.conductorFotoPlaceholder}><Text style={styles.conductorFotoLetra}>{viaje.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text></View>}
+              {viaje.conductor_foto
+                ? <Image source={{ uri: viaje.conductor_foto }} style={styles.conductorFoto} />
+                : <View style={styles.conductorFotoPlaceholder}><Text style={styles.conductorFotoLetra}>{viaje.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text></View>
+              }
               <View style={styles.conductorInfo}>
                 <Text style={styles.conductorNombre}>{viaje.conductor_nombre || 'Conductor'}</Text>
                 {viaje.conductor_placa ? <Text style={styles.conductorDetalle}>{viaje.conductor_modelo} · {viaje.conductor_placa}</Text> : null}
@@ -549,9 +452,7 @@ const obtenerConductoresActivos = async () => {
             <Text style={styles.viajeLabel}>Precio</Text>
             {viaje.precio ? (
               <View>
-                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 20 }]}>
-                  {formatearPrecio(Number(viaje.precio)).cop} COP
-                </Text>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 20 }]}>{formatearPrecio(Number(viaje.precio)).cop} COP</Text>
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
                   <Text style={{ color: '#aaa', fontSize: 12 }}>Bs {formatearPrecio(Number(viaje.precio)).bs}</Text>
                   <Text style={{ color: '#aaa', fontSize: 12 }}>$ {formatearPrecio(Number(viaje.precio)).usd}</Text>
@@ -564,20 +465,16 @@ const obtenerConductoresActivos = async () => {
             <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({
               pathname: '/mapa_viaje',
               params: {
-                viaje_id: viaje.id,
-                rol: 'usuario',
+                viaje_id: viaje.id, rol: 'usuario',
                 conductor_id: viaje.conductor_id || '',
                 conductor_nombre: viaje.conductor_nombre || '',
                 conductor_telefono: viaje.conductor_telefono || '',
                 conductor_foto: viaje.conductor_foto || '',
                 conductor_placa: viaje.conductor_placa || '',
                 conductor_modelo: viaje.conductor_modelo || '',
-                origen: viaje.origen,
-                destino: viaje.destino,
-                origen_lat: viaje.origen_lat || '',
-                origen_lng: viaje.origen_lng || '',
-                destino_lat: viaje.destino_lat || '',
-                destino_lng: viaje.destino_lng || '',
+                origen: viaje.origen, destino: viaje.destino,
+                origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '',
+                destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '',
                 pago_id: pagoIdRef.current || '',
                 metodo_pago: metodoPagoRef.current || 'efectivo',
                 monto_viaje: String(precioCalculadoRef.current || viaje.precio || 0),
@@ -616,22 +513,14 @@ const obtenerConductoresActivos = async () => {
               <ActivityIndicator color="#FFD700" style={{ marginTop: 8 }} />
             ) : (
               <View>
-                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>
-                  {formatearPrecio(precioCalculado).cop} COP
-                </Text>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>{formatearPrecio(precioCalculado).cop} COP</Text>
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-                  <Text style={{ color: '#aaa', fontSize: 13 }}>
-                    Bs {formatearPrecio(precioCalculado).bs}
-                  </Text>
-                  <Text style={{ color: '#aaa', fontSize: 13 }}>
-                    $ {formatearPrecio(precioCalculado).usd}
-                  </Text>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(precioCalculado).bs}</Text>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(precioCalculado).usd}</Text>
                 </View>
               </View>
             )}
-            {municipioTarifa ? (
-              <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text>
-            ) : null}
+            {municipioTarifa ? <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text> : null}
           </View>
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
@@ -645,9 +534,7 @@ const obtenerConductoresActivos = async () => {
               ))}
             </View>
             {metodoPago !== 'efectivo' && (
-              <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-                Después del viaje deberás subir el comprobante de pago
-              </Text>
+              <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>Después del viaje deberás subir el comprobante de pago</Text>
             )}
           </View>
           <TouchableOpacity style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]} onPress={solicitarViaje} disabled={cargando || calculandoPrecio || !precioCalculado}>
@@ -656,7 +543,6 @@ const obtenerConductoresActivos = async () => {
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}><Text style={styles.botonCancelarTexto}>Cambiar ruta</Text></TouchableOpacity>
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 8 }]} onPress={async () => { await AsyncStorage.removeItem('usuario_sesion'); router.replace('/login'); }}><Text style={styles.botonCancelarTexto}>Cerrar sesión</Text></TouchableOpacity>
         </ScrollView>
-        <ModalPerfil />
       </View>
     );
   }
@@ -667,26 +553,8 @@ const obtenerConductoresActivos = async () => {
         {paso === 'destino' && coordOrigen && <Marker coordinate={coordOrigen} pinColor="#00c853" title="Origen" />}
         {conductoresActivos.map(conductor => (
           conductor.latitud && conductor.longitud ? (
-            <Marker
-              key={conductor.id}
-              coordinate={{ latitude: Number(conductor.latitud), longitude: Number(conductor.longitud) }}
-              title={conductor.nombre}
-              description={conductor.modelo_moto || 'Mototaxi ZAS'}
-            >
-              <View style={{
-                backgroundColor: '#FFD700',
-                borderRadius: 20,
-                padding: 6,
-                borderWidth: 2,
-                borderColor: '#1a1a2e',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 3,
-                elevation: 5,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+            <Marker key={conductor.id} coordinate={{ latitude: Number(conductor.latitud), longitude: Number(conductor.longitud) }} title={conductor.nombre} description={conductor.modelo_moto || 'Mototaxi ZAS'}>
+              <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 18 }}>🏍</Text>
               </View>
             </Marker>
@@ -740,8 +608,6 @@ const obtenerConductoresActivos = async () => {
           <Text style={styles.botonCerrarSesionTexto}>Cerrar sesión</Text>
         </TouchableOpacity>
       </View>
-
-      <ModalPerfil />
     </View>
   );
 }
@@ -808,13 +674,5 @@ const styles = StyleSheet.create({
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#FFD700' },
   botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContenido: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  modalTitulo: { fontSize: 20, color: '#FFD700', fontWeight: 'bold', marginBottom: 16 },
-  modalLabel: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 4 },
-  modalInput: { backgroundColor: '#16213e', borderRadius: 10, padding: 14, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#0f3460', marginBottom: 12 },
   linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },
-  fotoCirculo: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#16213e', borderWidth: 2, borderColor: '#FFD700', alignSelf: 'center', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  fotoCirculoImg: { width: 90, height: 90, borderRadius: 45 },
-  fotoCirculoTexto: { color: '#FFD700', fontSize: 13 },
 });
