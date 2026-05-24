@@ -152,7 +152,7 @@ useEffect(() => {
         Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
         router.replace('/login');
       }
-    } catch {} // Si falla la red, no bloquear
+    } catch {}
   }, 10000);
   return () => clearInterval(intervaloSesion);
 }, [usuarioId]);
@@ -579,10 +579,10 @@ useEffect(() => {
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
             <View style={styles.pagoOpciones}>
-              {['efectivo', 'pago_movil', 'zelle', 'usdt'].map(m => (
+              {['efectivo', 'bancolombia', 'nequi', 'pago_movil', 'zelle', 'usdt'].map(m => (
                 <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
                   <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
-                    {m === 'efectivo' ? '💵 Efectivo' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
+                    {m === 'efectivo' ? '💵 Efectivo' : m === 'bancolombia' ? '🏦 Bancolombia' : m === 'nequi' ? '📲 Nequi' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -726,7 +726,8 @@ const styles = StyleSheet.create({
   pagoBotonActivo: { borderColor: '#FFD700' },
   pagoTexto: { color: '#888', fontSize: 13, fontWeight: '600' },
   pagoTextoActivo: { color: '#FFD700' },
-  boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },  botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
+  boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
+  botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#FFD700' },
   botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
   linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },

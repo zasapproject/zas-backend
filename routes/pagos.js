@@ -12,10 +12,13 @@ const METODOS_VALIDOS = [
   'efectivo',
   'pago_movil',
   'zelle',
+  'transferencia',
   'usdt',
+  'bancolombia',
+  'nequi',
 ];
 
-const METODOS_DIGITALES = ['pago_movil', 'zelle', 'usdt'];
+const METODOS_DIGITALES = ['pago_movil', 'zelle', 'transferencia', 'usdt', 'bancolombia', 'nequi'];
 
 // ─────────────────────────────────────────────
 // Datos de ZAS para mostrar al usuario al pagar
@@ -32,10 +35,29 @@ const DATOS_PAGO_ZAS = {
     email: 'jrchinchilla82@gmail.com',
     nombre: 'Jhonatan Rincon',
   },
+  transferencia: {
+    banco: 'Banco de Venezuela',
+    cuenta: 'XXXX-XXXX-XXXX-XXXX',
+    nombre: 'ZAS Mototaxi',
+    rif: 'J-XXXXXXXX-X',
+  },
   usdt: {
     red: 'TRC20 (Tron)',
     wallet: 'TCQou8bEo2jwsvtaoRLFkA4FPWQrZXVsTt',
     nota: 'Solo enviar USDT por red TRC20',
+  },
+  bancolombia: {
+    banco: 'Bancolombia',
+    tipo_cuenta: 'Ahorros',
+    numero_cuenta: '08810657384',
+    nombre: 'Jhonatan Rincon',
+    cedula: '1232391490',
+    nota: 'Transferencia o deposito a cuenta de ahorros Bancolombia',
+  },
+  nequi: {
+    telefono: '3113003100',
+    nombre: 'Jhonatan Rincon',
+    nota: 'Enviar pago por Nequi al numero registrado',
   },
 };
 
@@ -143,7 +165,6 @@ router.post('/nuevo', async (req, res) => {
 
     if (error) throw error;
 
-    // Si es digital → devolver datos de pago de ZAS
     // Si es efectivo → acreditar saldo al conductor directamente
     if (metodo === 'efectivo' && viaje.conductor_id) {
       const conductor_id = viaje.conductor_id;
@@ -174,6 +195,8 @@ router.post('/nuevo', async (req, res) => {
           });
       }
     }
+
+    // Si es digital → devolver datos de pago de ZAS
     const respuesta = { ok: true, pago: data };
     if (METODOS_DIGITALES.includes(metodo)) {
       respuesta.datos_pago_zas = DATOS_PAGO_ZAS[metodo];
