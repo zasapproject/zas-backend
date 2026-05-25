@@ -578,18 +578,31 @@ useEffect(() => {
           </View>
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Método de pago</Text>
-            <View style={styles.pagoOpciones}>
-              {['efectivo', 'bancolombia', 'nequi', 'pago_movil', 'zelle', 'usdt'].map(m => (
-                <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
-                  <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
-                    {m === 'efectivo' ? '💵 Efectivo' : m === 'bancolombia' ? '🏦 Bancolombia' : m === 'nequi' ? '📲 Nequi' : m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {metodoPago !== 'efectivo' && (
-              <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>Después del viaje deberás subir el comprobante de pago</Text>
-            )}
+            <View style={{ gap: 8 }}>
+  <View style={{ flexDirection: 'row', gap: 8 }}>
+    {['efectivo', 'bancolombia', 'nequi'].map(m => (
+      <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+        <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
+          {m === 'efectivo' ? '💵 Efectivo' : m === 'bancolombia' ? '🏦 Bancolombia' : '📲 Nequi'}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+  <View style={{ flexDirection: 'row', gap: 8 }}>
+    {['pago_movil', 'zelle', 'usdt'].map(m => (
+      <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+        <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
+          {m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+</View>
+            <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+  {metodoPago === 'efectivo' 
+    ? 'Pago directo al conductor en efectivo' 
+    : 'Después del viaje deberás subir el comprobante de pago'}
+</Text>
           </View>
           <TouchableOpacity style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]} onPress={solicitarViaje} disabled={cargando || calculandoPrecio || !precioCalculado}>
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>⚡ Solicitar ZAS</Text>}
