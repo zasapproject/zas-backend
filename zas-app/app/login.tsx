@@ -77,6 +77,7 @@ export default function LoginScreen() {
       { text: 'Cancelar', style: 'cancel' }
     ]);
   };
+
   const cambiarPasswordTemporal = async () => {
     if (nuevaPassword.length < 4) {
       Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres');
@@ -107,7 +108,8 @@ export default function LoginScreen() {
       setCambCargando(false);
     }
   };
-const recuperarPassword = async () => {
+
+  const recuperarPassword = async () => {
     if (!recEmail || !recEmail.includes('@')) {
       Alert.alert('Error', 'Ingresa un email valido');
       return;
@@ -133,20 +135,39 @@ const recuperarPassword = async () => {
       setRecCargando(false);
     }
   };
+
   const iniciarSesion = async () => {
     if (!telefono || !password) { Alert.alert("Error", "Ingresa telefono y contrasena"); return; }
     setCargando(true);
     try {
-      const res = await fetch(API_URL + "/api/usuarios/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefono, password }) });
+      const res = await fetch(API_URL + "/api/usuarios/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telefono, password })
+      });
+
+      // Contraseña incorrecta
       if (res.status === 401) {
         Alert.alert('Error', 'Teléfono o contraseña incorrectos.');
         setCargando(false);
         return;
       }
+
+      // Sesión activa en otro dispositivo — BLOQUEO
+      if (res.status === 403) {
+        Alert.alert(
+          'Sesión activa',
+          'Esta cuenta ya está abierta en otro dispositivo. Cierra sesión desde ese dispositivo para poder entrar aquí.',
+          [{ text: 'Entendido', style: 'cancel' }]
+        );
+        setCargando(false);
+        return;
+      }
+
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
-await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
+        await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         if (data.usuario.contrasena_temporal === true) {
           setUsuarioIdTemp(data.usuario.id);
           setPantalla('cambiar-password');
@@ -159,16 +180,21 @@ await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         } else {
           router.replace('/home');
         }
-      } else Alert.alert("Error", data.error || "Telefono o contrasena incorrectos");
-    } catch { Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo."); }
-    finally { setCargando(false); }
+      } else {
+        Alert.alert("Error", data.error || "Telefono o contrasena incorrectos");
+      }
+    } catch {
+      Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   };
 
   const registrarUsuario = async () => {
     if (!nombre || !telefono || !password || !email) { Alert.alert("Error", "Nombre, teléfono, contraseña y correo son obligatorios"); return; }
     if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }
     if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
-  if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
+    if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
     setCargando(true);
     try {
       let fotoUrl = foto;
@@ -180,31 +206,40 @@ await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         const dataFoto = await resFoto.json();
         if (dataFoto.ok) fotoUrl = dataFoto.url;
       }
-      const res = await fetch(API_URL + "/api/usuarios/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, foto_cedula: fotoCedula }) });
+      const res = await fetch(API_URL + "/api/usuarios/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, foto_cedula: fotoCedula })
+      });
 
       const data = await res.json();
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
-await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
+        await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
         Alert.alert("Registro exitoso", "Bienvenido a ZAS " + data.usuario.nombre);
         router.push("/home");
-      } else Alert.alert("Error", data.error || "No se pudo registrar");
-    } catch { Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo."); }
-    finally { setCargando(false); }
+      } else {
+        Alert.alert("Error", data.error || "No se pudo registrar");
+      }
+    } catch {
+      Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-  <Image 
-    source={require('../assets/images/icon.png')} 
-    style={{ width: 120, height: 120, marginBottom: 4 }}
-    resizeMode="contain"
-  />
-  <Text style={styles.logo}>ZAS</Text>
-  <Text style={styles.titulo}>Tu mototaxi al instante</Text>
-</View>
+          <Image
+            source={require('../assets/images/icon.png')}
+            style={{ width: 120, height: 120, marginBottom: 4 }}
+            resizeMode="contain"
+          />
+          <Text style={styles.logo}>ZAS</Text>
+          <Text style={styles.titulo}>Tu mototaxi al instante</Text>
+        </View>
 
         {pantalla === "inicio" && (
           <View style={styles.formulario}>
@@ -284,7 +319,8 @@ await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
             </TouchableOpacity>
           </View>
         )}
-{pantalla === "cambiar-password" && (
+
+        {pantalla === "cambiar-password" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Crea tu contraseña</Text>
             <Text style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
@@ -313,6 +349,7 @@ await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
             </TouchableOpacity>
           </View>
         )}
+
         {pantalla === "recuperar" && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Recuperar contraseña</Text>

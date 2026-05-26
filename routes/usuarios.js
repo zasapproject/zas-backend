@@ -91,7 +91,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Login usuario — genera session_token único
+// Login usuario — bloquea si ya hay sesión activa
 // ─────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
   const { telefono, password } = req.body;
@@ -126,7 +126,17 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
     }
 
-    // Generar session_token único — invalida sesiones anteriores
+    // ── BLOQUEO DE SESIÓN SIMULTÁNEA ──────────────────────────
+    // Si ya hay un session_token activo, rechazar el nuevo login
+    if (data.session_token) {
+      return res.status(403).json({
+        ok: false,
+        sesion_activa: true,
+        error: 'Esta cuenta ya tiene una sesión abierta en otro dispositivo. Cierra sesión desde ese dispositivo para continuar.',
+      });
+    }
+    // ──────────────────────────────────────────────────────────
+
     const session_token = crypto.randomUUID();
     await supabase.from('usuarios').update({ session_token }).eq('id', data.id);
 
@@ -156,6 +166,28 @@ router.get('/verificar-sesion/:id', async (req, res) => {
     res.json({ ok: data.session_token === tokenEnviado });
   } catch {
     res.json({ ok: false });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Logout usuario — libera la sesión
+// ─────────────────────────────────────────────
+router.post('/logout/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ session_token: null })
+      .eq('id', req.params.id)
+      .select('id, nombre');
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    }
+
+    res.json({ ok: true, mensaje: 'Sesión cerrada correctamente' });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
   }
 });
 

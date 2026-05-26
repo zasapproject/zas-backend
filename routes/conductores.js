@@ -84,7 +84,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Login conductor — genera session_token único
+// Login conductor — bloquea si ya hay sesión activa
 // ─────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
   const { telefono, password } = req.body;
@@ -118,7 +118,17 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
     }
 
-    // Generar session_token único — invalida sesiones anteriores
+    // ── BLOQUEO DE SESIÓN SIMULTÁNEA ──────────────────────────
+    // Si ya hay un session_token activo, rechazar el nuevo login
+    if (data.session_token) {
+      return res.status(403).json({
+        ok: false,
+        sesion_activa: true,
+        error: 'Esta cuenta ya tiene una sesión abierta en otro dispositivo. Cierra sesión desde ese dispositivo para continuar.',
+      });
+    }
+    // ──────────────────────────────────────────────────────────
+
     const session_token = crypto.randomUUID();
     await supabase.from('conductores').update({ session_token }).eq('id', data.id);
 
@@ -476,7 +486,7 @@ router.get('/buscar-email/:email', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Logout conductor — cambia estado a inactivo
+// Logout conductor — libera la sesión
 // ─────────────────────────────────────────────
 router.post('/logout/:id', async (req, res) => {
   try {

@@ -71,7 +71,7 @@ export default function ConductorScreen() {
       (async () => {
         const token = await registrarNotificaciones();
         if (token) {
-          const resp = await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
+          await fetch(`${API_URL}/api/conductores/push-token/${sesion.id}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ push_token: token })
           });
@@ -79,9 +79,7 @@ export default function ConductorScreen() {
       })();
       verificarSuscripcion(sesion.id);
 
-      // Polling de viajes con verificación de sesión cada ciclo
       const intervalo = setInterval(async () => {
-        // Verificar sesión activa — si otro celular inició sesión, cerrar este
         try {
           const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
           const resVerif = await fetch(`${API_URL}/api/conductores/verificar-sesion/${sesion.id}`, {
@@ -94,11 +92,10 @@ export default function ConductorScreen() {
             setSesion(null);
             setViajes([]);
             setSuscripcionActiva(false);
-            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             return;
           }
-        } catch {} // Si falla la red, no bloquear
-
+        } catch {}
         buscarViajes();
       }, 5000);
 
@@ -128,8 +125,6 @@ export default function ConductorScreen() {
       const data = await AsyncStorage.getItem('conductor_sesion');
       if (data) {
         const conductor = JSON.parse(data);
-
-        // Verificar sesión activa en servidor — anti-sesión múltiple
         try {
           const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
           const resVerif = await fetch(`${API_URL}/api/conductores/verificar-sesion/${conductor.id}`, {
@@ -139,11 +134,10 @@ export default function ConductorScreen() {
           if (!dataVerif.ok) {
             await AsyncStorage.removeItem('conductor_sesion');
             await AsyncStorage.removeItem('conductor_session_token');
-            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             return;
           }
-        } catch {} // Si falla la red, dejar pasar
-
+        } catch {}
         setSesion(conductor);
         await verificarSuscripcion(conductor.id);
       }
@@ -171,14 +165,14 @@ export default function ConductorScreen() {
   };
 
   const tomarOSeleccionarFoto = async (setter: (v: string) => void) => {
-    Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
-      { text: 'Cámara', onPress: async () => {
+    Alert.alert('Foto', '¿Como quieres agregar la foto?', [
+      { text: 'Camara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.1, base64: true });
         if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
       }},
-      { text: 'Galería', onPress: async () => {
+      { text: 'Galeria', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.1, base64: true });
@@ -189,8 +183,8 @@ export default function ConductorScreen() {
   };
 
   const cambiarPasswordTemporal = async () => {
-    if (nuevaPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
-    if (nuevaPassword !== confirmarPassword) { Alert.alert('Error', 'Las contraseñas no coinciden'); return; }
+    if (nuevaPassword.length < 4) { Alert.alert('Error', 'La contrasena debe tener minimo 4 caracteres'); return; }
+    if (nuevaPassword !== confirmarPassword) { Alert.alert('Error', 'Las contrasenas no coinciden'); return; }
     setCambCargando(true);
     try {
       const res = await fetch(`${API_URL}/api/conductores/reset-password/${conductorIdTemp}`, {
@@ -199,11 +193,11 @@ export default function ConductorScreen() {
       });
       const data = await res.json();
       if (data.ok) {
-        Alert.alert('¡Listo!', 'Tu contraseña fue actualizada. Ahora inicia sesión.', [
+        Alert.alert('Listo!', 'Tu contrasena fue actualizada. Ahora inicia sesion.', [
           { text: 'OK', onPress: () => { setNuevaPassword(''); setConfirmarPassword(''); setConductorIdTemp(''); setPantalla('login'); } }
         ]);
       } else {
-        Alert.alert('Error', data.error || 'No se pudo actualizar la contraseña');
+        Alert.alert('Error', data.error || 'No se pudo actualizar la contrasena');
       }
     } catch { Alert.alert('Error', 'No se pudo conectar. Verifica tu internet.'); }
     finally { setCambCargando(false); }
@@ -237,12 +231,22 @@ export default function ConductorScreen() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telefono, password })
       });
+
+      // Sesion activa en otro dispositivo — BLOQUEO
+      if (res.status === 403) {
+        Alert.alert(
+          'Sesion activa',
+          'Esta cuenta ya esta abierta en otro dispositivo. Cierra sesion desde ese dispositivo para poder entrar aqui.',
+          [{ text: 'Entendido', style: 'cancel' }]
+        );
+        setCargando(false);
+        return;
+      }
+
       const data = await res.json();
       if (data.ok) {
-        // Guardar sesión y session_token — invalida sesiones anteriores en otros celulares
         await AsyncStorage.setItem('conductor_sesion', JSON.stringify(data.conductor));
         await AsyncStorage.setItem('conductor_session_token', data.conductor.session_token || '');
-
         if (data.conductor.contrasena_temporal === true) {
           setConductorIdTemp(data.conductor.id);
           setPantalla('cambiar-password');
@@ -275,7 +279,7 @@ export default function ConductorScreen() {
             body: JSON.stringify({ base64, nombre, carpeta: 'documentos' }),
           });
           const data = await res.json();
-          if (!data.ok) { Alert.alert('Error storage', data.error || 'No subió'); return null; }
+          if (!data.ok) { Alert.alert('Error storage', data.error || 'No subio'); return null; }
           return data.url;
         } catch (e: any) { Alert.alert('Error', e.message); return null; }
       };
@@ -304,7 +308,7 @@ export default function ConductorScreen() {
       });
       const data = await res.json();
       if (data.ok) {
-        Alert.alert('¡Registro exitoso!', 'Tu cuenta está pendiente de aprobación por el administrador. Te avisaremos pronto.');
+        Alert.alert('Registro exitoso!', 'Tu cuenta esta pendiente de aprobacion por el administrador. Te avisaremos pronto.');
         setPantalla('login');
       } else Alert.alert('Error', data.error || 'No se pudo registrar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
@@ -339,7 +343,7 @@ export default function ConductorScreen() {
         await AsyncStorage.setItem('conductor_sesion', JSON.stringify(actualizado));
         setSesion(actualizado);
         setEditandoPerfil(false);
-        Alert.alert('✅ Perfil actualizado');
+        Alert.alert('Perfil actualizado');
       } else Alert.alert('Error', resp.error || 'No se pudo guardar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setGuardando(false); }
@@ -360,8 +364,8 @@ export default function ConductorScreen() {
   };
 
   const seleccionarFotoPerfil = async () => {
-    Alert.alert('Foto', '¿Cómo quieres agregar la foto?', [
-      { text: 'Cámara', onPress: async () => {
+    Alert.alert('Foto', '¿Como quieres agregar la foto?', [
+      { text: 'Camara', onPress: async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
@@ -370,7 +374,7 @@ export default function ConductorScreen() {
           if (url) setEditFoto(url); else Alert.alert('Error', 'No se pudo subir la foto');
         }
       }},
-      { text: 'Galería', onPress: async () => {
+      { text: 'Galeria', onPress: async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
         const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.3, base64: true });
@@ -431,7 +435,7 @@ export default function ConductorScreen() {
         enviarNotificacion('Viaje aceptado', 'Vas a recoger a ' + viaje.usuario_nombre);
         router.push({ pathname: '/mapa_viaje', params: { viaje_id: viaje.id, rol: 'conductor', conductor_id: sesion.id, usuario_nombre: viaje.usuario_nombre, usuario_telefono: viaje.usuario_telefono, usuario_foto: viaje.usuario_foto, origen: viaje.origen, destino: viaje.destino, origen_lat: viaje.origen_lat || '', origen_lng: viaje.origen_lng || '', destino_lat: viaje.destino_lat || '', destino_lng: viaje.destino_lng || '' } });
       } else if (data.error?.includes('ya fue tomado')) {
-        Alert.alert('Viaje no disponible', 'Otro conductor tomó este viaje primero.');
+        Alert.alert('Viaje no disponible', 'Otro conductor tomo este viaje primero.');
         buscarViajes();
       } else {
         Alert.alert('Error', data.error || 'No se pudo aceptar');
@@ -440,9 +444,9 @@ export default function ConductorScreen() {
   };
 
   const rechazarViaje = async (viaje: any) => {
-    Alert.alert('Rechazar viaje', '¿Estás seguro que no quieres tomar este viaje?', [
+    Alert.alert('Rechazar viaje', '¿Estas seguro que no quieres tomar este viaje?', [
       { text: 'No', style: 'cancel' },
-      { text: 'Sí, rechazar', style: 'destructive', onPress: async () => {
+      { text: 'Si, rechazar', style: 'destructive', onPress: async () => {
         viajesRechazados.current[viaje.id] = Date.now();
         setViajes(prev => prev.filter(v => v.id !== viaje.id));
       }},
@@ -456,11 +460,11 @@ export default function ConductorScreen() {
           {pantalla === 'login' && (
             <>
               <Text style={styles.titulo}>Login Conductor</Text>
-              <Text style={styles.label}>Teléfono</Text>
+              <Text style={styles.label}>Telefono</Text>
               <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={styles.label}>Contrasena</Text>
               <View style={styles.inputContenedor}>
-                <TextInput style={styles.inputFlex} placeholder="Tu contraseña" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
+                <TextInput style={styles.inputFlex} placeholder="Tu contrasena" placeholderTextColor="#888" secureTextEntry={!verPassword} value={password} onChangeText={setPassword} />
                 <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
                   <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
@@ -475,53 +479,53 @@ export default function ConductorScreen() {
                 <Text style={styles.linkTexto}>Volver</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setPantalla('recuperar')}>
-                <Text style={[styles.linkTexto, { color: '#FFD700' }]}>¿Olvidaste tu contraseña?</Text>
+                <Text style={[styles.linkTexto, { color: '#FFD700' }]}>¿Olvidaste tu contrasena?</Text>
               </TouchableOpacity>
             </>
           )}
           {pantalla === 'cambiar-password' && (
             <>
-              <Text style={styles.titulo}>Crea tu contraseña</Text>
-              <Text style={[styles.pasoTexto, { marginBottom: 16 }]}>Recibiste una contraseña temporal. Por seguridad, crea una nueva antes de continuar.</Text>
-              <Text style={styles.label}>Nueva contraseña</Text>
-              <TextInput style={styles.input} placeholder="Mínimo 4 caracteres" placeholderTextColor="#888" secureTextEntry value={nuevaPassword} onChangeText={setNuevaPassword} />
-              <Text style={styles.label}>Confirmar contraseña</Text>
-              <TextInput style={styles.input} placeholder="Repite tu contraseña" placeholderTextColor="#888" secureTextEntry value={confirmarPassword} onChangeText={setConfirmarPassword} />
+              <Text style={styles.titulo}>Crea tu contrasena</Text>
+              <Text style={[styles.pasoTexto, { marginBottom: 16 }]}>Recibiste una contrasena temporal. Por seguridad, crea una nueva antes de continuar.</Text>
+              <Text style={styles.label}>Nueva contrasena</Text>
+              <TextInput style={styles.input} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry value={nuevaPassword} onChangeText={setNuevaPassword} />
+              <Text style={styles.label}>Confirmar contrasena</Text>
+              <TextInput style={styles.input} placeholder="Repite tu contrasena" placeholderTextColor="#888" secureTextEntry value={confirmarPassword} onChangeText={setConfirmarPassword} />
               <TouchableOpacity style={styles.boton} onPress={cambiarPasswordTemporal} disabled={cambCargando}>
-                {cambCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar contraseña</Text>}
+                {cambCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Guardar contrasena</Text>}
               </TouchableOpacity>
             </>
           )}
           {pantalla === 'recuperar' && (
             <>
-              <Text style={styles.titulo}>Recuperar contraseña</Text>
-              <Text style={[styles.pasoTexto, { marginBottom: 20 }]}>Ingresa tu correo y te enviaremos una contraseña temporal.</Text>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={styles.titulo}>Recuperar contrasena</Text>
+              <Text style={[styles.pasoTexto, { marginBottom: 20 }]}>Ingresa tu correo y te enviaremos una contrasena temporal.</Text>
+              <Text style={styles.label}>Correo electronico</Text>
               <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} value={recEmail} onChangeText={setRecEmail} />
               <TouchableOpacity style={styles.boton} onPress={recuperarPassword} disabled={recCargando}>
-                {recCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar contraseña temporal</Text>}
+                {recCargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar contrasena temporal</Text>}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => { setRecEmail(''); setPantalla('login'); }}>
-                <Text style={styles.linkTexto}>← Volver al login</Text>
+                <Text style={styles.linkTexto}>Volver al login</Text>
               </TouchableOpacity>
             </>
           )}
           {pantalla === 'reg1' && (
             <>
-              <Text style={styles.titulo}>Registro — Paso 1/3</Text>
+              <Text style={styles.titulo}>Registro Paso 1/3</Text>
               <Text style={styles.pasoTexto}>Datos personales</Text>
               <TouchableOpacity onPress={() => tomarOSeleccionarFoto(setRegFoto)} style={styles.fotoCirculo}>
-                {regFoto ? <Image source={{ uri: regFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+                {regFoto ? <Image source={{ uri: regFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>Foto</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Nombre completo</Text>
               <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={regNombre} onChangeText={setRegNombre} />
-              <Text style={styles.label}>Teléfono</Text>
+              <Text style={styles.label}>Telefono</Text>
               <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={regTelefono} onChangeText={setRegTelefono} maxLength={11} />
-              <Text style={styles.label}>Correo electrónico <Text style={{color:'#ff6b6b'}}>*obligatorio</Text></Text>
+              <Text style={styles.label}>Correo electronico</Text>
               <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" value={regEmail} onChangeText={setRegEmail} />
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={styles.label}>Contrasena</Text>
               <View style={styles.inputContenedor}>
-                <TextInput style={styles.inputFlex} placeholder="Mínimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
+                <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
                 <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
                   <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
@@ -529,10 +533,10 @@ export default function ConductorScreen() {
               <TouchableOpacity style={styles.boton} onPress={() => {
                 if (!regNombre || !regTelefono || !regPassword || !regEmail) { Alert.alert('Error', 'Todos los campos son obligatorios incluyendo el correo'); return; }
                 if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
-                if (regPassword.length < 4) { Alert.alert('Error', 'La contraseña debe tener mínimo 4 caracteres'); return; }
+                if (regPassword.length < 4) { Alert.alert('Error', 'La contrasena debe tener minimo 4 caracteres'); return; }
                 setPantalla('reg2');
               }}>
-                <Text style={styles.botonTexto}>Siguiente →</Text>
+                <Text style={styles.botonTexto}>Siguiente</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setPantalla('login')}>
                 <Text style={styles.linkTexto}>Volver</Text>
@@ -541,7 +545,7 @@ export default function ConductorScreen() {
           )}
           {pantalla === 'reg2' && (
             <>
-              <Text style={styles.titulo}>Registro — Paso 2/3</Text>
+              <Text style={styles.titulo}>Registro Paso 2/3</Text>
               <Text style={styles.pasoTexto}>Datos de la moto</Text>
               <Text style={styles.label}>Placa</Text>
               <TextInput style={styles.input} placeholder="ABC123" placeholderTextColor="#888" value={regPlaca} onChangeText={setRegPlaca} autoCapitalize="characters" />
@@ -551,7 +555,7 @@ export default function ConductorScreen() {
                 if (!regPlaca || !regModelo) { Alert.alert('Error', 'Ingresa placa y modelo'); return; }
                 setPantalla('reg3');
               }}>
-                <Text style={styles.botonTexto}>Siguiente →</Text>
+                <Text style={styles.botonTexto}>Siguiente</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setPantalla('reg1')}>
                 <Text style={styles.linkTexto}>Volver</Text>
@@ -560,27 +564,27 @@ export default function ConductorScreen() {
           )}
           {pantalla === 'reg3' && (
             <>
-              <Text style={styles.titulo}>Registro — Paso 3/3</Text>
+              <Text style={styles.titulo}>Registro Paso 3/3</Text>
               <Text style={styles.pasoTexto}>Documentos</Text>
-              <Text style={styles.label}>Foto Cédula</Text>
+              <Text style={styles.label}>Foto Cedula</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoCedula)}>
-                {regFotoCedula ? <Image source={{ uri: regFotoCedula }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir cédula</Text>}
+                {regFotoCedula ? <Image source={{ uri: regFotoCedula }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir cedula</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Foto Licencia</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoLicencia)}>
-                {regFotoLicencia ? <Image source={{ uri: regFotoLicencia }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir licencia</Text>}
+                {regFotoLicencia ? <Image source={{ uri: regFotoLicencia }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir licencia</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Foto Registro de Moto</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRegistro)}>
-                {regFotoRegistro ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir registro</Text>}
+                {regFotoRegistro ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir registro</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>RCV (Seguro de la moto)</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRcv)}>
-                {regFotoRcv ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir RCV</Text>}
+                {regFotoRcv ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir RCV</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Antecedentes Penales</Text>
               <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoAntecedentes)}>
-                {regFotoAntecedentes ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>📄 Subir antecedentes</Text>}
+                {regFotoAntecedentes ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir antecedentes</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
                 {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar solicitud</Text>}
@@ -599,7 +603,7 @@ export default function ConductorScreen() {
     return (
       <View style={{ flex: 1 }}>
         <TouchableOpacity onPress={() => setMostrarDatosBancarios(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
-          <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
+          <Text style={{ color: '#FFD700', fontSize: 16 }}>Volver</Text>
         </TouchableOpacity>
         <DatosBancarios conductorId={sesion.id} onGuardado={() => setMostrarDatosBancarios(false)} />
       </View>
@@ -610,7 +614,7 @@ export default function ConductorScreen() {
     return (
       <View style={{ flex: 1 }}>
         <TouchableOpacity onPress={() => setMostrarBilletera(false)} style={{ backgroundColor: '#1a1a2e', padding: 16, paddingTop: 50 }}>
-          <Text style={{ color: '#FFD700', fontSize: 16 }}>← Volver</Text>
+          <Text style={{ color: '#FFD700', fontSize: 16 }}>Volver</Text>
         </TouchableOpacity>
         <BilleteraConductor conductorId={sesion.id} onIrDatosBancarios={() => { setMostrarBilletera(false); setMostrarDatosBancarios(true); }} />
       </View>
@@ -621,7 +625,7 @@ export default function ConductorScreen() {
     <View style={styles.container}>
       {!isOnline && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center' }}>
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Sin conexión — no puedes recibir viajes</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Sin conexion no puedes recibir viajes</Text>
         </View>
       )}
       <View style={styles.header}>
@@ -634,14 +638,14 @@ export default function ConductorScreen() {
         <View style={{ gap: 8, marginTop: 8 }}>
           <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 13 }}>
-              {suscripcionActiva ? `✅ Suscripción activa — ${diasRestantes}d` : '⚡ Ver suscripción'}
+              {suscripcionActiva ? `Suscripcion activa ${diasRestantes}d` : 'Ver suscripcion'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setMostrarBilletera(true)} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
-            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>💰 Mi Billetera</Text>
+            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>Mi Billetera</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/soporte')} style={{ backgroundColor: '#0f3460', borderRadius: 8, padding: 10, alignItems: 'center' }}>
-            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>🆘 Soporte</Text>
+            <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 13 }}>Soporte</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={cerrarSesion} style={{ backgroundColor: '#3a1a1a', borderRadius: 8, padding: 10, alignItems: 'center' }}>
             <Text style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: 13 }}>Cerrar sesion</Text>
@@ -653,12 +657,12 @@ export default function ConductorScreen() {
         {!suscripcionActiva ? (
           <View style={{ padding: 24, alignItems: 'center', marginTop: 20 }}>
             <Text style={{ fontSize: 60, marginBottom: 16 }}>🔒</Text>
-            <Text style={{ color: '#FFD700', fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Suscripción inactiva</Text>
+            <Text style={{ color: '#FFD700', fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Suscripcion inactiva</Text>
             <Text style={{ color: '#888', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
-              Para recibir viajes necesitas activar tu suscripción.{'\n'}Acércate a la oficina ZAS para pagar.
+              Para recibir viajes necesitas activar tu suscripcion.{'\n'}Acercate a la oficina ZAS para pagar.
             </Text>
             <TouchableOpacity onPress={() => router.push('/suscripcion')} style={{ backgroundColor: '#FFD700', borderRadius: 12, padding: 16, alignItems: 'center', width: '100%' }}>
-              <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 }}>Ver información de suscripción</Text>
+              <Text style={{ color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 }}>Ver informacion de suscripcion</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -666,7 +670,7 @@ export default function ConductorScreen() {
             {diasRestantes <= 3 && (
               <View style={{ backgroundColor: '#3a2a00', margin: 12, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#FFD700' }}>
                 <Text style={{ color: '#FFD700', fontWeight: 'bold', textAlign: 'center', fontSize: 14 }}>
-                  ⚠️ Tu suscripción vence en {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}. Renuévala pronto.
+                  Tu suscripcion vence en {diasRestantes} dia{diasRestantes !== 1 ? 's' : ''}. Renovela pronto.
                 </Text>
               </View>
             )}
@@ -701,7 +705,7 @@ export default function ConductorScreen() {
                         scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false} pointerEvents="none"
                         initialRegion={{ latitude: latitudCentro, longitude: longitudCentro, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
                       >
-                        {conductorLat !== 0 && <Marker coordinate={{ latitude: conductorLat, longitude: conductorLng }} pinColor="#2196F3" title="Tu ubicación" />}
+                        {conductorLat !== 0 && <Marker coordinate={{ latitude: conductorLat, longitude: conductorLng }} pinColor="#2196F3" title="Tu ubicacion" />}
                         {viaje.origen_lat && <Marker coordinate={{ latitude: viaje.origen_lat, longitude: viaje.origen_lng }} pinColor="#4CAF50" title="Origen" />}
                         {viaje.destino_lat && <Marker coordinate={{ latitude: viaje.destino_lat, longitude: viaje.destino_lng }} pinColor="#F44336" title="Destino" />}
                         {coordenadasRuta.length > 0 && <Polyline coordinates={coordenadasRuta} strokeColor="#1565C0" strokeWidth={3} />}
@@ -712,16 +716,16 @@ export default function ConductorScreen() {
                         <Text style={{ color: '#ff1744', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>DESTINO</Text>
                         <Text style={{ color: '#fff', fontSize: 13 }} numberOfLines={2}>{viaje.destino_texto || viaje.destino}</Text>
                         {viaje.distancia_km && (
-                          <Text style={{ color: '#FFD700', fontSize: 13, marginTop: 6 }}>📏 {viaje.distancia_km} km · ⏱ {viaje.duracion_minutos} min</Text>
+                          <Text style={{ color: '#FFD700', fontSize: 13, marginTop: 6 }}>{viaje.distancia_km} km - {viaje.duracion_minutos} min</Text>
                         )}
                       </View>
                     </View>
                     <View style={styles.botones}>
                       <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-                        <Text style={styles.botonTexto}>⚡ Aceptar</Text>
+                        <Text style={styles.botonTexto}>Aceptar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
-                        <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>✕ Rechazar</Text>
+                        <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>Rechazar</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -737,9 +741,9 @@ export default function ConductorScreen() {
           <View style={styles.modalContenido}>
             <Text style={styles.modalTitulo}>Editar perfil</Text>
             <TouchableOpacity onPress={seleccionarFotoPerfil} style={styles.fotoCirculo}>
-              {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>📷 Foto</Text>}
+              {editFoto ? <Image source={{ uri: editFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>Foto</Text>}
             </TouchableOpacity>
-            <Text style={styles.modalLabel}>Teléfono</Text>
+            <Text style={styles.modalLabel}>Telefono</Text>
             <TextInput style={styles.modalInput} value={editTelefono} onChangeText={setEditTelefono} keyboardType="phone-pad" maxLength={11} placeholderTextColor="#888" placeholder="04121234567" />
             <Text style={styles.modalLabel}>Placa</Text>
             <TextInput style={styles.modalInput} value={editPlaca} onChangeText={setEditPlaca} autoCapitalize="characters" placeholderTextColor="#888" placeholder="ABC123" />
