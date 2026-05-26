@@ -197,9 +197,14 @@ await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.logo}>ZAS</Text>
-          <Text style={styles.titulo}>Tu mototaxi al instante</Text>
-        </View>
+  <Image 
+    source={require('../assets/images/icon.png')} 
+    style={{ width: 120, height: 120, marginBottom: 4 }}
+    resizeMode="contain"
+  />
+  <Text style={styles.logo}>ZAS</Text>
+  <Text style={styles.titulo}>Tu mototaxi al instante</Text>
+</View>
 
         {pantalla === "inicio" && (
           <View style={styles.formulario}>
