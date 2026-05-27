@@ -11,7 +11,7 @@ import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
 
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q'; // Key Android correcta
+const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 
 type Coord = { latitude: number; longitude: number };
 
@@ -50,17 +50,23 @@ async function buscarDireccion(texto: string): Promise<{ description: string; la
   } catch { return []; }
 }
 
-async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: number; tipo: string; municipio: string | null }> {
+async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: number; tipo: string; municipio: string | null; negociable: boolean; desglose: any }> {
   const distancia_km = haversine(origen.latitude, origen.longitude, destino.latitude, destino.longitude);
   try {
     const res = await fetch(
       `${API_URL}/api/tarifas/calcular?lat=${origen.latitude}&lng=${origen.longitude}&distancia_km=${distancia_km.toFixed(2)}`
     );
     const data = await res.json();
-    if (data.ok) return { precio: data.precio, tipo: data.tipo, municipio: data.municipio };
+    if (data.ok) return {
+      precio: data.precio,
+      tipo: data.tipo,
+      municipio: data.municipio,
+      negociable: data.negociable || false,
+      desglose: data.desglose || null,
+    };
   } catch (e) {}
-  const precioFallback = Math.max(3000, Math.round(distancia_km * 800));
-  return { precio: precioFallback, tipo: 'fallback', municipio: null };
+  const precioFallback = Math.max(4000, Math.round(distancia_km * 1000));
+  return { precio: precioFallback, tipo: 'fallback', municipio: null, negociable: false, desglose: null };
 }
 
 export default function HomeScreen() {
@@ -101,6 +107,10 @@ export default function HomeScreen() {
 
   const [precioCalculado, setPrecioCalculado] = useState<number>(0);
   const precioCalculadoRef = useRef<number>(0);
+  const [precioUsuario, setPrecioUsuario] = useState<number>(0); // precio que el usuario quiere pagar
+  const precioUsuarioRef = useRef<number>(0);
+  const [esNegociable, setEsNegociable] = useState(false);
+  const [desglosePrecios, setDesglosePrecios] = useState<any>(null);
   const [tipoTarifa, setTipoTarifa] = useState<string>('');
   const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
   const [calculandoPrecio, setCalculandoPrecio] = useState(false);
@@ -116,6 +126,7 @@ export default function HomeScreen() {
 
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
   useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
+  useEffect(() => { precioUsuarioRef.current = precioUsuario; }, [precioUsuario]);
   useEffect(() => { datosZasRef.current = datosZas; }, [datosZas]);
 
   useEffect(() => {
@@ -134,28 +145,28 @@ export default function HomeScreen() {
   }, [viaje]);
 
   useEffect(() => { cargarSesion(); }, []);
-  // Verificación continua de sesión — evita sesiones simultáneas
-useEffect(() => {
-  if (!usuarioId) return;
-  const intervaloSesion = setInterval(async () => {
-    try {
-      const tokenLocal = await AsyncStorage.getItem('session_token');
-      const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuarioId}`, {
-        headers: { 'x-session-token': tokenLocal || '' }
-      });
-      const dataVerif = await resVerif.json();
-      if (!dataVerif.ok) {
-        clearInterval(intervaloSesion);
-        await AsyncStorage.removeItem('usuario_sesion');
-        await AsyncStorage.removeItem('session_token');
-        await AsyncStorage.removeItem('viaje_activo');
-        Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
-        router.replace('/login');
-      }
-    } catch {}
-  }, 10000);
-  return () => clearInterval(intervaloSesion);
-}, [usuarioId]);
+
+  useEffect(() => {
+    if (!usuarioId) return;
+    const intervaloSesion = setInterval(async () => {
+      try {
+        const tokenLocal = await AsyncStorage.getItem('session_token');
+        const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuarioId}`, {
+          headers: { 'x-session-token': tokenLocal || '' }
+        });
+        const dataVerif = await resVerif.json();
+        if (!dataVerif.ok) {
+          clearInterval(intervaloSesion);
+          await AsyncStorage.removeItem('usuario_sesion');
+          await AsyncStorage.removeItem('session_token');
+          await AsyncStorage.removeItem('viaje_activo');
+          Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+          router.replace('/login');
+        }
+      } catch {}
+    }, 10000);
+    return () => clearInterval(intervaloSesion);
+  }, [usuarioId]);
 
   useEffect(() => {
     if (usuarioId) {
@@ -181,6 +192,7 @@ useEffect(() => {
     return () => backHandler.remove();
   }, [viaje, paso]);
 
+  // Polling del viaje activo — detecta contraoferta del conductor
   useEffect(() => {
     if (!viaje || !usuarioId) return;
     const interval = setInterval(async () => {
@@ -191,8 +203,45 @@ useEffect(() => {
           const viajeActual = data.viajes.find((v: any) => v.id === viaje.id) ||
             data.viajes.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           if (viajeActual) {
+            // Detectar contraoferta del conductor
+            if (viajeActual.estado_negociacion === 'contraoferta' && viaje.estado_negociacion !== 'contraoferta') {
+              const precioContra = Number(viajeActual.precio_conductor);
+              Alert.alert(
+                'Conductor propone precio',
+                `Un conductor quiere llevarte por ${precioContra.toLocaleString('es-CO')} COP.\n¿Aceptas?`,
+                [
+                  {
+                    text: 'No, buscar otro',
+                    style: 'cancel',
+                    onPress: async () => {
+                      try {
+                        await fetch(`${API_URL}/api/viajes/responder-contraoferta/${viajeActual.id}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ acepta: false, usuario_id: usuarioId }),
+                        });
+                      } catch {}
+                    },
+                  },
+                  {
+                    text: `Aceptar ${precioContra.toLocaleString('es-CO')} COP`,
+                    onPress: async () => {
+                      try {
+                        await fetch(`${API_URL}/api/viajes/responder-contraoferta/${viajeActual.id}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ acepta: true, usuario_id: usuarioId }),
+                        });
+                      } catch {}
+                    },
+                  },
+                ]
+              );
+            }
+
             setViaje(viajeActual);
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
+
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
               router.push({
@@ -219,6 +268,7 @@ useEffect(() => {
                 },
               });
             }
+
             if (viajeActual.estado === 'completado' || viajeActual.estado === 'cancelado') {
               await AsyncStorage.removeItem('viaje_activo');
               setViaje(null);
@@ -230,6 +280,10 @@ useEffect(() => {
               setNombreDestino('');
               setPrecioCalculado(0);
               precioCalculadoRef.current = 0;
+              setPrecioUsuario(0);
+              precioUsuarioRef.current = 0;
+              setEsNegociable(false);
+              setDesglosePrecios(null);
               setTipoTarifa('');
               setMunicipioTarifa(null);
               setPagoId(null);
@@ -251,8 +305,6 @@ useEffect(() => {
       const sesion = await AsyncStorage.getItem('usuario_sesion');
       if (sesion) {
         const usuario = JSON.parse(sesion);
-
-        // Verificar que la sesión sigue activa en el servidor (anti-sesión múltiple)
         try {
           const tokenLocal = await AsyncStorage.getItem('session_token');
           const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuario.id}`, {
@@ -263,12 +315,11 @@ useEffect(() => {
             await AsyncStorage.removeItem('usuario_sesion');
             await AsyncStorage.removeItem('session_token');
             await AsyncStorage.removeItem('viaje_activo');
-            Alert.alert('Sesión cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             router.replace('/login');
             return;
           }
-        } catch {} // Si falla la red, dejar pasar para no bloquear al usuario
-
+        } catch {}
         setUsuarioId(usuario.id);
         setUsuarioNombre(usuario.nombre);
       } else { router.replace('/login'); return; }
@@ -322,10 +373,7 @@ useEffect(() => {
         if (data.ok) setTasas(data.tasas);
       } catch {}
     }, 60000);
-    return () => {
-      clearInterval(intervalo);
-      clearInterval(intervaloTasas);
-    };
+    return () => { clearInterval(intervalo); clearInterval(intervaloTasas); };
   }, [viaje]);
 
   const onRegionChangeComplete = (reg: any) => {
@@ -347,6 +395,10 @@ useEffect(() => {
       const resultado = await calcularPrecio(coordOrigen!, pinCoord);
       setPrecioCalculado(resultado.precio);
       precioCalculadoRef.current = resultado.precio;
+      setPrecioUsuario(resultado.precio);
+      precioUsuarioRef.current = resultado.precio;
+      setEsNegociable(resultado.negociable);
+      setDesglosePrecios(resultado.desglose);
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
@@ -379,16 +431,27 @@ useEffect(() => {
       const resultado = await calcularPrecio(coordOrigen!, coords);
       setPrecioCalculado(resultado.precio);
       precioCalculadoRef.current = resultado.precio;
+      setPrecioUsuario(resultado.precio);
+      precioUsuarioRef.current = resultado.precio;
+      setEsNegociable(resultado.negociable);
+      setDesglosePrecios(resultado.desglose);
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
       setCalculandoPrecio(false);
     }
   };
 
+  const ajustarPrecioUsuario = (delta: number) => {
+    const nuevo = Math.max(precioCalculado, precioUsuario + delta);
+    setPrecioUsuario(nuevo);
+    precioUsuarioRef.current = nuevo;
+  };
+
   const solicitarViaje = async () => {
     if (!coordOrigen || !coordDestino || !precioCalculado) return;
     setCargando(true);
     try {
+      const precioFinal = esNegociable ? precioUsuario : precioCalculado;
       const res = await fetch(`${API_URL}/api/viajes/nuevo`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -399,7 +462,8 @@ useEffect(() => {
           origen_lng: coordOrigen.longitude,
           destino_lat: coordDestino.latitude,
           destino_lng: coordDestino.longitude,
-          precio: precioCalculado,
+          precio: precioFinal,
+          precio_usuario: precioFinal,
         }),
       });
       const data = await res.json();
@@ -416,7 +480,7 @@ useEffect(() => {
           metodoPagoRef.current = metodoActual;
           const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoActual })
+            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioFinal, metodo: metodoActual })
           });
           const dataPago = await resPago.json();
           if (dataPago.ok) {
@@ -428,7 +492,10 @@ useEffect(() => {
             }
           }
         } catch {}
-        Alert.alert('Viaje solicitado', 'Buscando conductor cercano...');
+        Alert.alert('Viaje solicitado', data.negociable
+          ? 'Buscando conductor. Si alguno propone otro precio te avisamos.'
+          : 'Buscando conductor cercano...'
+        );
       } else Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
@@ -438,6 +505,8 @@ useEffect(() => {
     setPaso('origen'); setCoordOrigen(null); setCoordDestino(null);
     setNombreOrigen(''); setNombreDestino(''); setTextoBusqueda(''); setSugerencias([]);
     setPrecioCalculado(0); precioCalculadoRef.current = 0;
+    setPrecioUsuario(0); precioUsuarioRef.current = 0;
+    setEsNegociable(false); setDesglosePrecios(null);
     setTipoTarifa(''); setMunicipioTarifa(null);
   };
 
@@ -445,8 +514,7 @@ useEffect(() => {
     try {
       if (viaje?.id) {
         await fetch(`${API_URL}/api/viajes/estado/${viaje.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'cancelado' }),
         });
       }
@@ -456,6 +524,13 @@ useEffect(() => {
   };
 
   const cerrarSesion = async () => {
+    try {
+      if (usuarioId) {
+        await fetch(`${API_URL}/api/usuarios/logout/${usuarioId}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    } catch {}
     await AsyncStorage.removeItem('usuario_sesion');
     await AsyncStorage.removeItem('session_token');
     await AsyncStorage.removeItem('viaje_activo');
@@ -476,14 +551,15 @@ useEffect(() => {
   if (viaje) {
     return (
       <View style={styles.container}>
-        {!isOnline && (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, backgroundColor: '#ff6b6b', padding: 8, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Sin conexión — algunas funciones no están disponibles</Text>
-          </View>
-        )}
         <View style={styles.header}><Text style={styles.logo}>ZAS</Text><Text style={styles.saludo}>Hola, {usuarioNombre}</Text></View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={styles.viajeActivoTitulo}>{viaje.estado === 'aceptado' || viaje.estado === 'en_curso' ? 'Conductor en camino' : 'Buscando conductor...'}</Text>
+          <Text style={styles.viajeActivoTitulo}>
+            {viaje.estado_negociacion === 'contraoferta'
+              ? 'Conductor propone precio...'
+              : viaje.estado === 'aceptado' || viaje.estado === 'en_curso'
+              ? 'Conductor en camino'
+              : 'Buscando conductor...'}
+          </Text>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
             <View style={styles.conductorCard}>
               {viaje.conductor_foto
@@ -537,7 +613,7 @@ useEffect(() => {
           )}
           <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}><Text style={styles.botonCancelarTexto}>Cancelar viaje</Text></TouchableOpacity>
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 8, borderColor: '#FFD700' }]} onPress={() => router.push('/historial')}>
-            <Text style={[styles.botonCancelarTexto, { color: '#FFD700' }]}>📋 Ver historial</Text>
+            <Text style={[styles.botonCancelarTexto, { color: '#FFD700' }]}>Ver historial</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -550,7 +626,6 @@ useEffect(() => {
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.logo}>ZAS</Text>
-            {/* Botón cerrar sesión en el header — accesible y fuera de los botones del sistema */}
             <TouchableOpacity onPress={cerrarSesion} style={styles.botonCerrarHeader}>
               <Text style={styles.botonCerrarHeaderTexto}>Salir</Text>
             </TouchableOpacity>
@@ -559,55 +634,108 @@ useEffect(() => {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={[styles.viajeActivoTitulo, { marginBottom: 20 }]}>Confirma tu viaje</Text>
+
+          {/* Info del viaje */}
           <View style={styles.viajeInfo}>
             <Text style={styles.viajeLabel}>Origen</Text><Text style={styles.viajeValor}>{nombreOrigen}</Text>
             <Text style={styles.viajeLabel}>Destino</Text><Text style={styles.viajeValor}>{nombreDestino}</Text>
-            <Text style={styles.viajeLabel}>Precio estimado</Text>
+            <Text style={styles.viajeLabel}>Precio calculado</Text>
             {calculandoPrecio ? (
               <ActivityIndicator color="#FFD700" style={{ marginTop: 8 }} />
             ) : (
               <View>
-                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>{formatearPrecio(precioCalculado).cop} COP</Text>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>
+                  {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).cop} COP
+                </Text>
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-                  <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(precioCalculado).bs}</Text>
-                  <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(precioCalculado).usd}</Text>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).bs}</Text>
+                  <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).usd}</Text>
                 </View>
+                {/* Desglose solo para interurbanos */}
+                {desglosePrecios && esNegociable && (
+                  <View style={{ marginTop: 8, backgroundColor: '#0f3460', borderRadius: 8, padding: 10 }}>
+                    <Text style={{ color: '#aaa', fontSize: 11 }}>
+                      Base: {desglosePrecios.base?.toLocaleString('es-CO')} + Km: {desglosePrecios.km_cobrado?.toLocaleString('es-CO')} + Tiempo: {desglosePrecios.min_cobrado?.toLocaleString('es-CO')} COP
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
             {municipioTarifa ? <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text> : null}
           </View>
+
+          {/* SECCIÓN DE NEGOCIACIÓN — solo para viajes interurbanos (+7km) */}
+          {esNegociable && !calculandoPrecio && (
+            <View style={styles.negociacionContainer}>
+              <Text style={styles.negociacionTitulo}>Ajusta tu oferta al conductor</Text>
+              <Text style={styles.negociacionSubtitulo}>
+                El precio sugerido es {formatearPrecio(precioCalculado).cop} COP. Puedes ofrecer mas para que te acepten mas rapido.
+              </Text>
+              <View style={styles.negociacionControles}>
+                <TouchableOpacity
+                  style={styles.negociacionBoton}
+                  onPress={() => ajustarPrecioUsuario(-1000)}
+                  disabled={precioUsuario <= precioCalculado}
+                >
+                  <Text style={[styles.negociacionBotonTexto, precioUsuario <= precioCalculado && { opacity: 0.3 }]}>− 1.000</Text>
+                </TouchableOpacity>
+                <View style={styles.negociacionPrecio}>
+                  <Text style={styles.negociacionPrecioTexto}>{precioUsuario.toLocaleString('es-CO')}</Text>
+                  <Text style={styles.negociacionPrecioLabel}>COP</Text>
+                </View>
+                <TouchableOpacity style={styles.negociacionBoton} onPress={() => ajustarPrecioUsuario(1000)}>
+                  <Text style={styles.negociacionBotonTexto}>+ 1.000</Text>
+                </TouchableOpacity>
+              </View>
+              {precioUsuario > precioCalculado && (
+                <Text style={{ color: '#00c853', fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+                  Estas ofreciendo {(precioUsuario - precioCalculado).toLocaleString('es-CO')} COP mas del precio base
+                </Text>
+              )}
+              <Text style={{ color: '#888', fontSize: 11, textAlign: 'center', marginTop: 6 }}>
+                El conductor puede aceptar tu precio o proponer uno diferente
+              </Text>
+            </View>
+          )}
+
+          {/* Método de pago */}
           <View style={styles.pagoContainer}>
-            <Text style={styles.pagoLabel}>Método de pago</Text>
+            <Text style={styles.pagoLabel}>Metodo de pago</Text>
             <View style={{ gap: 8 }}>
-  <View style={{ flexDirection: 'row', gap: 8 }}>
-    {['efectivo', 'bancolombia', 'nequi'].map(m => (
-      <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
-        <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
-          {m === 'efectivo' ? '💵 Efectivo' : m === 'bancolombia' ? '🏦 Bancolombia' : '📲 Nequi'}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-  <View style={{ flexDirection: 'row', gap: 8 }}>
-    {['pago_movil', 'zelle', 'usdt'].map(m => (
-      <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
-        <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
-          {m === 'pago_movil' ? '📱 Pago Móvil' : m === 'zelle' ? '💳 Zelle' : '₿ USDT'}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-</View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {['efectivo', 'bancolombia', 'nequi'].map(m => (
+                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+                    <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
+                      {m === 'efectivo' ? 'Efectivo' : m === 'bancolombia' ? 'Bancolombia' : 'Nequi'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {['pago_movil', 'zelle', 'usdt'].map(m => (
+                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+                    <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
+                      {m === 'pago_movil' ? 'Pago Movil' : m === 'zelle' ? 'Zelle' : 'USDT'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
             <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-  {metodoPago === 'efectivo' 
-    ? 'Pago directo al conductor en efectivo' 
-    : 'Después del viaje deberás subir el comprobante de pago'}
-</Text>
+              {metodoPago === 'efectivo' ? 'Pago directo al conductor en efectivo' : 'Despues del viaje deberas subir el comprobante de pago'}
+            </Text>
           </View>
-          <TouchableOpacity style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]} onPress={solicitarViaje} disabled={cargando || calculandoPrecio || !precioCalculado}>
-            {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>⚡ Solicitar ZAS</Text>}
+
+          <TouchableOpacity
+            style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]}
+            onPress={solicitarViaje}
+            disabled={cargando || calculandoPrecio || !precioCalculado}
+          >
+            {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Solicitar ZAS</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}><Text style={styles.botonCancelarTexto}>Cambiar ruta</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}>
+            <Text style={styles.botonCancelarTexto}>Cambiar ruta</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -635,10 +763,9 @@ useEffect(() => {
 
       <View style={styles.headerFlotante}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={styles.logoFlotante}>⚡ ZAS — {usuarioNombre}</Text>
+          <Text style={styles.logoFlotante}>ZAS — {usuarioNombre}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={abrirPerfil} style={styles.botonPerfilFlotante}><Text style={styles.botonPerfilTexto}>✏️</Text></TouchableOpacity>
-            {/* Botón cerrar sesión en el header flotante — visible y accesible */}
             <TouchableOpacity onPress={cerrarSesion} style={styles.botonCerrarFlotante}><Text style={styles.botonCerrarFlotanteTexto}>Salir</Text></TouchableOpacity>
           </View>
         </View>
@@ -647,7 +774,7 @@ useEffect(() => {
           <View style={styles.progresoLinea} />
           <View style={[styles.progresoStep, paso === 'destino' && styles.progresoStepActivo]}><Text style={[styles.progresoTexto, paso === 'destino' && styles.progresoTextoActivo]}>2. Destino</Text></View>
         </View>
-        <Text style={styles.instruccion}>{paso === 'origen' ? '📍 Mueve el mapa a tu ubicación de origen' : '🏁 Mueve el mapa a tu destino'}</Text>
+        <Text style={styles.instruccion}>{paso === 'origen' ? 'Mueve el mapa a tu ubicacion de origen' : 'Mueve el mapa a tu destino'}</Text>
         <View style={styles.barraBusqueda}>
           <Text style={styles.lupita}>🔍</Text>
           <TextInput style={styles.inputBusqueda} placeholder={paso === 'origen' ? 'Buscar origen...' : 'Buscar destino...'} placeholderTextColor="#888" value={textoBusqueda} onChangeText={onBusquedaChange} />
@@ -664,7 +791,7 @@ useEffect(() => {
         )}
         {paso === 'destino' && nombreOrigen ? (
           <View style={styles.origenConfirmado}>
-            <Text style={styles.origenConfirmadoLabel}>✅ Origen confirmado</Text>
+            <Text style={styles.origenConfirmadoLabel}>Origen confirmado</Text>
             <Text style={styles.origenConfirmadoValor} numberOfLines={1}>{nombreOrigen}</Text>
           </View>
         ) : null}
@@ -672,7 +799,7 @@ useEffect(() => {
 
       <View style={styles.botonConfirmarContainer}>
         <TouchableOpacity style={[styles.botonConfirmar, cargandoDireccion && { opacity: 0.7 }]} onPress={confirmarPunto} disabled={cargandoDireccion}>
-          {cargandoDireccion ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonConfirmarTexto}>{paso === 'origen' ? '✅ Confirmar origen' : '✅ Confirmar destino'}</Text>}
+          {cargandoDireccion ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonConfirmarTexto}>{paso === 'origen' ? 'Confirmar origen' : 'Confirmar destino'}</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -734,14 +861,22 @@ const styles = StyleSheet.create({
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
   pagoContainer: { marginTop: 12, marginBottom: 16 },
   pagoLabel: { color: '#888', fontSize: 13, marginBottom: 8, fontWeight: '600' },
-  pagoOpciones: { flexDirection: 'row', gap: 10 },
-  pagoBoton: { flex: 1, backgroundColor: '#16213e', borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#0f3460' },
+  pagoBoton: { flex: 1, backgroundColor: '#16213e', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#0f3460' },
   pagoBotonActivo: { borderColor: '#FFD700' },
-  pagoTexto: { color: '#888', fontSize: 13, fontWeight: '600' },
+  pagoTexto: { color: '#888', fontSize: 12, fontWeight: '600' },
   pagoTextoActivo: { color: '#FFD700' },
   boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
-  botonPerfil: { backgroundColor: '#16213e', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#FFD700' },
   botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
   linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },
+  // Negociacion
+  negociacionContainer: { backgroundColor: '#0f3460', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FFD700' },
+  negociacionTitulo: { color: '#FFD700', fontSize: 15, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
+  negociacionSubtitulo: { color: '#aaa', fontSize: 12, textAlign: 'center', marginBottom: 14 },
+  negociacionControles: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  negociacionBoton: { backgroundColor: '#16213e', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: '#FFD700' },
+  negociacionBotonTexto: { color: '#FFD700', fontWeight: 'bold', fontSize: 14 },
+  negociacionPrecio: { alignItems: 'center' },
+  negociacionPrecioTexto: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+  negociacionPrecioLabel: { color: '#888', fontSize: 12 },
 });

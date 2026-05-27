@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+
 async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
   try {
     const url = `https://maps.googleapis.com/maps/api/directions/json` +
@@ -26,16 +27,16 @@ async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
     return null;
   }
 }
+
 const { notificarUsuario, notificarConductor } = require('../pushNotifications');
 
-// Estados válidos de un viaje
 const ESTADOS_VALIDOS = ['solicitado', 'buscando', 'asignado', 'aceptado', 'en_curso', 'completado', 'cancelado', 'sin_conductor'];
 
 // ─────────────────────────────────────────────
-// Crear nuevo viaje
+// POST /api/viajes/nuevo
 // ─────────────────────────────────────────────
 router.post('/nuevo', async (req, res) => {
-  const { usuario_id, origen, destino, origen_lat, origen_lng, destino_lat, destino_lng, precio } = req.body;
+  const { usuario_id, origen, destino, origen_lat, origen_lng, destino_lat, destino_lng, precio, precio_usuario } = req.body;
 
   if (!usuario_id || !origen || !destino) {
     return res.status(400).json({ ok: false, error: 'usuario_id, origen y destino son obligatorios' });
@@ -45,10 +46,12 @@ router.post('/nuevo', async (req, res) => {
   }
 
   try {
-    const rutaData = await obtenerRuta(
-      origen_lat, origen_lng,
-      destino_lat, destino_lng
-    );
+    const rutaData = await obtenerRuta(origen_lat, origen_lng, destino_lat, destino_lng);
+
+    // Determinar si el viaje es negociable según distancia real de Google
+    const distanciaReal = rutaData?.distancia_km || 0;
+    const esInterurbano = distanciaReal > 7;
+
     const { data, error } = await supabase
       .from('viajes')
       .insert([{
@@ -58,7 +61,11 @@ router.post('/nuevo', async (req, res) => {
         destino_lat: destino_lat || null,
         destino_lng: destino_lng || null,
         precio: precio || null,
+        // precio_usuario: lo que el usuario está dispuesto a pagar (puede ser diferente al calculado)
+        precio_usuario: precio_usuario || precio || null,
         estado: 'buscando',
+        // estado_negociacion: solo aplica a interurbanos
+        estado_negociacion: esInterurbano ? 'propuesto' : null,
         polyline: rutaData?.polyline || null,
         distancia_km: rutaData?.distancia_km || null,
         duracion_minutos: rutaData?.duracion_minutos || null,
@@ -70,33 +77,21 @@ router.post('/nuevo', async (req, res) => {
     if (error) throw error;
 
     const viaje = data[0];
+    console.log(`✅ Viaje ${viaje.id} creado — ${esInterurbano ? 'interurbano (negociable)' : 'urbano (precio fijo)'}`);
 
-    // El viaje queda en estado 'buscando' — los conductores cercanos lo ven
-    // y el primero en aceptar se lo lleva (modelo marketplace)
-    console.log(`✅ Viaje ${viaje.id} creado — esperando conductor cercano`);
+    // Auto-cancelar si pasan 10 minutos sin conductor
+    setTimeout(async () => {
+      try {
+        const { data: viajeActual } = await supabase
+          .from('viajes').select('estado').eq('id', viaje.id).single();
+        if (viajeActual?.estado === 'buscando') {
+          await supabase.from('viajes').update({ estado: 'cancelado' }).eq('id', viaje.id);
+          console.log(`⏱ Viaje ${viaje.id} cancelado por timeout`);
+        }
+      } catch (e) { console.error('Error auto-cancelando:', e.message); }
+    }, 10 * 60 * 1000);
 
-// Auto-cancelar si pasan 10 minutos sin conductor
-setTimeout(async () => {
-  try {
-    const { data: viajeActual } = await supabase
-      .from('viajes')
-      .select('estado')
-      .eq('id', viaje.id)
-      .single();
-
-    if (viajeActual?.estado === 'buscando') {
-      await supabase
-        .from('viajes')
-        .update({ estado: 'cancelado' })
-        .eq('id', viaje.id);
-      console.log(`⏱ Viaje ${viaje.id} cancelado por timeout — sin conductor en 10 minutos`);
-    }
-  } catch (e) {
-    console.error('Error auto-cancelando viaje:', e.message);
-  }
-}, 10 * 60 * 1000);
-
-    res.json({ ok: true, viaje });
+    res.json({ ok: true, viaje, negociable: esInterurbano });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -104,7 +99,147 @@ setTimeout(async () => {
 });
 
 // ─────────────────────────────────────────────
-// Viajes de un usuario (con paginación)
+// POST /api/viajes/contraoferta/:id
+// Conductor propone un precio diferente al del usuario
+// Solo aplica a viajes interurbanos (negociable: true)
+// ─────────────────────────────────────────────
+router.post('/contraoferta/:id', async (req, res) => {
+  const { conductor_id, precio_conductor } = req.body;
+
+  if (!conductor_id || !precio_conductor) {
+    return res.status(400).json({ ok: false, error: 'conductor_id y precio_conductor son obligatorios' });
+  }
+  if (isNaN(precio_conductor) || precio_conductor <= 0) {
+    return res.status(400).json({ ok: false, error: 'El precio debe ser mayor a 0' });
+  }
+
+  try {
+    const { data: viaje, error: viajeError } = await supabase
+      .from('viajes').select('*').eq('id', req.params.id).single();
+
+    if (viajeError || !viaje) {
+      return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
+    }
+    if (viaje.estado !== 'buscando') {
+      return res.status(400).json({ ok: false, error: 'Este viaje ya no está disponible para negociar' });
+    }
+    if (viaje.estado_negociacion === null) {
+      return res.status(400).json({ ok: false, error: 'Este viaje tiene precio fijo — no admite contraoferta' });
+    }
+
+    const { data, error } = await supabase
+      .from('viajes')
+      .update({
+        conductor_id,
+        precio_conductor: parseFloat(precio_conductor),
+        estado_negociacion: 'contraoferta',
+        estado: 'buscando', // sigue buscando hasta que usuario acepte
+      })
+      .eq('id', req.params.id)
+      .eq('estado', 'buscando')
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(409).json({ ok: false, error: 'El viaje ya fue tomado por otro conductor' });
+
+    // Notificar al usuario que hay una contraoferta
+    if (viaje.usuario_id) {
+      notificarUsuario(
+        viaje.usuario_id,
+        '💬 Conductor propone un precio',
+        `Un conductor ofrece llevarte por ${Number(precio_conductor).toLocaleString('es-CO')} COP`
+      );
+    }
+
+    console.log(`💬 Contraoferta en viaje ${req.params.id}: conductor propone ${precio_conductor} COP`);
+    res.json({ ok: true, viaje: data });
+
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/viajes/responder-contraoferta/:id
+// Usuario acepta o rechaza la contraoferta del conductor
+// ─────────────────────────────────────────────
+router.post('/responder-contraoferta/:id', async (req, res) => {
+  const { acepta, usuario_id } = req.body;
+
+  if (acepta === undefined || !usuario_id) {
+    return res.status(400).json({ ok: false, error: 'acepta (boolean) y usuario_id son obligatorios' });
+  }
+
+  try {
+    const { data: viaje, error: viajeError } = await supabase
+      .from('viajes').select('*').eq('id', req.params.id).single();
+
+    if (viajeError || !viaje) {
+      return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
+    }
+    if (viaje.usuario_id !== usuario_id) {
+      return res.status(403).json({ ok: false, error: 'No autorizado' });
+    }
+    if (viaje.estado_negociacion !== 'contraoferta') {
+      return res.status(400).json({ ok: false, error: 'No hay contraoferta pendiente en este viaje' });
+    }
+
+    if (acepta) {
+      // Usuario acepta — confirmar el viaje con el precio del conductor
+      const { data, error } = await supabase
+        .from('viajes')
+        .update({
+          estado: 'aceptado',
+          estado_negociacion: 'aceptado',
+          precio: viaje.precio_conductor, // precio final = lo que ofreció el conductor
+        })
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Notificar al conductor
+      if (viaje.conductor_id) {
+        notificarConductor(viaje.conductor_id, '✅ Usuario aceptó tu precio', 'El viaje está confirmado. Ve a recogerlo.');
+      }
+
+      console.log(`✅ Contraoferta aceptada — viaje ${req.params.id} confirmado a ${viaje.precio_conductor} COP`);
+      res.json({ ok: true, viaje: data, precio_final: viaje.precio_conductor });
+
+    } else {
+      // Usuario rechaza — limpiar conductor y volver a buscar
+      const { data, error } = await supabase
+        .from('viajes')
+        .update({
+          conductor_id: null,
+          precio_conductor: null,
+          estado_negociacion: 'propuesto',
+          estado: 'buscando',
+        })
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Notificar al conductor
+      if (viaje.conductor_id) {
+        notificarConductor(viaje.conductor_id, '❌ Usuario rechazó tu precio', 'El pasajero no aceptó la contraoferta.');
+      }
+
+      console.log(`❌ Contraoferta rechazada — viaje ${req.params.id} vuelve a buscar`);
+      res.json({ ok: true, viaje: data, mensaje: 'Contraoferta rechazada — buscando otro conductor' });
+    }
+
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/viajes/usuario/:usuario_id
 // ─────────────────────────────────────────────
 router.get('/usuario/:usuario_id', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -139,7 +274,7 @@ router.get('/usuario/:usuario_id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Viajes de un conductor (con paginación)
+// GET /api/viajes/conductor/:conductor_id
 // ─────────────────────────────────────────────
 router.get('/conductor/:conductor_id', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -171,17 +306,12 @@ router.get('/conductor/:conductor_id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Actualizar estado del viaje
-// PROTECCIÓN: si el estado es 'aceptado', solo
-// actualiza si el viaje sigue en 'buscando'
-// Evita que dos conductores acepten el mismo viaje
+// PATCH /api/viajes/estado/:id
 // ─────────────────────────────────────────────
 router.patch('/estado/:id', async (req, res) => {
   const { estado, conductor_id } = req.body;
 
-  if (!estado) {
-    return res.status(400).json({ ok: false, error: 'El estado es obligatorio' });
-  }
+  if (!estado) return res.status(400).json({ ok: false, error: 'El estado es obligatorio' });
   if (!ESTADOS_VALIDOS.includes(estado)) {
     return res.status(400).json({ ok: false, error: `Estado inválido. Válidos: ${ESTADOS_VALIDOS.join(', ')}` });
   }
@@ -192,21 +322,16 @@ router.patch('/estado/:id', async (req, res) => {
       .update({ estado, ...(conductor_id && { conductor_id }) })
       .eq('id', req.params.id);
 
-    // Si está aceptando, verificar que el viaje sigue en estado buscando
-    // Esto previene que dos conductores acepten el mismo viaje simultáneamente
     if (estado === 'aceptado') {
       updateQuery = updateQuery.eq('estado', 'buscando');
     }
 
     const { data, error } = await updateQuery.select();
-
     if (error) throw error;
 
-    // Si no hay datos y se intentó aceptar, el viaje ya fue tomado
     if ((!data || data.length === 0) && estado === 'aceptado') {
       return res.status(409).json({ ok: false, error: 'Este viaje ya fue tomado por otro conductor.' });
     }
-
     if (!data || data.length === 0) {
       return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
     }
@@ -216,35 +341,18 @@ router.patch('/estado/:id', async (req, res) => {
     if (estado === 'aceptado' && viaje.usuario_id) {
       notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
     }
-
     if (estado === 'completado') {
-      if (viaje.usuario_id) {
-        notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
-      }
-      // Liberar conductor
+      if (viaje.usuario_id) notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
       if (viaje.conductor_id) {
-        await supabase
-          .from('conductores')
-          .update({ estado: 'disponible' })
-          .eq('id', viaje.conductor_id);
-        console.log('🟢 Conductor liberado — disponible nuevamente');
+        await supabase.from('conductores').update({ estado: 'disponible' }).eq('id', viaje.conductor_id);
+        console.log('🟢 Conductor liberado');
       }
     }
-
     if (estado === 'cancelado') {
-      if (conductor_id && viaje.usuario_id) {
-        notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje. Solicita otro.');
-      }
-      if (!conductor_id && viaje.conductor_id) {
-        notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
-      }
-      // Liberar conductor en cualquier caso
+      if (conductor_id && viaje.usuario_id) notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje.');
+      if (!conductor_id && viaje.conductor_id) notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
       if (viaje.conductor_id) {
-        await supabase
-          .from('conductores')
-          .update({ estado: 'disponible' })
-          .eq('id', viaje.conductor_id);
-        console.log('🟢 Conductor liberado por cancelación');
+        await supabase.from('conductores').update({ estado: 'disponible' }).eq('id', viaje.conductor_id);
       }
     }
 
@@ -255,15 +363,13 @@ router.patch('/estado/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Viajes por estado (con paginación)
+// GET /api/viajes/estado/:estado
 // ─────────────────────────────────────────────
 router.get('/estado/:estado', async (req, res) => {
   const { estado } = req.params;
-
   if (!ESTADOS_VALIDOS.includes(estado)) {
-    return res.status(400).json({ ok: false, error: `Estado inválido. Válidos: ${ESTADOS_VALIDOS.join(', ')}` });
+    return res.status(400).json({ ok: false, error: `Estado inválido` });
   }
-
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const from = (page - 1) * limit;
@@ -278,7 +384,6 @@ router.get('/estado/:estado', async (req, res) => {
       .range(from, to);
 
     if (error) throw error;
-
     const viajes = data.map(v => ({
       ...v,
       usuario_nombre: v.usuarios?.nombre || '',
@@ -286,7 +391,6 @@ router.get('/estado/:estado', async (req, res) => {
       usuario_foto: v.usuarios?.foto_url || '',
       usuarios: undefined,
     }));
-
     res.json({ ok: true, viajes, total: count, page, limit });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -294,7 +398,7 @@ router.get('/estado/:estado', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Obtener viaje por ID
+// GET /api/viajes/:id
 // ─────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
@@ -303,7 +407,6 @@ router.get('/:id', async (req, res) => {
       .select('*, usuarios(nombre, telefono, foto_url), conductores(nombre, telefono, foto_url, placa_moto, modelo_moto)')
       .eq('id', req.params.id)
       .single();
-
     if (error) throw error;
     res.json({ ok: true, viaje: data });
   } catch (error) {
@@ -312,7 +415,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Todos los viajes — dashboard (con paginación)
+// GET /api/viajes/
 // ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -328,7 +431,6 @@ router.get('/', async (req, res) => {
       .range(from, to);
 
     if (error) throw error;
-
     const viajes = data.map(v => ({
       ...v,
       usuario_nombre: v.usuarios?.nombre || '',
@@ -338,7 +440,6 @@ router.get('/', async (req, res) => {
       usuarios: undefined,
       conductores: undefined,
     }));
-
     res.json({ ok: true, viajes, total: count, page, limit });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
@@ -346,18 +447,14 @@ router.get('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// Viajes disponibles cerca del conductor (5km)
-// Modelo marketplace: conductores ven todos los
-// viajes en estado 'buscando' dentro del radio
+// GET /api/viajes/cercanos/:lat/:lng
 // ─────────────────────────────────────────────
 router.get('/cercanos/:lat/:lng', async (req, res) => {
   const lat = parseFloat(req.params.lat);
   const lng = parseFloat(req.params.lng);
   const radioKm = 5;
 
-  if (!lat || !lng) {
-    return res.status(400).json({ ok: false, error: 'Latitud y longitud son obligatorios' });
-  }
+  if (!lat || !lng) return res.status(400).json({ ok: false, error: 'Latitud y longitud son obligatorios' });
 
   try {
     const { data, error } = await supabase

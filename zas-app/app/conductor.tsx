@@ -40,6 +40,13 @@ export default function ConductorScreen() {
   const conductorLatRef = useRef<number>(0);
   const conductorLngRef = useRef<number>(0);
 
+  // ── NEGOCIACIÓN ──────────────────────────────
+  const [modalContraoferta, setModalContraoferta] = useState(false);
+  const [viajeNegociando, setViajeNegociando] = useState<any>(null);
+  const [precioContraoferta, setPrecioContraoferta] = useState('');
+  const [enviandoContraoferta, setEnviandoContraoferta] = useState(false);
+  // ─────────────────────────────────────────────
+
   const [regNombre, setRegNombre] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -232,7 +239,6 @@ export default function ConductorScreen() {
         body: JSON.stringify({ telefono, password })
       });
 
-      // Sesion activa en otro dispositivo — BLOQUEO
       if (res.status === 403) {
         Alert.alert(
           'Sesion activa',
@@ -452,6 +458,46 @@ export default function ConductorScreen() {
       }},
     ]);
   };
+
+  // ── CONTRAOFERTA ────────────────────────────────────────────────────────────
+  const abrirContraoferta = (viaje: any) => {
+    setViajeNegociando(viaje);
+    setPrecioContraoferta(String(viaje.precio || ''));
+    setModalContraoferta(true);
+  };
+
+  const enviarContraoferta = async () => {
+    if (!viajeNegociando || !sesion) return;
+    const monto = parseInt(precioContraoferta.replace(/\D/g, ''));
+    if (!monto || monto < 1000) {
+      Alert.alert('Error', 'Ingresa un monto valido (minimo 1.000 COP)');
+      return;
+    }
+    setEnviandoContraoferta(true);
+    try {
+      const res = await fetch(`${API_URL}/api/viajes/contraoferta/${viajeNegociando.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conductor_id: sesion.id, precio_conductor: monto }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setModalContraoferta(false);
+        setViajeNegociando(null);
+        setPrecioContraoferta('');
+        // Quitar de la lista — ya queda en espera de respuesta del usuario
+        setViajes(prev => prev.filter(v => v.id !== viajeNegociando.id));
+        Alert.alert('Contraoferta enviada', 'El usuario recibio tu propuesta. Te avisaremos si acepta.');
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo enviar la contraoferta');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar');
+    } finally {
+      setEnviandoContraoferta(false);
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────────────
 
   if (!sesion) {
     return (
@@ -685,6 +731,8 @@ export default function ConductorScreen() {
                 const longitudCentro = viaje.origen_lng && viaje.destino_lng ? (viaje.origen_lng + viaje.destino_lng) / 2 : viaje.origen_lng || 0;
                 const latDelta = viaje.origen_lat && viaje.destino_lat ? Math.abs(viaje.origen_lat - viaje.destino_lat) * 2.5 + 0.01 : 0.05;
                 const lngDelta = viaje.origen_lng && viaje.destino_lng ? Math.abs(viaje.origen_lng - viaje.destino_lng) * 2.5 + 0.01 : 0.05;
+                const esNegociable = viaje.estado_negociacion === 'propuesto';
+
                 return (
                   <View key={viaje.id} style={styles.card}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -696,9 +744,17 @@ export default function ConductorScreen() {
                       }
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
-                        <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>${viaje.precio?.toLocaleString()} COP</Text>
+                        <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>
+                          {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
+                        </Text>
+                        {esNegociable && (
+                          <Text style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                            Viaje interurbano — puedes negociar el precio
+                          </Text>
+                        )}
                       </View>
                     </View>
+
                     <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
                       <MapView
                         style={{ width: '100%', height: 180 }}
@@ -720,14 +776,35 @@ export default function ConductorScreen() {
                         )}
                       </View>
                     </View>
-                    <View style={styles.botones}>
-                      <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
-                        <Text style={styles.botonTexto}>Aceptar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
-                        <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>Rechazar</Text>
-                      </TouchableOpacity>
-                    </View>
+
+                    {/* BOTONES — urbano: Aceptar + Rechazar / interurbano: Aceptar + Contraoferta + Rechazar */}
+                    {esNegociable ? (
+                      <View style={{ gap: 8 }}>
+                        <View style={styles.botones}>
+                          <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
+                            <Text style={styles.botonTexto}>Aceptar precio</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
+                            <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>Rechazar</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity
+                          style={{ backgroundColor: '#0f3460', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FFD700' }}
+                          onPress={() => abrirContraoferta(viaje)}
+                        >
+                          <Text style={{ color: '#FFD700', fontWeight: 'bold', fontSize: 14 }}>Proponer otro precio</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.botones}>
+                        <TouchableOpacity style={styles.botonAceptar} onPress={() => aceptarViaje(viaje)}>
+                          <Text style={styles.botonTexto}>Aceptar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.botonLlamar, { backgroundColor: '#3a1a1a' }]} onPress={() => rechazarViaje(viaje)}>
+                          <Text style={[styles.botonTexto, { color: '#ff6b6b' }]}>Rechazar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 );
               })
@@ -736,6 +813,38 @@ export default function ConductorScreen() {
         )}
       </ScrollView>
 
+      {/* MODAL CONTRAOFERTA */}
+      <Modal visible={modalContraoferta} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContenido}>
+            <Text style={styles.modalTitulo}>Proponer precio</Text>
+            <Text style={{ color: '#aaa', fontSize: 13, marginBottom: 16 }}>
+              El usuario ofrece {Number(viajeNegociando?.precio_usuario || viajeNegociando?.precio)?.toLocaleString('es-CO')} COP.{'\n'}
+              Ingresa el precio que quieres cobrar por este viaje.
+            </Text>
+            <Text style={styles.modalLabel}>Tu precio (COP)</Text>
+            <TextInput
+              style={[styles.modalInput, { fontSize: 20, fontWeight: 'bold', color: '#FFD700' }]}
+              placeholder="Ej: 25000"
+              placeholderTextColor="#555"
+              keyboardType="numeric"
+              value={precioContraoferta}
+              onChangeText={setPrecioContraoferta}
+            />
+            <Text style={{ color: '#888', fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
+              El usuario recibira tu propuesta y podra aceptarla o rechazarla.
+            </Text>
+            <TouchableOpacity style={styles.boton} onPress={enviarContraoferta} disabled={enviandoContraoferta}>
+              {enviandoContraoferta ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar propuesta</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setModalContraoferta(false); setViajeNegociando(null); setPrecioContraoferta(''); }}>
+              <Text style={styles.linkTexto}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL EDITAR PERFIL */}
       <Modal visible={editandoPerfil} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContenido}>
