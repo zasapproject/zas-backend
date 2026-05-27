@@ -1,5 +1,5 @@
 ﻿import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +24,18 @@ export default function LoginScreen() {
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cambCargando, setCambCargando] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const guardado = await AsyncStorage.getItem('usuario_recordar');
+      if (guardado) {
+        const { tel, pass } = JSON.parse(guardado);
+        setTelefono(tel || '');
+        setPassword(pass || '');
+        setRecordarDatos(true);
+      }
+    })();
+  }, []);
+  const [recordarDatos, setRecordarDatos] = useState(false);
 
   const seleccionarFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -178,6 +190,11 @@ export default function LoginScreen() {
         if (!terminos) {
           router.replace('/terminos');
         } else {
+          if (recordarDatos) {
+  await AsyncStorage.setItem('usuario_recordar', JSON.stringify({ tel: telefono, pass: password }));
+} else {
+  await AsyncStorage.removeItem('usuario_recordar');
+}
           router.replace('/home');
         }
       } else {
@@ -267,6 +284,20 @@ export default function LoginScreen() {
                 <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}
+              onPress={() => setRecordarDatos(!recordarDatos)}
+            >
+              <View style={{
+                width: 20, height: 20, borderRadius: 4, borderWidth: 2,
+                borderColor: recordarDatos ? '#FFD700' : '#555',
+                backgroundColor: recordarDatos ? '#FFD700' : 'transparent',
+                justifyContent: 'center', alignItems: 'center'
+              }}>
+                {recordarDatos && <Text style={{ color: '#1a1a2e', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+              </View>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>Recordar mis datos</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.boton} onPress={iniciarSesion} disabled={cargando}>
               {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Entrar</Text>}
             </TouchableOpacity>

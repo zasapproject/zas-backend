@@ -487,5 +487,206 @@ router.get('/cercanos/:lat/:lng', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ═══════════════════════════════════════════
+// AGREGAR AL FINAL DE routes/viajes.js
+// ANTES del module.exports = router;
+// ═══════════════════════════════════════════
 
+// ─────────────────────────────────────────────
+// POST /api/viajes/oferta/:id
+// Conductor hace una oferta de precio en un viaje interurbano
+// Reemplaza la contraoferta anterior — ahora guarda en tabla separada
+// ─────────────────────────────────────────────
+router.post('/oferta/:id', async (req, res) => {
+  const { conductor_id, precio_oferta } = req.body;
+
+  if (!conductor_id || !precio_oferta) {
+    return res.status(400).json({ ok: false, error: 'conductor_id y precio_oferta son obligatorios' });
+  }
+  if (isNaN(precio_oferta) || precio_oferta <= 0) {
+    return res.status(400).json({ ok: false, error: 'El precio debe ser mayor a 0' });
+  }
+
+  try {
+    // Verificar que el viaje existe y está buscando
+    const { data: viaje, error: viajeError } = await supabase
+      .from('viajes').select('*').eq('id', req.params.id).single();
+
+    if (viajeError || !viaje) {
+      return res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
+    }
+    if (viaje.estado !== 'buscando') {
+      return res.status(400).json({ ok: false, error: 'Este viaje ya no está disponible' });
+    }
+    if (!viaje.estado_negociacion) {
+      return res.status(400).json({ ok: false, error: 'Este viaje tiene precio fijo — no admite ofertas' });
+    }
+
+    // Obtener datos del conductor para mostrar en la lista
+    const { data: conductor } = await supabase
+      .from('conductores')
+      .select('id, nombre, foto_url, calificacion, modelo_moto, placa_moto')
+      .eq('id', conductor_id)
+      .single();
+
+    // Upsert — si ya hizo oferta la actualiza, si no la crea
+    const { data, error } = await supabase
+      .from('ofertas_viaje')
+      .upsert({
+        viaje_id: req.params.id,
+        conductor_id,
+        precio_oferta: parseFloat(precio_oferta),
+        estado: 'pendiente',
+      }, { onConflict: 'viaje_id,conductor_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Notificar al usuario que hay nuevas ofertas
+    if (viaje.usuario_id) {
+      notificarUsuario(
+        viaje.usuario_id,
+        'Nueva oferta de conductor',
+        `Un conductor ofrece llevarte por ${Number(precio_oferta).toLocaleString('es-CO')} COP`
+      );
+    }
+
+    console.log(`💬 Oferta en viaje ${req.params.id}: conductor ${conductor?.nombre} propone ${precio_oferta} COP`);
+    res.json({ ok: true, oferta: data, conductor });
+
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/viajes/:id/ofertas
+// Usuario ve todas las ofertas activas de conductores para su viaje
+// ─────────────────────────────────────────────
+router.get('/:id/ofertas', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('ofertas_viaje')
+      .select(`
+        *,
+        conductores (
+          id, nombre, foto_url, calificacion,
+          modelo_moto, placa_moto
+        )
+      `)
+      .eq('viaje_id', req.params.id)
+      .eq('estado', 'pendiente')
+      .order('precio_oferta', { ascending: true });
+
+    if (error) throw error;
+
+    const ofertas = data.map(o => ({
+      id: o.id,
+      viaje_id: o.viaje_id,
+      precio_oferta: o.precio_oferta,
+      estado: o.estado,
+      created_at: o.created_at,
+      conductor_id: o.conductores?.id,
+      conductor_nombre: o.conductores?.nombre || '',
+      conductor_foto: o.conductores?.foto_url || '',
+      conductor_calificacion: o.conductores?.calificacion || 5,
+      conductor_modelo: o.conductores?.modelo_moto || '',
+      conductor_placa: o.conductores?.placa_moto || '',
+    }));
+
+    res.json({ ok: true, ofertas, total: ofertas.length });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/viajes/:id/elegir-conductor
+// Usuario elige una oferta específica de conductor
+// ─────────────────────────────────────────────
+router.post('/:id/elegir-conductor', async (req, res) => {
+  const { oferta_id, usuario_id } = req.body;
+
+  if (!oferta_id || !usuario_id) {
+    return res.status(400).json({ ok: false, error: 'oferta_id y usuario_id son obligatorios' });
+  }
+
+  try {
+    // Verificar que la oferta existe y está pendiente
+    const { data: oferta, error: ofertaError } = await supabase
+      .from('ofertas_viaje')
+      .select('*, conductores(nombre, telefono, foto_url, placa_moto, modelo_moto)')
+      .eq('id', oferta_id)
+      .eq('viaje_id', req.params.id)
+      .eq('estado', 'pendiente')
+      .single();
+
+    if (ofertaError || !oferta) {
+      return res.status(404).json({ ok: false, error: 'Oferta no encontrada o ya no está disponible' });
+    }
+
+    // Verificar que el viaje pertenece al usuario
+    const { data: viaje } = await supabase
+      .from('viajes').select('usuario_id').eq('id', req.params.id).single();
+
+    if (viaje?.usuario_id !== usuario_id) {
+      return res.status(403).json({ ok: false, error: 'No autorizado' });
+    }
+
+    // Aceptar esta oferta — marcar viaje como aceptado con este conductor
+    const { data: viajeActualizado, error: viajeError } = await supabase
+      .from('viajes')
+      .update({
+        estado: 'aceptado',
+        conductor_id: oferta.conductor_id,
+        precio: oferta.precio_oferta,
+        precio_conductor: oferta.precio_oferta,
+        estado_negociacion: 'aceptado',
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (viajeError) throw viajeError;
+
+    // Marcar esta oferta como aceptada
+    await supabase
+      .from('ofertas_viaje')
+      .update({ estado: 'aceptada' })
+      .eq('id', oferta_id);
+
+    // Rechazar todas las demás ofertas del mismo viaje
+    await supabase
+      .from('ofertas_viaje')
+      .update({ estado: 'rechazada' })
+      .eq('viaje_id', req.params.id)
+      .neq('id', oferta_id);
+
+    // Notificar al conductor elegido
+    notificarConductor(
+      oferta.conductor_id,
+      '✅ Usuario eligio tu oferta',
+      'El pasajero acepto tu precio. Ve a recogerlo.'
+    );
+
+    console.log(`✅ Usuario eligio conductor ${oferta.conductor_id} para viaje ${req.params.id} — precio: ${oferta.precio_oferta} COP`);
+
+    res.json({
+      ok: true,
+      viaje: viajeActualizado,
+      conductor: {
+        id: oferta.conductores?.id,
+        nombre: oferta.conductores?.nombre,
+        telefono: oferta.conductores?.telefono,
+        foto_url: oferta.conductores?.foto_url,
+        placa_moto: oferta.conductores?.placa_moto,
+        modelo_moto: oferta.conductores?.modelo_moto,
+      }
+    });
+
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 module.exports = router;

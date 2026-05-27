@@ -65,6 +65,18 @@ export default function ConductorScreen() {
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cambCargando, setCambCargando] = useState(false);
+  const [recordarDatos, setRecordarDatos] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const guardado = await AsyncStorage.getItem('conductor_recordar');
+      if (guardado) {
+        const { tel, pass } = JSON.parse(guardado);
+        setTelefono(tel || '');
+        setPassword(pass || '');
+        setRecordarDatos(true);
+      }
+    })();
+  }, []);
 
   useEffect(() => { cargarSesion(); }, []);
 
@@ -107,7 +119,43 @@ export default function ConductorScreen() {
       }, 5000);
 
       const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
-      return () => { clearInterval(intervalo); clearInterval(intervaloSub); };
+    
+
+      // Polling contraoferta aceptada — detecta cuando usuario acepto el precio del conductor
+      const intervaloContraoferta = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/viajes/conductor/${sesion.id}?estado=aceptado&limit=1`);
+          const data = await res.json();
+          if (data.ok && data.viajes && data.viajes.length > 0) {
+            const viajeAceptado = data.viajes[0];
+            // Solo navegar si el viaje fue aceptado en los ultimos 2 minutos (reciente)
+            const hace2min = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            if (viajeAceptado.updated_at > hace2min || viajeAceptado.created_at > hace2min) {
+              clearInterval(intervaloContraoferta);
+              enviarNotificacion('Contraoferta aceptada', 'El usuario acepto tu precio. Ve a recogerlo.');
+              router.push({
+                pathname: '/mapa_viaje',
+                params: {
+                  viaje_id: viajeAceptado.id,
+                  rol: 'conductor',
+                  conductor_id: sesion.id,
+                  usuario_nombre: viajeAceptado.usuario_nombre || '',
+                  usuario_telefono: viajeAceptado.usuario_telefono || '',
+                  usuario_foto: viajeAceptado.usuario_foto || '',
+                  origen: viajeAceptado.origen,
+                  destino: viajeAceptado.destino,
+                  origen_lat: viajeAceptado.origen_lat || '',
+                  origen_lng: viajeAceptado.origen_lng || '',
+                  destino_lat: viajeAceptado.destino_lat || '',
+                  destino_lng: viajeAceptado.destino_lng || '',
+                }
+              });
+            }
+          }
+        } catch {}
+      }, 4000);
+ 
+      return () => { clearInterval(intervalo); clearInterval(intervaloSub); clearInterval(intervaloContraoferta); };
     }
   }, [sesion]);
 
@@ -475,7 +523,7 @@ export default function ConductorScreen() {
     }
     setEnviandoContraoferta(true);
     try {
-      const res = await fetch(`${API_URL}/api/viajes/contraoferta/${viajeNegociando.id}`, {
+      const res = await fetch(`${API_URL}/api/viajes/oferta/${viajeNegociando.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conductor_id: sesion.id, precio_conductor: monto }),
@@ -515,6 +563,20 @@ export default function ConductorScreen() {
                   <Text style={styles.ojo}>{verPassword ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
               </View>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}
+                onPress={() => setRecordarDatos(!recordarDatos)}
+              >
+                <View style={{
+                  width: 20, height: 20, borderRadius: 4, borderWidth: 2,
+                  borderColor: recordarDatos ? '#FFD700' : '#555',
+                  backgroundColor: recordarDatos ? '#FFD700' : 'transparent',
+                  justifyContent: 'center', alignItems: 'center'
+                }}>
+                  {recordarDatos && <Text style={{ color: '#1a1a2e', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                </View>
+                <Text style={{ color: '#aaa', fontSize: 13 }}>Recordar mis datos</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.boton} onPress={login} disabled={cargando}>
                 {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Entrar</Text>}
               </TouchableOpacity>

@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
+import ListaOfertas from './components/ListaOfertas';
 
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
@@ -51,10 +52,10 @@ async function buscarDireccion(texto: string): Promise<{ description: string; la
 }
 
 async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: number; tipo: string; municipio: string | null; negociable: boolean; desglose: any }> {
-  const distancia_km = haversine(origen.latitude, origen.longitude, destino.latitude, destino.longitude);
   try {
+    // Mandamos coordenadas de destino para que el backend use Google Directions (distancia real)
     const res = await fetch(
-      `${API_URL}/api/tarifas/calcular?lat=${origen.latitude}&lng=${origen.longitude}&distancia_km=${distancia_km.toFixed(2)}`
+      `${API_URL}/api/tarifas/calcular?lat=${origen.latitude}&lng=${origen.longitude}&dest_lat=${destino.latitude}&dest_lng=${destino.longitude}`
     );
     const data = await res.json();
     if (data.ok) return {
@@ -65,6 +66,7 @@ async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: 
       desglose: data.desglose || null,
     };
   } catch (e) {}
+  const distancia_km = haversine(origen.latitude, origen.longitude, destino.latitude, destino.longitude);
   const precioFallback = Math.max(4000, Math.round(distancia_km * 1000));
   return { precio: precioFallback, tipo: 'fallback', municipio: null, negociable: false, desglose: null };
 }
@@ -107,9 +109,10 @@ export default function HomeScreen() {
 
   const [precioCalculado, setPrecioCalculado] = useState<number>(0);
   const precioCalculadoRef = useRef<number>(0);
-  const [precioUsuario, setPrecioUsuario] = useState<number>(0); // precio que el usuario quiere pagar
+  const [precioUsuario, setPrecioUsuario] = useState<number>(0);
   const precioUsuarioRef = useRef<number>(0);
   const [esNegociable, setEsNegociable] = useState(false);
+  const [esNegociableViaje, setEsNegociableViaje] = useState(false); // persiste cuando el viaje ya está activo
   const [desglosePrecios, setDesglosePrecios] = useState<any>(null);
   const [tipoTarifa, setTipoTarifa] = useState<string>('');
   const [municipioTarifa, setMunicipioTarifa] = useState<string | null>(null);
@@ -192,9 +195,11 @@ export default function HomeScreen() {
     return () => backHandler.remove();
   }, [viaje, paso]);
 
-  // Polling del viaje activo — detecta contraoferta del conductor
+  // Polling del viaje activo — solo para estado aceptado/en_curso/completado
+  // El estado buscando lo maneja ListaOfertas directamente
   useEffect(() => {
     if (!viaje || !usuarioId) return;
+    if (viaje.estado === 'buscando') return; // ListaOfertas se encarga
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
@@ -203,45 +208,8 @@ export default function HomeScreen() {
           const viajeActual = data.viajes.find((v: any) => v.id === viaje.id) ||
             data.viajes.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           if (viajeActual) {
-            // Detectar contraoferta del conductor
-            if (viajeActual.estado_negociacion === 'contraoferta' && viaje.estado_negociacion !== 'contraoferta') {
-              const precioContra = Number(viajeActual.precio_conductor);
-              Alert.alert(
-                'Conductor propone precio',
-                `Un conductor quiere llevarte por ${precioContra.toLocaleString('es-CO')} COP.\n¿Aceptas?`,
-                [
-                  {
-                    text: 'No, buscar otro',
-                    style: 'cancel',
-                    onPress: async () => {
-                      try {
-                        await fetch(`${API_URL}/api/viajes/responder-contraoferta/${viajeActual.id}`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ acepta: false, usuario_id: usuarioId }),
-                        });
-                      } catch {}
-                    },
-                  },
-                  {
-                    text: `Aceptar ${precioContra.toLocaleString('es-CO')} COP`,
-                    onPress: async () => {
-                      try {
-                        await fetch(`${API_URL}/api/viajes/responder-contraoferta/${viajeActual.id}`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ acepta: true, usuario_id: usuarioId }),
-                        });
-                      } catch {}
-                    },
-                  },
-                ]
-              );
-            }
-
             setViaje(viajeActual);
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
-
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
               router.push({
@@ -268,7 +236,6 @@ export default function HomeScreen() {
                 },
               });
             }
-
             if (viajeActual.estado === 'completado' || viajeActual.estado === 'cancelado') {
               await AsyncStorage.removeItem('viaje_activo');
               setViaje(null);
@@ -283,6 +250,7 @@ export default function HomeScreen() {
               setPrecioUsuario(0);
               precioUsuarioRef.current = 0;
               setEsNegociable(false);
+              setEsNegociableViaje(false);
               setDesglosePrecios(null);
               setTipoTarifa('');
               setMunicipioTarifa(null);
@@ -398,6 +366,7 @@ export default function HomeScreen() {
       setPrecioUsuario(resultado.precio);
       precioUsuarioRef.current = resultado.precio;
       setEsNegociable(resultado.negociable);
+      setEsNegociableViaje(resultado.negociable);
       setDesglosePrecios(resultado.desglose);
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
@@ -434,6 +403,7 @@ export default function HomeScreen() {
       setPrecioUsuario(resultado.precio);
       precioUsuarioRef.current = resultado.precio;
       setEsNegociable(resultado.negociable);
+      setEsNegociableViaje(resultado.negociable);
       setDesglosePrecios(resultado.desglose);
       setTipoTarifa(resultado.tipo);
       setMunicipioTarifa(resultado.municipio);
@@ -474,13 +444,13 @@ export default function HomeScreen() {
       }
       if (data.ok) {
         setViaje(data.viaje);
+        setEsNegociableViaje(data.negociable || esNegociable);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
         try {
-          const metodoActual = metodoPago;
-          metodoPagoRef.current = metodoActual;
+          metodoPagoRef.current = metodoPago;
           const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioFinal, metodo: metodoActual })
+            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioFinal, metodo: metodoPago })
           });
           const dataPago = await resPago.json();
           if (dataPago.ok) {
@@ -492,10 +462,6 @@ export default function HomeScreen() {
             }
           }
         } catch {}
-        Alert.alert('Viaje solicitado', data.negociable
-          ? 'Buscando conductor. Si alguno propone otro precio te avisamos.'
-          : 'Buscando conductor cercano...'
-        );
       } else Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
@@ -506,7 +472,7 @@ export default function HomeScreen() {
     setNombreOrigen(''); setNombreDestino(''); setTextoBusqueda(''); setSugerencias([]);
     setPrecioCalculado(0); precioCalculadoRef.current = 0;
     setPrecioUsuario(0); precioUsuarioRef.current = 0;
-    setEsNegociable(false); setDesglosePrecios(null);
+    setEsNegociable(false); setEsNegociableViaje(false); setDesglosePrecios(null);
     setTipoTarifa(''); setMunicipioTarifa(null);
   };
 
@@ -546,25 +512,71 @@ export default function HomeScreen() {
     return { cop, usd, bs };
   };
 
-  if (cargando && !viaje) return <View style={styles.loadingContainer}><ActivityIndicator color="#FFD700" size="large" /></View>;
+  if (cargando && !viaje) return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator color="#FFD700" size="large" />
+    </View>
+  );
 
+  // ── VIAJE BUSCANDO — mostrar ListaOfertas (temporizador + ofertas) ──────────
+  if (viaje && viaje.estado === 'buscando') {
+    return (
+      <ListaOfertas
+        viaje={viaje}
+        usuarioId={usuarioId}
+        esNegociable={esNegociableViaje}
+        onConductorElegido={(viajeActualizado, conductor) => {
+          setViaje(viajeActualizado);
+          AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActualizado));
+          setNavegandoAlMapa(true);
+          router.push({
+            pathname: '/mapa_viaje',
+            params: {
+              viaje_id: viajeActualizado.id,
+              rol: 'usuario',
+              conductor_id: conductor.id || '',
+              conductor_nombre: conductor.nombre || '',
+              conductor_telefono: conductor.telefono || '',
+              conductor_foto: conductor.foto_url || '',
+              conductor_placa: conductor.placa_moto || '',
+              conductor_modelo: conductor.modelo_moto || '',
+              origen: viajeActualizado.origen,
+              destino: viajeActualizado.destino,
+              origen_lat: viajeActualizado.origen_lat || '',
+              origen_lng: viajeActualizado.origen_lng || '',
+              destino_lat: viajeActualizado.destino_lat || '',
+              destino_lng: viajeActualizado.destino_lng || '',
+              pago_id: pagoIdRef.current || '',
+              metodo_pago: metodoPagoRef.current || 'efectivo',
+              monto_viaje: String(viajeActualizado.precio || 0),
+              datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
+            },
+          });
+        }}
+        onCancelar={cancelarViaje}
+      />
+    );
+  }
+
+  // ── VIAJE ACEPTADO / EN CURSO — mostrar conductor en camino ─────────────────
   if (viaje) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}><Text style={styles.logo}>ZAS</Text><Text style={styles.saludo}>Hola, {usuarioNombre}</Text></View>
+        <View style={styles.header}>
+          <Text style={styles.logo}>ZAS</Text>
+          <Text style={styles.saludo}>Hola, {usuarioNombre}</Text>
+        </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={styles.viajeActivoTitulo}>
-            {viaje.estado_negociacion === 'contraoferta'
-              ? 'Conductor propone precio...'
-              : viaje.estado === 'aceptado' || viaje.estado === 'en_curso'
-              ? 'Conductor en camino'
-              : 'Buscando conductor...'}
+            {viaje.estado === 'aceptado' || viaje.estado === 'en_curso' ? 'Conductor en camino' : 'Procesando...'}
           </Text>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
             <View style={styles.conductorCard}>
               {viaje.conductor_foto
                 ? <Image source={{ uri: viaje.conductor_foto }} style={styles.conductorFoto} />
-                : <View style={styles.conductorFotoPlaceholder}><Text style={styles.conductorFotoLetra}>{viaje.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text></View>
+                : <View style={styles.conductorFotoPlaceholder}>
+                    <Text style={styles.conductorFotoLetra}>{viaje.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text>
+                  </View>
               }
               <View style={styles.conductorInfo}>
                 <Text style={styles.conductorNombre}>{viaje.conductor_nombre || 'Conductor'}</Text>
@@ -574,19 +586,24 @@ export default function HomeScreen() {
             </View>
           )}
           <View style={styles.viajeInfo}>
-            <Text style={styles.viajeLabel}>Desde</Text><Text style={styles.viajeValor}>{viaje.origen}</Text>
-            <Text style={styles.viajeLabel}>Hasta</Text><Text style={styles.viajeValor}>{viaje.destino}</Text>
+            <Text style={styles.viajeLabel}>Desde</Text>
+            <Text style={styles.viajeValor}>{viaje.origen}</Text>
+            <Text style={styles.viajeLabel}>Hasta</Text>
+            <Text style={styles.viajeValor}>{viaje.destino}</Text>
             <Text style={styles.viajeLabel}>Precio</Text>
             {viaje.precio ? (
               <View>
-                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 20 }]}>{formatearPrecio(Number(viaje.precio)).cop} COP</Text>
+                <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 20 }]}>
+                  {formatearPrecio(Number(viaje.precio)).cop} COP
+                </Text>
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
                   <Text style={{ color: '#aaa', fontSize: 12 }}>Bs {formatearPrecio(Number(viaje.precio)).bs}</Text>
                   <Text style={{ color: '#aaa', fontSize: 12 }}>$ {formatearPrecio(Number(viaje.precio)).usd}</Text>
                 </View>
               </View>
             ) : <Text style={styles.viajeEstado}>—</Text>}
-            <Text style={styles.viajeLabel}>Estado</Text><Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
+            <Text style={styles.viajeLabel}>Estado</Text>
+            <Text style={styles.viajeEstado}>{viaje.estado?.toUpperCase()}</Text>
           </View>
           {(viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
             <TouchableOpacity style={styles.botonVerMapa} onPress={() => router.push({
@@ -611,7 +628,9 @@ export default function HomeScreen() {
               <Text style={styles.botonVerMapaTexto}>Ver en el mapa</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}><Text style={styles.botonCancelarTexto}>Cancelar viaje</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.botonCancelar} onPress={cancelarViaje}>
+            <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 8, borderColor: '#FFD700' }]} onPress={() => router.push('/historial')}>
             <Text style={[styles.botonCancelarTexto, { color: '#FFD700' }]}>Ver historial</Text>
           </TouchableOpacity>
@@ -620,6 +639,7 @@ export default function HomeScreen() {
     );
   }
 
+  // ── PANTALLA CONFIRMAR VIAJE ──────────────────────────────────────────────
   if (paso === 'confirmar') {
     return (
       <View style={styles.container}>
@@ -634,11 +654,11 @@ export default function HomeScreen() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={[styles.viajeActivoTitulo, { marginBottom: 20 }]}>Confirma tu viaje</Text>
-
-          {/* Info del viaje */}
           <View style={styles.viajeInfo}>
-            <Text style={styles.viajeLabel}>Origen</Text><Text style={styles.viajeValor}>{nombreOrigen}</Text>
-            <Text style={styles.viajeLabel}>Destino</Text><Text style={styles.viajeValor}>{nombreDestino}</Text>
+            <Text style={styles.viajeLabel}>Origen</Text>
+            <Text style={styles.viajeValor}>{nombreOrigen}</Text>
+            <Text style={styles.viajeLabel}>Destino</Text>
+            <Text style={styles.viajeValor}>{nombreDestino}</Text>
             <Text style={styles.viajeLabel}>Precio calculado</Text>
             {calculandoPrecio ? (
               <ActivityIndicator color="#FFD700" style={{ marginTop: 8 }} />
@@ -651,7 +671,6 @@ export default function HomeScreen() {
                   <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).bs}</Text>
                   <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).usd}</Text>
                 </View>
-                {/* Desglose solo para interurbanos */}
                 {desglosePrecios && esNegociable && (
                   <View style={{ marginTop: 8, backgroundColor: '#0f3460', borderRadius: 8, padding: 10 }}>
                     <Text style={{ color: '#aaa', fontSize: 11 }}>
@@ -664,12 +683,12 @@ export default function HomeScreen() {
             {municipioTarifa ? <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Tarifa {tipoTarifa} — {municipioTarifa}</Text> : null}
           </View>
 
-          {/* SECCIÓN DE NEGOCIACIÓN — solo para viajes interurbanos (+7km) */}
+          {/* NEGOCIACIÓN — solo interurbanos */}
           {esNegociable && !calculandoPrecio && (
             <View style={styles.negociacionContainer}>
               <Text style={styles.negociacionTitulo}>Ajusta tu oferta al conductor</Text>
               <Text style={styles.negociacionSubtitulo}>
-                El precio sugerido es {formatearPrecio(precioCalculado).cop} COP. Puedes ofrecer mas para que te acepten mas rapido.
+                Precio sugerido: {formatearPrecio(precioCalculado).cop} COP. Puedes ofrecer mas para que te acepten mas rapido.
               </Text>
               <View style={styles.negociacionControles}>
                 <TouchableOpacity
@@ -693,12 +712,12 @@ export default function HomeScreen() {
                 </Text>
               )}
               <Text style={{ color: '#888', fontSize: 11, textAlign: 'center', marginTop: 6 }}>
-                El conductor puede aceptar tu precio o proponer uno diferente
+                Los conductores veran tu oferta y podran aceptarla o proponer otro precio
               </Text>
             </View>
           )}
 
-          {/* Método de pago */}
+          {/* MÉTODO DE PAGO */}
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Metodo de pago</Text>
             <View style={{ gap: 8 }}>
@@ -741,6 +760,7 @@ export default function HomeScreen() {
     );
   }
 
+  // ── MAPA PRINCIPAL ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container} onTouchStart={resetearTimer}>
       <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
@@ -868,8 +888,6 @@ const styles = StyleSheet.create({
   boton: { backgroundColor: '#FFD700', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
   botonTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   botonPerfilTexto: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
-  linkTexto: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 14 },
-  // Negociacion
   negociacionContainer: { backgroundColor: '#0f3460', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FFD700' },
   negociacionTitulo: { color: '#FFD700', fontSize: 15, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
   negociacionSubtitulo: { color: '#aaa', fontSize: 12, textAlign: 'center', marginBottom: 14 },
