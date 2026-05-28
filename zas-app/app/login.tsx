@@ -186,15 +186,16 @@ export default function LoginScreen() {
           setCargando(false);
           return;
         }
+        if (recordarDatos) {
+          await AsyncStorage.setItem('usuario_recordar', JSON.stringify({ tel: telefono, pass: password }));
+        } else {
+          await AsyncStorage.removeItem('usuario_recordar');
+        }
+
         const terminos = await AsyncStorage.getItem('terminos_aceptados');
         if (!terminos) {
           router.replace('/terminos');
         } else {
-          if (recordarDatos) {
-  await AsyncStorage.setItem('usuario_recordar', JSON.stringify({ tel: telefono, pass: password }));
-} else {
-  await AsyncStorage.removeItem('usuario_recordar');
-}
           router.replace('/home');
         }
       } else {

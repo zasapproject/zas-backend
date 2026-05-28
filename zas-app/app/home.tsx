@@ -81,6 +81,15 @@ export default function HomeScreen() {
   const resetearTimer = () => {
     if (inactividadTimer.current) clearTimeout(inactividadTimer.current);
     inactividadTimer.current = setTimeout(async () => {
+      try {
+        const sesion = await AsyncStorage.getItem('usuario_sesion');
+        if (sesion) {
+          const usuario = JSON.parse(sesion);
+          if (usuario?.id) {
+            await fetch(`${API_URL}/api/usuarios/logout/${usuario.id}`, { method: 'POST' });
+          }
+        }
+      } catch {}
       await AsyncStorage.removeItem('usuario_sesion');
       await AsyncStorage.removeItem('viaje_activo');
       await AsyncStorage.removeItem('session_token');

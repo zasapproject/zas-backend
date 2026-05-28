@@ -47,10 +47,10 @@ export default function Soporte() {
       {/* Contacto directo */}
       <View style={styles.seccion}>
         <Text style={styles.seccionTitulo}>Contacto directo</Text>
-        <TouchableOpacity style={styles.botonContacto} onPress={() => Linking.openURL('https://wa.me/573113003100?text=Hola,%20necesito%20ayuda%20con%20ZAS')}>
+        <TouchableOpacity style={styles.botonContacto} onPress={() => Linking.openURL('https://wa.me/584164466496?text=Hola,%20necesito%20ayuda%20con%20ZAS')}>
           <Text style={styles.botonContactoTexto}>💬 WhatsApp</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.botonContacto, { backgroundColor: '#00c853' }]} onPress={() => Linking.openURL('tel:573113003100')}>
+        <TouchableOpacity style={[styles.botonContacto, { backgroundColor: '#00c853' }]} onPress={() => Linking.openURL('tel:584164466496')}>
           <Text style={styles.botonContactoTexto}>📞 Llamar</Text>
         </TouchableOpacity>
       </View>
