@@ -526,7 +526,7 @@ export default function ConductorScreen() {
       const res = await fetch(`${API_URL}/api/viajes/oferta/${viajeNegociando.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conductor_id: sesion.id, precio_conductor: monto }),
+        body: JSON.stringify({ conductor_id: sesion.id, precio_oferta: monto }),
       });
       const data = await res.json();
       if (data.ok) {

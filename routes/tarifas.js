@@ -114,6 +114,9 @@ router.get('/calcular', async (req, res) => {
     }
 
     // Si no hubo coordenadas de destino ni distancia → usar haversine como fallback
+    if (!km && dest_lat && dest_lng) {
+      km = haversine(Number(lat), Number(lng), Number(dest_lat), Number(dest_lng));
+    }
     if (!km) km = 1;
 
     const resultado = calcularTarifaZAS(km, min);
