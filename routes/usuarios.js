@@ -9,9 +9,9 @@ const supabase = require('../supabase');
 // Rate limiting
 // ─────────────────────────────────────────────
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { ok: false, error: 'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.' },
+  windowMs: 5 * 60 * 1000,
+  max: 20,
+  message: { ok: false, error: 'Demasiados intentos. Espera 5 minutos antes de intentar de nuevo.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
