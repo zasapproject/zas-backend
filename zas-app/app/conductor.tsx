@@ -129,8 +129,8 @@ export default function ConductorScreen() {
           if (data.ok && data.viajes && data.viajes.length > 0) {
             const viajeAceptado = data.viajes[0];
             // Solo navegar si el viaje fue aceptado en los ultimos 2 minutos (reciente)
-            const hace2min = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            if (viajeAceptado.updated_at > hace2min || viajeAceptado.created_at > hace2min) {
+           const hace5min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+              if (viajeAceptado.updated_at > hace5min) {
               clearInterval(intervaloContraoferta);
               enviarNotificacion('Contraoferta aceptada', 'El usuario acepto tu precio. Ve a recogerlo.');
               router.push({
