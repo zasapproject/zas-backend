@@ -149,6 +149,44 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// Forzar cierre de sesión anterior (requiere contraseña)
+// ─────────────────────────────────────────────
+router.post('/forzar-logout', async (req, res) => {
+  const { telefono, password } = req.body;
+  if (!telefono || !password) {
+    return res.status(400).json({ ok: false, error: 'Teléfono y contraseña requeridos' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, password')
+      .eq('telefono', telefono)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    }
+
+    let passwordValida = false;
+    if (data.password.startsWith('$2')) {
+      passwordValida = await bcrypt.compare(password, data.password);
+    } else {
+      passwordValida = data.password === password;
+    }
+
+    if (!passwordValida) {
+      return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
+    }
+
+    await supabase.from('usuarios').update({ session_token: null }).eq('id', data.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // Verificar sesión activa del usuario
 // ─────────────────────────────────────────────
 router.get('/verificar-sesion/:id', async (req, res) => {

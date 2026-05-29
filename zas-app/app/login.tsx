@@ -169,8 +169,30 @@ export default function LoginScreen() {
       if (res.status === 403) {
         Alert.alert(
           'Sesión activa',
-          'Esta cuenta ya está abierta en otro dispositivo. Cierra sesión desde ese dispositivo para poder entrar aquí.',
-          [{ text: 'Entendido', style: 'cancel' }]
+          'Esta cuenta ya está abierta en otro dispositivo.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Cerrar sesión anterior y entrar',
+              onPress: async () => {
+                try {
+                  const resForzar = await fetch(API_URL + '/api/usuarios/forzar-logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telefono, password }),
+                  });
+                  const dataForzar = await resForzar.json();
+                  if (dataForzar.ok) {
+                    iniciarSesion();
+                  } else {
+                    Alert.alert('Error', dataForzar.error || 'No se pudo cerrar la sesión anterior.');
+                  }
+                } catch {
+                  Alert.alert('Sin conexión', 'Revisa tu internet e intenta de nuevo.');
+                }
+              },
+            },
+          ]
         );
         setCargando(false);
         return;
