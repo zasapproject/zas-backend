@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Application from "expo-application";
 
 const API_URL = "https://zasapps.com";
 
@@ -24,6 +25,15 @@ export default function LoginScreen() {
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cambCargando, setCambCargando] = useState(false);
+  const [deviceId, setDeviceId] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      const id = Application.getAndroidId() ?? Application.applicationId ?? '';
+      setDeviceId(id);
+    })();
+  }, []);
+
   useEffect(() => {
     (async () => {
       const guardado = await AsyncStorage.getItem('usuario_recordar');
@@ -155,7 +165,7 @@ export default function LoginScreen() {
       const res = await fetch(API_URL + "/api/usuarios/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telefono, password })
+        body: JSON.stringify({ telefono, password, device_id: deviceId })
       });
 
       // Contraseña incorrecta
@@ -163,6 +173,20 @@ export default function LoginScreen() {
         Alert.alert('Error', 'Teléfono o contraseña incorrectos.');
         setCargando(false);
         return;
+      }
+
+      // Cuenta atada a otro dispositivo
+      if (res.status === 403) {
+        const dataErr = await res.json();
+        if (dataErr.dispositivo_bloqueado) {
+          Alert.alert(
+            'Dispositivo no autorizado',
+            'Esta cuenta está registrada en otro dispositivo. Si cambiaste de teléfono, contacta al soporte.',
+            [{ text: 'Entendido', style: 'cancel' }]
+          );
+          setCargando(false);
+          return;
+        }
       }
 
       // Sesión activa en otro dispositivo — BLOQUEO

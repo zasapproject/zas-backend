@@ -94,7 +94,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
 // Login usuario — bloquea si ya hay sesión activa
 // ─────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
-  const { telefono, password } = req.body;
+  const { telefono, password, device_id } = req.body;
 
   if (!telefono || !password) {
     return res.status(400).json({ ok: false, error: 'Teléfono y contraseña son obligatorios' });
@@ -126,14 +126,19 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
     }
 
-    // ── BLOQUEO DE SESIÓN SIMULTÁNEA ──────────────────────────
-    // Si ya hay un session_token activo, rechazar el nuevo login
-    if (data.session_token) {
-      return res.status(403).json({
-        ok: false,
-        sesion_activa: true,
-        error: 'Esta cuenta ya tiene una sesión abierta en otro dispositivo. Cierra sesión desde ese dispositivo para continuar.',
-      });
+    // ── BLOQUEO POR DISPOSITIVO ────────────────────────────────
+    if (device_id) {
+      if (data.device_id && data.device_id !== device_id) {
+        return res.status(403).json({
+          ok: false,
+          dispositivo_bloqueado: true,
+          error: 'Esta cuenta está registrada en otro dispositivo. Contacta al soporte para transferirla.',
+        });
+      }
+      // Primer login: guardar device_id
+      if (!data.device_id) {
+        await supabase.from('usuarios').update({ device_id }).eq('id', data.id);
+      }
     }
     // ──────────────────────────────────────────────────────────
 

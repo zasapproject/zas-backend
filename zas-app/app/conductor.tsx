@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import polyline from '@mapbox/polyline';
+import * as Application from 'expo-application';
 
 const API_URL = 'https://zasapps.com';
 
@@ -66,6 +67,15 @@ export default function ConductorScreen() {
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cambCargando, setCambCargando] = useState(false);
   const [recordarDatos, setRecordarDatos] = useState(false);
+  const [deviceId, setDeviceId] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      const id = Application.getAndroidId() ?? Application.applicationId ?? '';
+      setDeviceId(id);
+    })();
+  }, []);
+
   useEffect(() => {
     (async () => {
       const guardado = await AsyncStorage.getItem('conductor_recordar');
@@ -284,13 +294,23 @@ export default function ConductorScreen() {
     try {
       const res = await fetch(API_URL + '/api/conductores/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono, password })
+        body: JSON.stringify({ telefono, password, device_id: deviceId })
       });
 
       if (res.status === 403) {
+        const dataErr = await res.json();
+        if (dataErr.dispositivo_bloqueado) {
+          Alert.alert(
+            'Dispositivo no autorizado',
+            'Esta cuenta está registrada en otro dispositivo. Si cambiaste de teléfono, contacta al soporte.',
+            [{ text: 'Entendido', style: 'cancel' }]
+          );
+          setCargando(false);
+          return;
+        }
         Alert.alert(
-          'Sesion activa',
-          'Esta cuenta ya esta abierta en otro dispositivo. Cierra sesion desde ese dispositivo para poder entrar aqui.',
+          'Sesión activa',
+          'Esta cuenta ya está abierta en otro dispositivo. Cierra sesión desde ese dispositivo para poder entrar aquí.',
           [{ text: 'Entendido', style: 'cancel' }]
         );
         setCargando(false);
