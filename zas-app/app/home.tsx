@@ -342,9 +342,9 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    if (viaje) return;
+    if (viaje && viaje.estado !== 'buscando') return;
     obtenerConductoresActivos();
-    const intervalo = setInterval(obtenerConductoresActivos, 10000);
+    const intervalo = setInterval(obtenerConductoresActivos, 6000);
     const intervaloTasas = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/api/tasas`);
@@ -530,43 +530,96 @@ export default function HomeScreen() {
     </View>
   );
 
-  // ── VIAJE BUSCANDO — mostrar ListaOfertas (temporizador + ofertas) ──────────
+  // ── VIAJE BUSCANDO — mapa + panel inferior ──────────────────────────────────
+  const onConductorElegidoCb = (viajeActualizado: any, conductor: any) => {
+    setViaje(viajeActualizado);
+    AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActualizado));
+    setNavegandoAlMapa(true);
+    router.push({
+      pathname: '/mapa_viaje',
+      params: {
+        viaje_id: viajeActualizado.id,
+        rol: 'usuario',
+        conductor_id: conductor.id || '',
+        conductor_nombre: conductor.nombre || '',
+        conductor_telefono: conductor.telefono || '',
+        conductor_foto: conductor.foto_url || '',
+        conductor_placa: conductor.placa_moto || '',
+        conductor_modelo: conductor.modelo_moto || '',
+        origen: viajeActualizado.origen,
+        destino: viajeActualizado.destino,
+        origen_lat: viajeActualizado.origen_lat || '',
+        origen_lng: viajeActualizado.origen_lng || '',
+        destino_lat: viajeActualizado.destino_lat || '',
+        destino_lng: viajeActualizado.destino_lng || '',
+        pago_id: pagoIdRef.current || '',
+        metodo_pago: metodoPagoRef.current || 'efectivo',
+        monto_viaje: String(viajeActualizado.precio || 0),
+        datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
+      },
+    });
+  };
+
   if (viaje && viaje.estado === 'buscando') {
+    const origenCoord = viaje.origen_lat
+      ? { latitude: Number(viaje.origen_lat), longitude: Number(viaje.origen_lng) }
+      : coordOrigen;
+    const destinoCoord = viaje.destino_lat
+      ? { latitude: Number(viaje.destino_lat), longitude: Number(viaje.destino_lng) }
+      : coordDestino;
+    const regionBuscando = origenCoord
+      ? { latitude: origenCoord.latitude, longitude: origenCoord.longitude, latitudeDelta: 0.03, longitudeDelta: 0.03 }
+      : region;
+
     return (
-      <ListaOfertas
-        viaje={viaje}
-        usuarioId={usuarioId}
-        esNegociable={esNegociableViaje}
-        onConductorElegido={(viajeActualizado, conductor) => {
-          setViaje(viajeActualizado);
-          AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActualizado));
-          setNavegandoAlMapa(true);
-          router.push({
-            pathname: '/mapa_viaje',
-            params: {
-              viaje_id: viajeActualizado.id,
-              rol: 'usuario',
-              conductor_id: conductor.id || '',
-              conductor_nombre: conductor.nombre || '',
-              conductor_telefono: conductor.telefono || '',
-              conductor_foto: conductor.foto_url || '',
-              conductor_placa: conductor.placa_moto || '',
-              conductor_modelo: conductor.modelo_moto || '',
-              origen: viajeActualizado.origen,
-              destino: viajeActualizado.destino,
-              origen_lat: viajeActualizado.origen_lat || '',
-              origen_lng: viajeActualizado.origen_lng || '',
-              destino_lat: viajeActualizado.destino_lat || '',
-              destino_lng: viajeActualizado.destino_lng || '',
-              pago_id: pagoIdRef.current || '',
-              metodo_pago: metodoPagoRef.current || 'efectivo',
-              monto_viaje: String(viajeActualizado.precio || 0),
-              datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
-            },
-          });
-        }}
-        onCancelar={cancelarViaje}
-      />
+      <View style={{ flex: 1 }}>
+        {/* MAPA CON CONDUCTORES CERCANOS */}
+        <MapView
+          style={{ flex: 1 }}
+          provider={PROVIDER_GOOGLE}
+          region={regionBuscando}
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+          scrollEnabled={false}
+          zoomEnabled={false}
+        >
+          {origenCoord && (
+            <Marker coordinate={origenCoord} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={{ backgroundColor: '#00c853', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff', elevation: 6 }}>
+                <Text style={{ fontSize: 16 }}>📍</Text>
+              </View>
+            </Marker>
+          )}
+          {destinoCoord && (
+            <Marker coordinate={destinoCoord} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={{ backgroundColor: '#E53935', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff', elevation: 6 }}>
+                <Text style={{ fontSize: 16 }}>🏁</Text>
+              </View>
+            </Marker>
+          )}
+          {conductoresActivos.map(c =>
+            c.latitud && c.longitud ? (
+              <Marker key={c.id} coordinate={{ latitude: Number(c.latitud), longitude: Number(c.longitud) }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5 }}>
+                  <Text style={{ fontSize: 18 }}>🏍</Text>
+                </View>
+              </Marker>
+            ) : null
+          )}
+        </MapView>
+
+        {/* PANEL INFERIOR — ListaOfertas como bottom sheet */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          <ListaOfertas
+            viaje={viaje}
+            usuarioId={usuarioId}
+            esNegociable={esNegociableViaje}
+            conductoresCercanos={conductoresActivos.length}
+            onConductorElegido={onConductorElegidoCb}
+            onCancelar={cancelarViaje}
+          />
+        </View>
+      </View>
     );
   }
 

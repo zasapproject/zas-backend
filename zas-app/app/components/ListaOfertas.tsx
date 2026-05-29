@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Image, ActivityIndicator, Alert
+  ScrollView, Image, ActivityIndicator, Alert, Animated
 } from 'react-native';
 
 const API_URL = 'https://zasapps.com';
@@ -29,12 +29,13 @@ interface Props {
   viaje: any;
   usuarioId: string;
   esNegociable: boolean;
+  conductoresCercanos?: number;
   onConductorElegido: (viaje: any, conductor: any) => void;
   onCancelar: () => void;
 }
 
 export default function ListaOfertas({
-  viaje, usuarioId, esNegociable, onConductorElegido, onCancelar
+  viaje, usuarioId, esNegociable, conductoresCercanos = 0, onConductorElegido, onCancelar
 }: Props) {
   const [segundos, setSegundos] = useState(0);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
@@ -44,6 +45,16 @@ export default function ListaOfertas({
   const intervaloOfertas = useRef<any>(null);
   const intervaloEstado = useRef<any>(null);
   const yaNavegoRef = useRef(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   // Temporizador de espera
   useEffect(() => {
@@ -134,163 +145,149 @@ export default function ListaOfertas({
   };
 
   return (
-    <View style={styles.container}>
-      {/* HEADER CON TEMPORIZADOR */}
-      <View style={styles.header}>
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerLabel}>Buscando conductor</Text>
+    <View style={styles.sheet}>
+      {/* HANDLE */}
+      <View style={styles.handle} />
+
+      {/* FILA SUPERIOR: estado + timer + conductores cercanos */}
+      <View style={styles.topRow}>
+        <View style={styles.topLeft}>
+          <Animated.View style={[styles.pulseDot, { transform: [{ scale: pulseAnim }] }]} />
+          <Text style={styles.buscandoTexto}>Buscando conductor...</Text>
+        </View>
+        <View style={styles.topRight}>
           <Text style={styles.timerValor}>{formatearTiempo(segundos)}</Text>
+          {conductoresCercanos > 0 && (
+            <Text style={styles.cercanosBadge}>
+              🏍 {conductoresCercanos} cerca
+            </Text>
+          )}
         </View>
-        <View style={styles.rutas}>
-          <View style={styles.rutaFila}>
-            <View style={[styles.rutaDot, { backgroundColor: '#00c853' }]} />
-            <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.origen_texto || viaje.origen}</Text>
-          </View>
-          <View style={[styles.rutaLinea]} />
-          <View style={styles.rutaFila}>
-            <View style={[styles.rutaDot, { backgroundColor: '#ff1744' }]} />
-            <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.destino_texto || viaje.destino}</Text>
-          </View>
+      </View>
+
+      {/* RUTA */}
+      <View style={styles.rutaContainer}>
+        <View style={styles.rutaFila}>
+          <View style={[styles.rutaDot, { backgroundColor: '#00c853' }]} />
+          <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.origen_texto || viaje.origen}</Text>
         </View>
-        <View style={styles.precioFila}>
-          <Text style={styles.precioLabel}>Tu oferta:</Text>
-          <Text style={styles.precioValor}>
-            {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
+        <View style={styles.rutaLinea} />
+        <View style={styles.rutaFila}>
+          <View style={[styles.rutaDot, { backgroundColor: '#ff1744' }]} />
+          <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.destino_texto || viaje.destino}</Text>
+        </View>
+      </View>
+
+      {/* PRECIO + ALERTA 1 MIN */}
+      <View style={styles.precioFila}>
+        <Text style={styles.precioLabel}>{esNegociable ? 'Tu oferta' : 'Precio fijo'}</Text>
+        <Text style={styles.precioValor}>
+          {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
+        </Text>
+      </View>
+
+      {segundos > 60 && (
+        <View style={styles.alertaTiempo}>
+          <Text style={styles.alertaTiempoTexto}>
+            ⏳ Más de 1 min esperando — puede que no haya conductores disponibles ahora.
           </Text>
         </View>
-      </View>
+      )}
 
-      {/* CUERPO */}
-      <ScrollView contentContainerStyle={styles.body}>
-        {esNegociable ? (
-          <>
-            {/* INTERURBANO — lista de ofertas */}
-            <Text style={styles.seccionTitulo}>
-              {ofertas.length === 0
-                ? 'Esperando ofertas de conductores...'
-                : `${ofertas.length} conductor${ofertas.length > 1 ? 'es' : ''} ofertaron`}
-            </Text>
-
-            {ofertas.length === 0 ? (
-              <View style={styles.esperandoContainer}>
-                <ActivityIndicator color="#FFD700" size="large" />
-                <Text style={styles.esperandoTexto}>
-                  Los conductores cercanos están revisando tu solicitud.{'\n'}
-                  Puedes esperar o cancelar y ajustar tu precio.
-                </Text>
-              </View>
-            ) : (
-              ofertas.map(oferta => (
-                <View key={oferta.id} style={styles.ofertaCard}>
-                  <View style={styles.ofertaHeader}>
-                    {oferta.conductor_foto
-                      ? <Image source={{ uri: oferta.conductor_foto }} style={styles.conductorFoto} />
-                      : <View style={[styles.conductorFoto, styles.conductorFotoPlaceholder]}>
-                          <Text style={styles.conductorLetra}>
-                            {oferta.conductor_nombre?.[0]?.toUpperCase() || '?'}
-                          </Text>
-                        </View>
-                    }
-                    <View style={styles.conductorInfo}>
-                      <Text style={styles.conductorNombre}>{oferta.conductor_nombre}</Text>
-                      <Text style={styles.conductorEstrellas}>
-                        {estrellas(oferta.conductor_calificacion)}
-                        <Text style={styles.conductorCalNum}> {(oferta.conductor_calificacion || 5).toFixed(1)}</Text>
-                      </Text>
-                      <Text style={styles.conductorMoto}>
-                        {oferta.conductor_modelo} · {oferta.conductor_placa}
-                      </Text>
+      {/* OFERTAS — solo interurbano */}
+      {esNegociable && ofertas.length > 0 && (
+        <ScrollView style={styles.ofertasScroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.seccionTitulo}>
+            {ofertas.length} conductor{ofertas.length > 1 ? 'es' : ''} ofertaron
+          </Text>
+          {ofertas.map(oferta => (
+            <View key={oferta.id} style={styles.ofertaCard}>
+              <View style={styles.ofertaHeader}>
+                {oferta.conductor_foto
+                  ? <Image source={{ uri: oferta.conductor_foto }} style={styles.conductorFoto} />
+                  : <View style={[styles.conductorFoto, styles.conductorFotoPlaceholder]}>
+                      <Text style={styles.conductorLetra}>{oferta.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text>
                     </View>
-                    <View style={styles.ofertaPrecioContainer}>
-                      <Text style={styles.ofertaPrecio}>
-                        {Number(oferta.precio_oferta).toLocaleString('es-CO')}
-                      </Text>
-                      <Text style={styles.ofertaPrecioLabel}>COP</Text>
-                      {oferta.precio_oferta <= Number(viaje.precio_usuario || viaje.precio) && (
-                        <View style={styles.badgeOk}>
-                          <Text style={styles.badgeOkTexto}>Tu precio</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.botonElegir}
-                    onPress={() => elegirConductor(oferta)}
-                    disabled={eligiendo === oferta.id}
-                  >
-                    {eligiendo === oferta.id
-                      ? <ActivityIndicator color="#1a1a2e" />
-                      : <Text style={styles.botonElegirTexto}>Elegir este conductor</Text>
-                    }
-                  </TouchableOpacity>
+                }
+                <View style={styles.conductorInfo}>
+                  <Text style={styles.conductorNombre}>{oferta.conductor_nombre}</Text>
+                  <Text style={styles.conductorEstrellas}>
+                    {estrellas(oferta.conductor_calificacion)}
+                    <Text style={styles.conductorCalNum}> {(oferta.conductor_calificacion || 5).toFixed(1)}</Text>
+                  </Text>
+                  <Text style={styles.conductorMoto}>{oferta.conductor_modelo} · {oferta.conductor_placa}</Text>
                 </View>
-              ))
-            )}
-
-            {ofertas.length > 0 && (
-              <Text style={styles.tipTexto}>
-                Los precios están ordenados de menor a mayor.{'\n'}
-                Elige al conductor que más te convenga.
-              </Text>
-            )}
-          </>
-        ) : (
-          <>
-            {/* URBANO — solo spinner y mensaje */}
-            <View style={styles.esperandoContainer}>
-              <ActivityIndicator color="#FFD700" size="large" />
-              <Text style={styles.esperandoTexto}>
-                Enviando solicitud a conductores cercanos.{'\n'}
-                El primero disponible tomará tu viaje.
-              </Text>
-            </View>
-            {segundos > 60 && (
-              <View style={styles.alertaTiempo}>
-                <Text style={styles.alertaTiempoTexto}>
-                  Llevamos más de 1 minuto buscando.{'\n'}
-                  Si no aparece un conductor pronto, puede que no haya disponibles en este momento.
-                </Text>
+                <View style={styles.ofertaPrecioContainer}>
+                  <Text style={styles.ofertaPrecio}>{Number(oferta.precio_oferta).toLocaleString('es-CO')}</Text>
+                  <Text style={styles.ofertaPrecioLabel}>COP</Text>
+                  {oferta.precio_oferta <= Number(viaje.precio_usuario || viaje.precio) && (
+                    <View style={styles.badgeOk}><Text style={styles.badgeOkTexto}>Tu precio</Text></View>
+                  )}
+                </View>
               </View>
-            )}
-          </>
-        )}
-      </ScrollView>
+              <TouchableOpacity style={styles.botonElegir} onPress={() => elegirConductor(oferta)} disabled={eligiendo === oferta.id}>
+                {eligiendo === oferta.id
+                  ? <ActivityIndicator color="#1a1a2e" />
+                  : <Text style={styles.botonElegirTexto}>Elegir este conductor</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
 
       {/* BOTÓN CANCELAR */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.botonCancelar} onPress={onCancelar}>
-          <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.botonCancelar} onPress={onCancelar}>
+        <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  // Bottom sheet
+  sheet: {
+    backgroundColor: '#1a1a2e',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  handle: { width: 40, height: 4, backgroundColor: '#444', borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
 
-  // Header
-  header: { backgroundColor: '#16213e', padding: 20, paddingTop: 50, borderBottomWidth: 1, borderBottomColor: '#0f3460' },
-  timerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  timerLabel: { color: '#aaa', fontSize: 14, fontWeight: '600' },
-  timerValor: { color: '#FFD700', fontSize: 28, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
-  rutas: { marginBottom: 12 },
-  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  rutaDot: { width: 10, height: 10, borderRadius: 5 },
-  rutaLinea: { width: 2, height: 8, backgroundColor: '#333', marginLeft: 4 },
-  rutaTexto: { color: '#fff', fontSize: 13, flex: 1 },
-  precioFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginTop: 4 },
+  // Fila superior
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pulseDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFD700' },
+  buscandoTexto: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  topRight: { alignItems: 'flex-end', gap: 4 },
+  timerValor: { color: '#FFD700', fontSize: 20, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  cercanosBadge: { color: '#00c853', fontSize: 12, fontWeight: '600' },
+
+  // Ruta
+  rutaContainer: { backgroundColor: '#16213e', borderRadius: 12, padding: 12, marginBottom: 10 },
+  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 3 },
+  rutaDot: { width: 9, height: 9, borderRadius: 5 },
+  rutaLinea: { width: 2, height: 6, backgroundColor: '#333', marginLeft: 3 },
+  rutaTexto: { color: '#ccc', fontSize: 13, flex: 1 },
+
+  // Precio
+  precioFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f3460', borderRadius: 10, padding: 10, marginBottom: 10 },
   precioLabel: { color: '#aaa', fontSize: 13 },
-  precioValor: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
+  precioValor: { color: '#FFD700', fontSize: 17, fontWeight: 'bold' },
 
-  // Body
-  body: { padding: 16, paddingBottom: 100 },
-  seccionTitulo: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
+  // Alerta tiempo
+  alertaTiempo: { backgroundColor: '#3a2a00', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FFD700', marginBottom: 10 },
+  alertaTiempoTexto: { color: '#FFD700', fontSize: 12, textAlign: 'center' },
 
-  // Esperando
-  esperandoContainer: { alignItems: 'center', paddingVertical: 40, gap: 20 },
-  esperandoTexto: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  alertaTiempo: { backgroundColor: '#3a2a00', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#FFD700', marginTop: 16 },
+  // Ofertas
+  ofertasScroll: { maxHeight: 220, marginBottom: 10 },
+  seccionTitulo: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 8 },
   alertaTiempoTexto: { color: '#FFD700', fontSize: 13, textAlign: 'center', lineHeight: 20 },
 
   // Oferta card
@@ -310,11 +307,8 @@ const styles = StyleSheet.create({
   badgeOk: { backgroundColor: '#00c853', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   badgeOkTexto: { color: '#fff', fontSize: 10, fontWeight: '700' },
   botonElegir: { backgroundColor: '#FFD700', borderRadius: 10, padding: 12, alignItems: 'center' },
-  botonElegirTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
-  tipTexto: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 18 },
+  botonElegirTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 14 },
 
-  // Footer
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#1a1a2e', borderTopWidth: 1, borderTopColor: '#0f3460' },
-  botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 14, alignItems: 'center' },
+  botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 13, alignItems: 'center', marginTop: 6 },
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
 });
