@@ -132,6 +132,7 @@ export default function HomeScreen() {
   const pagoIdRef = useRef<string | null>(null);
   const metodoPagoRef = useRef<string>('efectivo');
   const datosZasRef = useRef<any>(null);
+  const cerrandoSesionRef = useRef(false);
   const [datosZas, setDatosZas] = useState<any>(null);
   const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 36 });
   const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
@@ -169,14 +170,12 @@ export default function HomeScreen() {
         const dataVerif = await resVerif.json();
         if (!dataVerif.ok) {
           clearInterval(intervaloSesion);
-          const cerrando = await AsyncStorage.getItem('cerrando_sesion');
+          if (!cerrandoSesionRef.current) {
+            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+          }
           await AsyncStorage.removeItem('usuario_sesion');
           await AsyncStorage.removeItem('session_token');
           await AsyncStorage.removeItem('viaje_activo');
-          await AsyncStorage.removeItem('cerrando_sesion');
-          if (!cerrando) {
-            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
-          }
           router.replace('/login');
         }
       } catch {}
@@ -502,7 +501,7 @@ export default function HomeScreen() {
   };
 
   const cerrarSesion = async () => {
-    await AsyncStorage.setItem('cerrando_sesion', '1');
+    cerrandoSesionRef.current = true;
     try {
       if (usuarioId) {
         await fetch(`${API_URL}/api/usuarios/logout/${usuarioId}`, {
@@ -513,7 +512,6 @@ export default function HomeScreen() {
     await AsyncStorage.removeItem('usuario_sesion');
     await AsyncStorage.removeItem('session_token');
     await AsyncStorage.removeItem('viaje_activo');
-    await AsyncStorage.removeItem('cerrando_sesion');
     router.replace('/login');
   };
 

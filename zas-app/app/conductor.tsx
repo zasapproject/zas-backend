@@ -40,6 +40,7 @@ export default function ConductorScreen() {
   const [conductorLng, setConductorLng] = useState<number>(0);
   const conductorLatRef = useRef<number>(0);
   const conductorLngRef = useRef<number>(0);
+  const cerrandoSesionRef = useRef(false);
 
   // ── NEGOCIACIÓN ──────────────────────────────
   const [modalContraoferta, setModalContraoferta] = useState(false);
@@ -116,16 +117,14 @@ export default function ConductorScreen() {
           });
           const dataVerif = await resVerif.json();
           if (!dataVerif.ok) {
-            const cerrando = await AsyncStorage.getItem('cerrando_sesion_conductor');
+            if (!cerrandoSesionRef.current) {
+              Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            }
             await AsyncStorage.removeItem('conductor_sesion');
             await AsyncStorage.removeItem('conductor_session_token');
-            await AsyncStorage.removeItem('cerrando_sesion_conductor');
             setSesion(null);
             setViajes([]);
             setSuscripcionActiva(false);
-            if (!cerrando) {
-              Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
-            }
             return;
           }
         } catch {}
@@ -470,7 +469,7 @@ export default function ConductorScreen() {
   };
 
   const cerrarSesion = async () => {
-    await AsyncStorage.setItem('cerrando_sesion_conductor', '1');
+    cerrandoSesionRef.current = true;
     try {
       await fetch(`${API_URL}/api/conductores/logout/${sesion.id}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }
@@ -478,7 +477,6 @@ export default function ConductorScreen() {
     } catch {}
     await AsyncStorage.removeItem('conductor_sesion');
     await AsyncStorage.removeItem('conductor_session_token');
-    await AsyncStorage.removeItem('cerrando_sesion_conductor');
     setSesion(null);
     setViajes([]);
     setSuscripcionActiva(false);
