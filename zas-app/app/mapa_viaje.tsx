@@ -139,14 +139,40 @@ export default function MapaViaje() {
       setCoordDestino(cDest);
       coordOrigenRef.current = cOrig;
       coordDestinoRef.current = cDest;
-      actualizarRuta(cOrig, cDest);
+      // Usuario: calcular ETA desde ubicación actual del conductor hacia el origen
+      if (!esCondutorRef.current && conductorIdRef.current) {
+        const ubicCond = await obtenerUbicacionConductor(conductorIdRef.current);
+        if (ubicCond) {
+          setUbicacionConductor(ubicCond);
+          actualizarRuta(ubicCond, cOrig);
+        } else {
+          // Si aún no tiene GPS, mostrar ruta origen→destino como fallback visual
+          actualizarRuta(cOrig, cDest);
+          setEtaTexto('Esperando al conductor...');
+        }
+      } else {
+        actualizarRuta(cOrig, cDest);
+      }
     } else if (params.origen && params.destino) {
       const [cOrig, cDest] = await Promise.all([geocodificar(params.origen), geocodificar(params.destino)]);
       setCoordOrigen(cOrig);
       setCoordDestino(cDest);
       coordOrigenRef.current = cOrig;
       coordDestinoRef.current = cDest;
-      if (cOrig && cDest) actualizarRuta(cOrig, cDest);
+      if (cOrig && cDest) {
+        if (!esCondutorRef.current && conductorIdRef.current) {
+          const ubicCond = await obtenerUbicacionConductor(conductorIdRef.current);
+          if (ubicCond) {
+            setUbicacionConductor(ubicCond);
+            actualizarRuta(ubicCond, cOrig);
+          } else {
+            actualizarRuta(cOrig, cDest);
+            setEtaTexto('Esperando al conductor...');
+          }
+        } else {
+          actualizarRuta(cOrig, cDest);
+        }
+      }
     }
 
     if (esCondutorRef.current && conductorIdRef.current) {
@@ -447,7 +473,21 @@ export default function MapaViaje() {
 
       <View style={styles.bannerEstado}>
         <Text style={styles.bannerTexto}>{etiquetaEstado()}</Text>
-        <Text style={styles.etaTexto}>{etaTexto}</Text>
+        {!esCondutor && (
+          <View style={styles.etaFila}>
+            <Text style={styles.etaIcono}>🕐</Text>
+            <Text style={styles.etaTexto}>
+              {estadoViaje === 'aceptado' || estadoViaje === 'en_camino'
+                ? `Llega en ${etaTexto}`
+                : estadoViaje === 'en_curso'
+                ? `Destino en ${etaTexto}`
+                : etaTexto}
+            </Text>
+          </View>
+        )}
+        {esCondutor && (
+          <Text style={styles.etaTexto}>{etaTexto}</Text>
+        )}
       </View>
 
       <View style={styles.cardInferior}>
@@ -520,8 +560,10 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E', gap: 12 },
   loadingText: { color: '#F5A623', fontSize: 16, fontWeight: '600' },
   bannerEstado: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : 40, left: 16, right: 16, backgroundColor: 'rgba(26,26,46,0.92)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 6, borderLeftWidth: 4, borderLeftColor: '#F5A623' },
-  bannerTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  etaTexto: { color: '#F5A623', fontSize: 13, fontWeight: '600' },
+  bannerTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', flex: 1 },
+  etaFila: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  etaIcono: { fontSize: 14 },
+  etaTexto: { color: '#F5A623', fontSize: 13, fontWeight: '700' },
   cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, elevation: 10, maxHeight: '70%' },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   fotoCircle: { width: 52, height: 52, borderRadius: 26, marginRight: 12, borderWidth: 2, borderColor: '#F5A623' },
