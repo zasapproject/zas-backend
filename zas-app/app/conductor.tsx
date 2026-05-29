@@ -112,11 +112,14 @@ export default function ConductorScreen() {
       const intervalo = setInterval(async () => {
         try {
           const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
+          // Sin token = ya cerró sesión intencionalmente, no verificar
+          if (!tokenLocal) return;
           const resVerif = await fetch(`${API_URL}/api/conductores/verificar-sesion/${sesion.id}`, {
-            headers: { 'x-session-token': tokenLocal || '' }
+            headers: { 'x-session-token': tokenLocal }
           });
           const dataVerif = await resVerif.json();
           if (!dataVerif.ok) {
+            // Solo alertar si no fue un cierre intencional
             if (!cerrandoSesionRef.current) {
               Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             }

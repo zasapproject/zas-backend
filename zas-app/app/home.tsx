@@ -164,12 +164,15 @@ export default function HomeScreen() {
     const intervaloSesion = setInterval(async () => {
       try {
         const tokenLocal = await AsyncStorage.getItem('session_token');
+        // Sin token = ya cerró sesión intencionalmente, no verificar
+        if (!tokenLocal) return;
         const resVerif = await fetch(`${API_URL}/api/usuarios/verificar-sesion/${usuarioId}`, {
-          headers: { 'x-session-token': tokenLocal || '' }
+          headers: { 'x-session-token': tokenLocal }
         });
         const dataVerif = await resVerif.json();
         if (!dataVerif.ok) {
           clearInterval(intervaloSesion);
+          // Solo alertar si no fue un cierre intencional
           if (!cerrandoSesionRef.current) {
             Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
           }
