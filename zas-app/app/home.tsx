@@ -169,10 +169,14 @@ export default function HomeScreen() {
         const dataVerif = await resVerif.json();
         if (!dataVerif.ok) {
           clearInterval(intervaloSesion);
+          const cerrando = await AsyncStorage.getItem('cerrando_sesion');
           await AsyncStorage.removeItem('usuario_sesion');
           await AsyncStorage.removeItem('session_token');
           await AsyncStorage.removeItem('viaje_activo');
-          Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+          await AsyncStorage.removeItem('cerrando_sesion');
+          if (!cerrando) {
+            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+          }
           router.replace('/login');
         }
       } catch {}
@@ -292,7 +296,6 @@ export default function HomeScreen() {
             await AsyncStorage.removeItem('usuario_sesion');
             await AsyncStorage.removeItem('session_token');
             await AsyncStorage.removeItem('viaje_activo');
-            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             router.replace('/login');
             return;
           }
@@ -499,6 +502,7 @@ export default function HomeScreen() {
   };
 
   const cerrarSesion = async () => {
+    await AsyncStorage.setItem('cerrando_sesion', '1');
     try {
       if (usuarioId) {
         await fetch(`${API_URL}/api/usuarios/logout/${usuarioId}`, {
@@ -509,6 +513,7 @@ export default function HomeScreen() {
     await AsyncStorage.removeItem('usuario_sesion');
     await AsyncStorage.removeItem('session_token');
     await AsyncStorage.removeItem('viaje_activo');
+    await AsyncStorage.removeItem('cerrando_sesion');
     router.replace('/login');
   };
 

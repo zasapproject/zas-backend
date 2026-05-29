@@ -116,12 +116,16 @@ export default function ConductorScreen() {
           });
           const dataVerif = await resVerif.json();
           if (!dataVerif.ok) {
+            const cerrando = await AsyncStorage.getItem('cerrando_sesion_conductor');
             await AsyncStorage.removeItem('conductor_sesion');
             await AsyncStorage.removeItem('conductor_session_token');
+            await AsyncStorage.removeItem('cerrando_sesion_conductor');
             setSesion(null);
             setViajes([]);
             setSuscripcionActiva(false);
-            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            if (!cerrando) {
+              Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
+            }
             return;
           }
         } catch {}
@@ -199,7 +203,6 @@ export default function ConductorScreen() {
           if (!dataVerif.ok) {
             await AsyncStorage.removeItem('conductor_sesion');
             await AsyncStorage.removeItem('conductor_session_token');
-            Alert.alert('Sesion cerrada', 'Tu cuenta fue iniciada en otro dispositivo.');
             return;
           }
         } catch {}
@@ -462,6 +465,7 @@ export default function ConductorScreen() {
   };
 
   const cerrarSesion = async () => {
+    await AsyncStorage.setItem('cerrando_sesion_conductor', '1');
     try {
       await fetch(`${API_URL}/api/conductores/logout/${sesion.id}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }
@@ -469,6 +473,7 @@ export default function ConductorScreen() {
     } catch {}
     await AsyncStorage.removeItem('conductor_sesion');
     await AsyncStorage.removeItem('conductor_session_token');
+    await AsyncStorage.removeItem('cerrando_sesion_conductor');
     setSesion(null);
     setViajes([]);
     setSuscripcionActiva(false);
