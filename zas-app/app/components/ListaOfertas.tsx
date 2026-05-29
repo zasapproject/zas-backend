@@ -42,6 +42,8 @@ export default function ListaOfertas({
   const [eligiendo, setEligiendo] = useState<string | null>(null);
   const intervaloTimer = useRef<any>(null);
   const intervaloOfertas = useRef<any>(null);
+  const intervaloEstado = useRef<any>(null);
+  const yaNavegoRef = useRef(false);
 
   // Temporizador de espera
   useEffect(() => {
@@ -50,6 +52,37 @@ export default function ListaOfertas({
     }, 1000);
     return () => clearInterval(intervaloTimer.current);
   }, []);
+
+  // Polling de estado — para viajes URBANOS detectar cuando conductor acepta
+  useEffect(() => {
+    if (esNegociable) return;
+    const verificarEstado = async () => {
+      if (yaNavegoRef.current) return;
+      try {
+        const res = await fetch(`${API_URL}/api/viajes/${viaje.id}`);
+        const data = await res.json();
+        const v = data.viaje || data;
+        if (v && (v.estado === 'aceptado' || v.estado === 'en_curso')) {
+          if (yaNavegoRef.current) return;
+          yaNavegoRef.current = true;
+          clearInterval(intervaloEstado.current);
+          clearInterval(intervaloTimer.current);
+          const cond = v.conductores || {};
+          onConductorElegido(v, {
+            id: v.conductor_id,
+            nombre: cond.nombre || '',
+            telefono: cond.telefono || '',
+            foto_url: cond.foto_url || '',
+            placa_moto: cond.placa_moto || '',
+            modelo_moto: cond.modelo_moto || '',
+          });
+        }
+      } catch {}
+    };
+    verificarEstado();
+    intervaloEstado.current = setInterval(verificarEstado, 3000);
+    return () => clearInterval(intervaloEstado.current);
+  }, [viaje.id, esNegociable]);
 
   // Polling de ofertas — solo para interurbanos
   useEffect(() => {
