@@ -906,34 +906,43 @@ export default function ConductorScreen() {
       </ScrollView>
 
       {/* MODAL CONTRAOFERTA */}
-      <Modal visible={modalContraoferta} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContenido}>
-            <Text style={styles.modalTitulo}>Proponer precio</Text>
-            <Text style={{ color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-              El usuario ofrece {Number(viajeNegociando?.precio_usuario || viajeNegociando?.precio)?.toLocaleString('es-CO')} COP.{'\n'}
-              Ingresa el precio que quieres cobrar por este viaje.
-            </Text>
-            <Text style={styles.modalLabel}>Tu precio (COP)</Text>
-            <TextInput
-              style={[styles.modalInput, { fontSize: 20, fontWeight: 'bold', color: '#FFD700' }]}
-              placeholder="Ej: 25000"
-              placeholderTextColor="#555"
-              keyboardType="numeric"
-              value={precioContraoferta}
-              onChangeText={setPrecioContraoferta}
-            />
-            <Text style={{ color: '#888', fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
-              El usuario recibira tu propuesta y podra aceptarla o rechazarla.
-            </Text>
-            <TouchableOpacity style={styles.boton} onPress={enviarContraoferta} disabled={enviandoContraoferta}>
-              {enviandoContraoferta ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar propuesta</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setModalContraoferta(false); setViajeNegociando(null); setPrecioContraoferta(''); }}>
-              <Text style={styles.linkTexto}>Cancelar</Text>
-            </TouchableOpacity>
+      <Modal visible={modalContraoferta} animationType="slide" transparent onRequestClose={() => { setModalContraoferta(false); setViajeNegociando(null); setPrecioContraoferta(''); }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContenido}>
+              <Text style={styles.modalTitulo}>Proponer precio</Text>
+
+              {/* INPUT PRIMERO — visible antes de que el teclado suba */}
+              <Text style={styles.modalLabel}>Tu precio (COP)</Text>
+              <TextInput
+                style={[styles.modalInput, { fontSize: 26, fontWeight: 'bold', color: '#FFD700', textAlign: 'center', letterSpacing: 1 }]}
+                placeholder="0"
+                placeholderTextColor="#555"
+                keyboardType="numeric"
+                value={precioContraoferta}
+                onChangeText={setPrecioContraoferta}
+                autoFocus
+              />
+
+              <Text style={{ color: '#aaa', fontSize: 13, marginBottom: 8, textAlign: 'center' }}>
+                El usuario ofrece{' '}
+                <Text style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                  {Number(viajeNegociando?.precio_usuario || viajeNegociando?.precio)?.toLocaleString('es-CO')} COP
+                </Text>
+              </Text>
+              <Text style={{ color: '#888', fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
+                El usuario recibira tu propuesta y podra aceptarla o rechazarla.
+              </Text>
+
+              <TouchableOpacity style={styles.boton} onPress={enviarContraoferta} disabled={enviandoContraoferta}>
+                {enviandoContraoferta ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar propuesta</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setModalContraoferta(false); setViajeNegociando(null); setPrecioContraoferta(''); }}>
+                <Text style={styles.linkTexto}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* MODAL EDITAR PERFIL */}
