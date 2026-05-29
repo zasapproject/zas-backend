@@ -80,25 +80,7 @@ router.get('/calcular', async (req, res) => {
   if (!lat || !lng) return res.status(400).json({ ok: false, error: 'Faltan coordenadas de origen' });
 
   try {
-    // Intentar tarifa especial por municipio primero
-    const { data, error } = await supabase.from('tarifas_municipios').select('*').eq('activo', true);
-    if (!error && data && data.length > 0) {
-      let municipioEncontrado = null;
-      for (const m of data) {
-        const dist = haversine(Number(lat), Number(lng), m.lat_centro, m.lng_centro);
-        if (dist <= m.radio_km) { municipioEncontrado = m; break; }
-      }
-      if (municipioEncontrado && municipioEncontrado.tipo === 'fija') {
-        return res.json({
-          ok: true, tipo: 'fija',
-          precio: municipioEncontrado.tarifa_fija,
-          municipio: municipioEncontrado.municipio,
-          negociable: false,
-        });
-      }
-    }
-
-    // Si vienen coordenadas de destino → usar Google Directions para distancia real
+    // ── PASO 1: obtener distancia real del viaje ──────────────
     let km = parseFloat(distancia_km) || 0;
     let min = parseFloat(duracion_minutos) || 0;
 
@@ -110,15 +92,38 @@ router.get('/calcular', async (req, res) => {
       if (rutaReal) {
         km = rutaReal.distancia_km;
         min = rutaReal.duracion_minutos;
+      } else {
+        // Fallback haversine si Google falla
+        km = km || haversine(Number(lat), Number(lng), Number(dest_lat), Number(dest_lng));
       }
     }
-
-    // Si no hubo coordenadas de destino ni distancia → usar haversine como fallback
-    if (!km && dest_lat && dest_lng) {
-      km = haversine(Number(lat), Number(lng), Number(dest_lat), Number(dest_lng));
-    }
     if (!km) km = 1;
+    if (!min) min = Math.ceil((km / 25) * 60);
+    // ──────────────────────────────────────────────────────────
 
+    // ── PASO 2: municipio con tarifa fija — solo aplica si es viaje urbano (≤ 7 km) ──
+    if (km <= LIMITE_URBANO_KM) {
+      const { data, error } = await supabase.from('tarifas_municipios').select('*').eq('activo', true);
+      if (!error && data && data.length > 0) {
+        for (const m of data) {
+          const distMunicipio = haversine(Number(lat), Number(lng), m.lat_centro, m.lng_centro);
+          if (distMunicipio <= m.radio_km && m.tipo === 'fija') {
+            return res.json({
+              ok: true,
+              tipo: 'fija',
+              precio: m.tarifa_fija,
+              municipio: m.municipio,
+              negociable: false,
+              distancia_km: km,
+              duracion_minutos: min,
+            });
+          }
+        }
+      }
+    }
+    // ──────────────────────────────────────────────────────────
+
+    // ── PASO 3: fórmula ZAS según distancia real ──────────────
     const resultado = calcularTarifaZAS(km, min);
     return res.json({
       ok: true,
@@ -127,10 +132,13 @@ router.get('/calcular', async (req, res) => {
       distancia_km: km,
       duracion_minutos: min,
     });
+    // ──────────────────────────────────────────────────────────
 
   } catch (e) {
-    const resultado = calcularTarifaZAS(distancia_km || 1, duracion_minutos || 0);
-    return res.json({ ok: true, ...resultado, municipio: null });
+    const kmFallback = parseFloat(distancia_km) || 1;
+    const minFallback = parseFloat(duracion_minutos) || Math.ceil((kmFallback / 25) * 60);
+    const resultado = calcularTarifaZAS(kmFallback, minFallback);
+    return res.json({ ok: true, ...resultado, municipio: null, distancia_km: kmFallback, duracion_minutos: minFallback });
   }
 });
 
