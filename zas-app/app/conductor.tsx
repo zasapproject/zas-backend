@@ -330,6 +330,11 @@ export default function ConductorScreen() {
           setCargando(false);
           return;
         }
+        if (recordarDatos) {
+          await AsyncStorage.setItem('conductor_recordar', JSON.stringify({ tel: telefono, pass: password }));
+        } else {
+          await AsyncStorage.removeItem('conductor_recordar');
+        }
         setSesion(data.conductor);
         await verificarSuscripcion(data.conductor.id);
         try {
