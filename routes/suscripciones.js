@@ -94,6 +94,41 @@ router.get('/vencimientos', async (req, res) => {
   res.json({ conductores: data, total: data.length });
 });
 
+// POST /suscripciones/registrar-solicitud — guarda pago pendiente y devuelve el ID
+router.post('/registrar-solicitud', async (req, res) => {
+  const { conductor_id, metodo_pago, monto } = req.body;
+  if (!conductor_id) return res.status(400).json({ error: 'conductor_id requerido' });
+
+  const { data, error } = await supabase
+    .from('pagos_suscripcion')
+    .insert({
+      conductor_id,
+      monto: monto || 20000,
+      moneda: 'COP',
+      metodo_pago: metodo_pago || 'efectivo',
+      estado: 'pendiente',
+    })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, pago_id: data.id });
+});
+
+// POST /suscripciones/subir-comprobante/:pagoId
+router.post('/subir-comprobante/:pagoId', async (req, res) => {
+  const { pagoId } = req.params;
+  const { comprobante_url, referencia } = req.body;
+
+  const { error } = await supabase
+    .from('pagos_suscripcion')
+    .update({ comprobante_url, referencia: referencia || null, estado: 'en_revision' })
+    .eq('id', pagoId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 // Historial de pagos
 router.get('/historial', async (req, res) => {
   const { data, error } = await supabase
