@@ -5,14 +5,14 @@ const authAdmin = require('../middleware/authAdmin');
 
 // ─────────────────────────────────────────────
 // FÓRMULA OFICIAL ZAS
-// Urbano  (≤ 7 km): 4.000 COP fijo
-// Interurbano (> 7 km): 4.000 + (km × 1.000) + (min × 100)
+// Urbano  (≤ 5 km): 4.000 COP fijo
+// Interurbano (> 5 km): 4.000 + (km × 1.000) + (min × 100)
 // ─────────────────────────────────────────────
 const TARIFA_BASE      = 4000;
 const TARIFA_URBANA    = 4000;
 const PRECIO_POR_KM    = 1000;
 const PRECIO_POR_MIN   = 100;
-const LIMITE_URBANO_KM = 7;
+const LIMITE_URBANO_KM = 5;
 
 function calcularTarifaZAS(distancia_km, duracion_minutos) {
   const km  = parseFloat(distancia_km)  || 1;
@@ -101,7 +101,7 @@ router.get('/calcular', async (req, res) => {
     if (!min) min = Math.ceil((km / 25) * 60);
     // ──────────────────────────────────────────────────────────
 
-    // ── PASO 2: municipio con tarifa fija — solo aplica si es viaje urbano (≤ 7 km) ──
+    // ── PASO 2: municipio con tarifa fija — solo aplica si es viaje urbano (≤ 5 km) ──
     if (km <= LIMITE_URBANO_KM) {
       const { data, error } = await supabase.from('tarifas_municipios').select('*').eq('activo', true);
       if (!error && data && data.length > 0) {
