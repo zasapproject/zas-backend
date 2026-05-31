@@ -96,6 +96,7 @@ export default function MapaViaje() {
   const [estadoViaje, setEstadoViaje] = useState('aceptado');
   const estadoViajeRef = useRef('aceptado');
   const [cargando, setCargando] = useState(true);
+  const [navegando, setNavegando] = useState(false);
   const [etaTexto, setEtaTexto] = useState('Calculando...');
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
   const [pagoId, setPagoId] = useState<string | null>(null);
@@ -325,6 +326,12 @@ export default function MapaViaje() {
   }
 
   async function calificar(estrellas) {
+    // Ocultar mapa y navegar inmediatamente — fetch en segundo plano
+    setNavegando(true);
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (locationSub.current) locationSub.current.remove();
+    router.replace(esCondutorRef.current ? '/conductor' : '/home');
+    // Enviar calificación sin bloquear la navegación
     try {
       const idCalificar = esCondutorRef.current ? params.usuario_id : params.conductor_id;
       const rutaApi = esCondutorRef.current ? 'usuarios' : 'conductores';
@@ -334,7 +341,6 @@ export default function MapaViaje() {
         body: JSON.stringify({ calificacion: estrellas })
       });
     } catch {}
-    router.replace(esCondutorRef.current ? '/conductor' : '/home');
   }
 
   // ─── FIX: detener polling ANTES del fetch para evitar interferencia ───
@@ -374,8 +380,8 @@ export default function MapaViaje() {
   const nombreOtro = esCondutor ? params.usuario_nombre : params.conductor_nombre;
   const fotoOtro = esCondutor ? params.usuario_foto : params.conductor_foto;
 
-  if (cargando) {
-    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /><Text style={styles.loadingText}>Cargando mapa...</Text></View>;
+  if (cargando || navegando) {
+    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#F5A623" /></View>;
   }
 
   if (mostrarCalificacion) {
