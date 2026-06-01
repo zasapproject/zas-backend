@@ -4,9 +4,11 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Scr
 const API_URL = 'https://zasapps.com';
 
 const METODOS = [
-  { key: 'pago_movil', label: '📱 Pago Móvil' },
-  { key: 'zelle', label: '💳 Zelle' },
-  { key: 'usdt', label: '₿ USDT' },
+  { key: 'bancolombia', label: '🏦 Bancolombia' },
+  { key: 'nequi',       label: '📱 Nequi' },
+  { key: 'pago_movil',  label: '📲 Pago Móvil' },
+  { key: 'zelle',       label: '💳 Zelle' },
+  { key: 'usdt',        label: '₿ USDT' },
 ];
 
 export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: {
@@ -27,8 +29,10 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
 
   // Moneda y símbolo según método de retiro
   const monedaRetiro = () => {
-    const usd = parseFloat(montoRetiro || '0') * tasas.usd_bs / tasas.cop_bs;
+    const cop = parseFloat(montoRetiro || '0');
+    const usd = cop / tasas.cop_bs / tasas.usd_bs;
     if (metodoRetiro === 'pago_movil') return { simbolo: 'Bs', monto: usd * tasas.usd_bs };
+    if (metodoRetiro === 'bancolombia' || metodoRetiro === 'nequi') return { simbolo: 'COP', monto: cop };
     return { simbolo: '$', monto: usd };
   };
 
@@ -173,7 +177,10 @@ export default function BilleteraConductor({ conductorId, onIrDatosBancarios }: 
                   : `$ ${fmt(monedaRetiro().monto)}`}
               </Text>
               <Text style={{ color: '#555', fontSize: 11 }}>
-                {metodoRetiro === 'pago_movil' ? 'Recibes en Bs' : metodoRetiro === 'zelle' ? 'Recibes en USD' : 'Recibes en USDT'}
+                {metodoRetiro === 'pago_movil' ? 'Recibes en Bs'
+                  : metodoRetiro === 'zelle' ? 'Recibes en USD'
+                  : metodoRetiro === 'usdt' ? 'Recibes en USDT'
+                  : 'Recibes en COP'}
               </Text>
             </View>
           ) : null}

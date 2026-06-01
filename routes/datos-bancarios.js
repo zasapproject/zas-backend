@@ -31,6 +31,11 @@ router.post('/guardar', async (req, res) => {
     zelle_telefono,
     wallet_usdt,
     red_usdt,
+    bancolombia_cuenta,
+    bancolombia_titular,
+    bancolombia_cc,
+    nequi_telefono,
+    nequi_titular,
   } = req.body;
 
   if (!conductor_id) {
@@ -40,11 +45,13 @@ router.post('/guardar', async (req, res) => {
   const tienePagoMovil = telefono_pago_movil || numero_cuenta;
   const tieneZelle = zelle_email || zelle_telefono;
   const tieneUsdt = wallet_usdt;
+  const tieneBancolombia = bancolombia_cuenta || bancolombia_titular;
+  const tieneNequi = nequi_telefono;
 
-  if (!tienePagoMovil && !tieneZelle && !tieneUsdt) {
+  if (!tienePagoMovil && !tieneZelle && !tieneUsdt && !tieneBancolombia && !tieneNequi) {
     return res.status(400).json({
       ok: false,
-      error: 'Debes registrar al menos un método: Pago Móvil, Zelle o USDT.',
+      error: 'Debes registrar al menos un método de pago.',
     });
   }
 
@@ -80,6 +87,11 @@ router.post('/guardar', async (req, res) => {
     zelle_telefono: zelle_telefono || null,
     wallet_usdt: wallet_usdt || null,
     red_usdt: red_usdt || 'TRC20',
+    bancolombia_cuenta: bancolombia_cuenta || null,
+    bancolombia_titular: bancolombia_titular || null,
+    bancolombia_cc: bancolombia_cc || null,
+    nequi_telefono: nequi_telefono || null,
+    nequi_titular: nequi_titular || null,
     actualizado_en: new Date().toISOString(),
   };
 

@@ -18,6 +18,11 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
   const [zelleTelefono, setZelleTelefono] = useState('');
   const [walletUsdt, setWalletUsdt] = useState('');
   const [redUsdt, setRedUsdt] = useState('TRC20');
+  const [bancolombiaCuenta, setBancolombiaCuenta] = useState('');
+  const [bancolombiaTitular, setBancolombiaTitular] = useState('');
+  const [bancolombiaCC, setBancolombiaCC] = useState('');
+  const [nequiTelefono, setNequiTelefono] = useState('');
+  const [nequiTitular, setNequiTitular] = useState('');
 
   useEffect(() => { cargarDatos(); }, []);
 
@@ -35,6 +40,11 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
         setZelleTelefono(d.zelle_telefono || '');
         setWalletUsdt(d.wallet_usdt || '');
         setRedUsdt(d.red_usdt || 'TRC20');
+        setBancolombiaCuenta(d.bancolombia_cuenta || '');
+        setBancolombiaTitular(d.bancolombia_titular || '');
+        setBancolombiaCC(d.bancolombia_cc || '');
+        setNequiTelefono(d.nequi_telefono || '');
+        setNequiTitular(d.nequi_titular || '');
       }
     } catch {}
     setCargando(false);
@@ -44,9 +54,11 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
     const tienePagoMovil = telefonoPagoMovil || numeroCuenta;
     const tieneZelle = zelleEmail || zelleTelefono;
     const tieneUsdt = walletUsdt;
+    const tieneBancolombia = bancolombiaCuenta || bancolombiaTitular;
+    const tieneNequi = nequiTelefono;
 
-    if (!tienePagoMovil && !tieneZelle && !tieneUsdt) {
-      Alert.alert('Error', 'Debes registrar al menos un método: Pago Móvil, Zelle o USDT');
+    if (!tienePagoMovil && !tieneZelle && !tieneUsdt && !tieneBancolombia && !tieneNequi) {
+      Alert.alert('Error', 'Debes registrar al menos un método de pago');
       return;
     }
 
@@ -64,6 +76,11 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
           zelle_telefono: zelleTelefono || null,
           wallet_usdt: walletUsdt || null,
           red_usdt: redUsdt,
+          bancolombia_cuenta: bancolombiaCuenta || null,
+          bancolombia_titular: bancolombiaTitular || null,
+          bancolombia_cc: bancolombiaCC || null,
+          nequi_telefono: nequiTelefono || null,
+          nequi_titular: nequiTitular || null,
         })
       });
       const data = await res.json();
@@ -89,6 +106,26 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
       <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
         <Text style={styles.titulo}>🏦 Datos Bancarios</Text>
         <Text style={styles.subtitulo}>Registra al menos un método para recibir pagos</Text>
+
+        {/* BANCOLOMBIA */}
+        <View style={styles.seccion}>
+          <Text style={styles.seccionTitulo}>🏦 Bancolombia</Text>
+          <Text style={styles.label}>Número de cuenta</Text>
+          <TextInput style={styles.input} placeholder="Ej: 08810657384" placeholderTextColor="#888" value={bancolombiaCuenta} onChangeText={setBancolombiaCuenta} keyboardType="numeric" />
+          <Text style={styles.label}>Titular</Text>
+          <TextInput style={styles.input} placeholder="Nombre completo" placeholderTextColor="#888" value={bancolombiaTitular} onChangeText={setBancolombiaTitular} />
+          <Text style={styles.label}>Cédula</Text>
+          <TextInput style={styles.input} placeholder="Ej: 1234567890" placeholderTextColor="#888" value={bancolombiaCC} onChangeText={setBancolombiaCC} keyboardType="numeric" />
+        </View>
+
+        {/* NEQUI */}
+        <View style={styles.seccion}>
+          <Text style={styles.seccionTitulo}>📱 Nequi</Text>
+          <Text style={styles.label}>Número de teléfono</Text>
+          <TextInput style={styles.input} placeholder="Ej: 3113003100" placeholderTextColor="#888" value={nequiTelefono} onChangeText={setNequiTelefono} keyboardType="phone-pad" maxLength={10} />
+          <Text style={styles.label}>Titular</Text>
+          <TextInput style={styles.input} placeholder="Nombre completo" placeholderTextColor="#888" value={nequiTitular} onChangeText={setNequiTitular} />
+        </View>
 
         {/* PAGO MÓVIL */}
         <View style={styles.seccion}>
