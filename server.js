@@ -46,6 +46,10 @@ app.get('/privacidad', (req, res) => {
   res.sendFile(__dirname + '/public/privacidad.html');
 });
 
+app.get('/login', (req, res) => {
+  res.sendFile(__dirname + '/public/solicitar.html');
+});
+
 // Health check
 app.get('/api/health', async (req, res) => {
   try {
