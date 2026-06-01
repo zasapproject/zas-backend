@@ -910,21 +910,66 @@ if (page === 'retiros') cargarRetiros();
       const data = await res.json();
       if (!data.ok || !data.pagos || !data.pagos.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">No hay pagos</div></div>`; return; }
       lista.innerHTML = data.pagos.map(p => `
-        <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid var(--gold)">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="background:#16213e;border-radius:12px;padding:16px;margin-bottom:8px;border-left:4px solid ${p.estado==='en_revision'?'var(--gold)':p.estado==='activa'?'var(--green)':'#444'}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
             <div>
               <h4 style="color:#fff;margin:0">${p.conductor_nombre||'—'}</h4>
               <p style="color:#888;margin:4px 0;font-size:13px">${p.conductor_telefono||'—'}</p>
               <p style="color:#aaa;margin:0;font-size:12px">Método: ${p.metodo_pago||'—'}</p>
+              <p style="color:#aaa;margin:4px 0;font-size:12px">${new Date(p.created_at).toLocaleDateString('es-VE')}</p>
+              ${p.referencia?`<p style="color:#aaa;font-size:12px;margin:4px 0">Ref: ${p.referencia}</p>`:''}
+              <span style="background:${p.estado==='en_revision'?'rgba(255,215,0,0.15)':p.estado==='activa'?'rgba(0,230,118,0.15)':'rgba(100,100,100,0.15)'};color:${p.estado==='en_revision'?'var(--gold)':p.estado==='activa'?'var(--green)':'#888'};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace">${(p.estado||'pendiente').toUpperCase()}</span>
             </div>
-            <div style="text-align:right">
-              <p style="color:var(--gold);font-weight:bold;margin:0">$${p.monto?Number(p.monto).toLocaleString():'—'} ${p.moneda||''}</p>
-              <p style="color:#888;font-size:12px;margin:4px 0">${new Date(p.created_at).toLocaleDateString('es-VE')}</p>
-              <p style="color:#aaa;font-size:11px;margin:0">Hasta: ${new Date(p.suscripcion_hasta).toLocaleDateString('es-VE')}</p>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <p style="color:var(--gold);font-weight:bold;margin:0;font-size:18px">$${p.monto?Number(p.monto).toLocaleString():'—'} ${p.moneda||''}</p>
+              ${p.suscripcion_hasta?`<p style="color:#aaa;font-size:11px;margin:0">Hasta: ${new Date(p.suscripcion_hasta).toLocaleDateString('es-VE')}</p>`:''}
+              ${p.comprobante_url?`
+                <img src="${p.comprobante_url}" onclick="abrirLightbox('${p.comprobante_url}')"
+                  style="width:100px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--gold);cursor:pointer;transition:transform 0.2s"
+                  onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
+                />`:'<div style="width:100px;height:70px;background:#1a1a28;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px">Sin foto</div>'}
             </div>
           </div>
+          ${p.estado==='en_revision'?`
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button onclick="aprobarSuscripcion('${p.id}','${p.conductor_id}')"
+              style="flex:1;background:var(--green);color:#0a0a0f;border:none;border-radius:10px;padding:12px;cursor:pointer;font-weight:800;font-family:'Syne',sans-serif;font-size:14px">
+              ✅ Aprobar y activar
+            </button>
+            <button onclick="rechazarSuscripcion('${p.id}')"
+              style="flex:1;background:transparent;color:var(--red);border:1px solid var(--red);border-radius:10px;padding:12px;cursor:pointer;font-weight:700;font-family:'Syne',sans-serif;font-size:14px">
+              ❌ Rechazar
+            </button>
+          </div>`:''}
         </div>`).join('');
     } catch { lista.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
+  }
+
+  async function aprobarSuscripcion(pagoId, conductorId) {
+    if (!confirm('¿Aprobar este comprobante y activar la suscripción del conductor?')) return;
+    try {
+      const res = await fetch(`${API}/api/suscripciones/activar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
+        body: JSON.stringify({ conductor_id: conductorId, metodo_pago: 'digital', monto: 20000 })
+      });
+      const data = await res.json();
+      if (data.success) { mostrarToast('✅ Suscripción activada: ' + data.mensaje); cargarPagosSuscripcion(); }
+      else mostrarToast('❌ Error: ' + (data.error || 'No se pudo activar'));
+    } catch { mostrarToast('❌ Error de conexión'); }
+  }
+
+  async function rechazarSuscripcion(pagoId) {
+    if (!confirm('¿Rechazar este comprobante?')) return;
+    try {
+      await fetch(`${API}/api/suscripciones/subir-comprobante/${pagoId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
+        body: JSON.stringify({ comprobante_url: null, referencia: 'RECHAZADO' })
+      });
+      mostrarToast('❌ Comprobante rechazado');
+      cargarPagosSuscripcion();
+    } catch { mostrarToast('❌ Error de conexión'); }
   }
 
   // ═══════════════════════════════════════════
