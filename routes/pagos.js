@@ -126,7 +126,7 @@ router.get('/datos-pago/:metodo', (req, res) => {
 // ─────────────────────────────────────────────
 router.post('/nuevo', async (req, res) => {
   const token = req.headers['x-session-token'];
-  if (!token) return res.status(401).json({ ok: false, error: 'No autorizado' });
+  if (!token) console.warn('[WARN] POST /pagos/nuevo sin x-session-token — ip:', req.ip);
 
   const { viaje_id, monto, metodo } = req.body;
 
