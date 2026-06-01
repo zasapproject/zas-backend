@@ -19,7 +19,7 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ ok: false, error: 'Credenciales incorrectas' });
   }
 
-  const token = jwt.sign({ rol: 'admin', usuario }, JWT_SECRET, { expiresIn: '8h' });
+  const token = jwt.sign({ rol: 'admin', usuario }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ ok: true, token });
 });
 // ─────────────────────────────────────────────
