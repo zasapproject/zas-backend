@@ -125,6 +125,9 @@ router.get('/datos-pago/:metodo', (req, res) => {
 // Crea el registro de pago al inicio del viaje
 // ─────────────────────────────────────────────
 router.post('/nuevo', async (req, res) => {
+  const token = req.headers['x-session-token'];
+  if (!token) return res.status(401).json({ ok: false, error: 'No autorizado' });
+
   const { viaje_id, monto, metodo } = req.body;
 
   if (!viaje_id || !monto || !metodo) {

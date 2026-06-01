@@ -188,7 +188,7 @@ router.get('/buscar/:telefono', async (req, res) => {
 // ─────────────────────────────────────────────
 // Todos los conductores
 // ─────────────────────────────────────────────
-router.get('/todos', async (req, res) => {
+router.get('/todos', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
@@ -309,7 +309,7 @@ router.get('/ubicacion/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Calificar conductor
 // ─────────────────────────────────────────────
-router.patch('/calificar/:id', async (req, res) => {
+router.patch('/calificar/:id', authAdmin, async (req, res) => {
   const { calificacion } = req.body;
 
   if (!calificacion || calificacion < 1 || calificacion > 5) {
@@ -414,7 +414,7 @@ router.patch('/push-token/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Notificar vencimientos
 // ─────────────────────────────────────────────
-router.post('/notificar-vencimientos', async (req, res) => {
+router.post('/notificar-vencimientos', authAdmin, async (req, res) => {
   const en3dias = new Date();
   en3dias.setDate(en3dias.getDate() + 3);
 

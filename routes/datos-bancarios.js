@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
 
-router.get('/:conductor_id', async (req, res) => {
+router.get('/:conductor_id', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('datos_bancarios_conductor')

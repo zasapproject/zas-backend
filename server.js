@@ -24,7 +24,11 @@ const adminRouter = require('./routes/admin');
 // Iniciar app
 const app = express();
 app.set('trust proxy', 1);
-app.use(cors());
+app.use(cors({
+  origin: ['https://zasapps.com', 'https://admin.zasapps.com'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-token', 'x-admin-key'],
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

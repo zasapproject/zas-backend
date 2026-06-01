@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
+const authUsuario = require('../middleware/authUsuario');
 
 // ─────────────────────────────────────────────
 // Rate limiting
@@ -256,7 +258,7 @@ router.get('/buscar/:telefono', async (req, res) => {
 // ─────────────────────────────────────────────
 // Subir documento del usuario
 // ─────────────────────────────────────────────
-router.patch('/documentos/:id', async (req, res) => {
+router.patch('/documentos/:id', authUsuario, async (req, res) => {
   const { foto_cedula } = req.body;
   try {
     const { data, error } = await supabase
@@ -275,7 +277,7 @@ router.patch('/documentos/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Obtener todos los usuarios
 // ─────────────────────────────────────────────
-router.get('/todos', async (req, res) => {
+router.get('/todos', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usuarios')
@@ -292,7 +294,7 @@ router.get('/todos', async (req, res) => {
 // ─────────────────────────────────────────────
 // Editar perfil usuario
 // ─────────────────────────────────────────────
-router.patch('/perfil/:id', async (req, res) => {
+router.patch('/perfil/:id', authUsuario, async (req, res) => {
   const { telefono, email, foto_url } = req.body;
   try {
     const { data, error } = await supabase
@@ -334,7 +336,7 @@ router.patch('/reset-password/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Guardar push token usuario
 // ─────────────────────────────────────────────
-router.patch('/push-token/:id', async (req, res) => {
+router.patch('/push-token/:id', authUsuario, async (req, res) => {
   const { push_token } = req.body;
   try {
     const { data, error } = await supabase
