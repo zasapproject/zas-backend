@@ -62,13 +62,22 @@ router.post('/activar', authAdmin, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  await supabase.from('pagos_suscripcion').insert({
-    conductor_id,
-    monto: monto || 20000,
-    moneda: 'COP',
-    metodo_pago: metodo_pago || 'efectivo',
-    suscripcion_hasta: nueva_fecha.toISOString()
-  });
+  // Si el pago viene de comprobante digital, actualizar estado a activa
+  if (metodo_pago !== 'efectivo') {
+    await supabase
+      .from('pagos_suscripcion')
+      .update({ estado: 'activa', suscripcion_hasta: nueva_fecha.toISOString() })
+      .eq('conductor_id', conductor_id)
+      .eq('estado', 'en_revision');
+  } else {
+    await supabase.from('pagos_suscripcion').insert({
+      conductor_id,
+      monto: monto || 20000,
+      moneda: 'COP',
+      metodo_pago: metodo_pago || 'efectivo',
+      suscripcion_hasta: nueva_fecha.toISOString()
+    });
+  }
 
   res.json({
     success: true,
