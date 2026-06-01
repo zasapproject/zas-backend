@@ -554,7 +554,9 @@ if (page === 'retiros') cargarRetiros();
     const idParaActivar = conductorSeleccionado;
     cerrarModal();
     try {
-      const check = await fetch(`${API}/api/suscripciones/estado/${idParaActivar}`);
+      const check = await fetch(`${API}/api/suscripciones/estado/${idParaActivar}`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const estado = await check.json();
       if (estado.activo && estado.dias_restantes > 5) {
         mostrarToast('⚠️ Este conductor ya tiene suscripción activa (' + estado.dias_restantes + ' días restantes)');
@@ -643,11 +645,11 @@ if (page === 'retiros') cargarRetiros();
       let res;
       if (id) {
         res = await fetch(`${API}/api/tarifas/municipios/${id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+          method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify(payload)
         });
       } else {
         res = await fetch(`${API}/api/tarifas/municipios`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify(payload)
         });
       }
       const data = await res.json();
@@ -664,7 +666,7 @@ if (page === 'retiros') cargarRetiros();
   async function toggleActivoTarifa(id, activo) {
     try {
       const res = await fetch(`${API}/api/tarifas/municipios/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
         body: JSON.stringify({ activo: !activo })
       });
       const data = await res.json();
@@ -675,7 +677,7 @@ if (page === 'retiros') cargarRetiros();
   async function eliminarTarifa(id, nombre) {
     if (!confirm('¿Eliminar la tarifa de ' + nombre + '? Esta acción no se puede deshacer.')) return;
     try {
-      const res = await fetch(`${API}/api/tarifas/municipios/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API}/api/tarifas/municipios/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` } });
       const data = await res.json();
       if (data.ok) { mostrarToast('🗑️ Municipio eliminado'); cargarTarifas(); }
       else mostrarToast('❌ ' + (data.error || 'Error al eliminar'));
@@ -686,7 +688,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-tarifas');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando tarifas...</div>`;
     try {
-      const res = await fetch(`${API}/api/tarifas/municipios`);
+      const res = await fetch(`${API}/api/tarifas/municipios`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       tarifasData = data.municipios || [];
       const activos = tarifasData.filter(m => m.activo).length;
@@ -749,7 +753,9 @@ if (page === 'retiros') cargarRetiros();
   async function cargarViajes() {
     document.getElementById('viajes-table').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando viajes...</div>`;
     try {
-      const res = await fetch(`${API}/api/viajes`);
+      const res = await fetch(`${API}/api/viajes`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       const viajes = data.viajes || [];
       if (!viajes.length) { document.getElementById('viajes-table').innerHTML = `<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">No hay viajes</div></div>`; return; }
@@ -778,7 +784,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-usuarios');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando usuarios...</div>`;
     try {
-      const res = await fetch(`${API}/api/usuarios/todos`);
+      const res = await fetch(`${API}/api/usuarios/todos`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       if (!data.ok || !data.usuarios.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">No hay usuarios</div></div>`; return; }
       lista.innerHTML = `<p style="color:var(--muted);margin-bottom:16px;font-family:'Space Mono',monospace;font-size:12px">TOTAL: ${data.total} usuarios</p>` +
@@ -858,7 +866,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-vencimientos');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando...</div>`;
     try {
-      const res = await fetch(`${API}/api/suscripciones/vencimientos`);
+      const res = await fetch(`${API}/api/suscripciones/vencimientos`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       if (!data.conductores || !data.conductores.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay vencimientos próximos</div></div>`; return; }
       lista.innerHTML = data.conductores.map(c => `
@@ -894,7 +904,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-pagos-suscripcion');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando pagos...</div>`;
     try {
-      const res = await fetch(`${API}/api/suscripciones/historial`);
+      const res = await fetch(`${API}/api/suscripciones/historial`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       if (!data.ok || !data.pagos || !data.pagos.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">No hay pagos</div></div>`; return; }
       lista.innerHTML = data.pagos.map(p => `
@@ -922,7 +934,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-soporte');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando mensajes...</div>`;
     try {
-      const res = await fetch(`${API}/api/soporte/todos`);
+      const res = await fetch(`${API}/api/soporte/todos`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       if (!data.ok || !data.mensajes || !data.mensajes.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">🆘</div><div class="empty-text">No hay mensajes</div></div>`; return; }
       lista.innerHTML = data.mensajes.map(m => `
@@ -946,7 +960,7 @@ if (page === 'retiros') cargarRetiros();
 
   async function resolverSoporte(id) {
     try {
-      const res = await fetch(`${API}/api/soporte/resolver/${id}`, { method: 'PATCH' });
+      const res = await fetch(`${API}/api/soporte/resolver/${id}`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` } });
       const data = await res.json();
       if (data.ok) { mostrarToast('✅ Marcado como resuelto'); cargarSoporte(); }
     } catch { mostrarToast('❌ Error de conexión'); }
@@ -959,7 +973,7 @@ if (page === 'retiros') cargarRetiros();
     const nueva = prompt('Nueva contraseña para ' + nombre + ':');
     if (!nueva || nueva.length < 4) { alert('Mínimo 4 caracteres'); return; }
     try {
-      const res = await fetch(`${API}/api/usuarios/reset-password/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: nueva }) });
+      const res = await fetch(`${API}/api/usuarios/reset-password/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify({ password: nueva }) });
       const data = await res.json();
       if (data.ok) mostrarToast('✅ Contraseña actualizada');
       else mostrarToast('❌ Error: ' + data.error);
@@ -970,7 +984,7 @@ if (page === 'retiros') cargarRetiros();
     const nueva = prompt('Nueva contraseña para ' + nombre + ':');
     if (!nueva || nueva.length < 4) { alert('Mínimo 4 caracteres'); return; }
     try {
-      const res = await fetch(`${API}/api/conductores/reset-password/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: nueva }) });
+      const res = await fetch(`${API}/api/conductores/reset-password/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify({ password: nueva }) });
       const data = await res.json();
       if (data.ok) mostrarToast('✅ Contraseña actualizada');
       else mostrarToast('❌ Error: ' + data.error);
@@ -1002,7 +1016,7 @@ function mostrarRecuperacion() {
     try {
       const res = await fetch(`${API}/api/admin/solicitar-reset`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
         body: JSON.stringify({ correo })
       });
       const data = await res.json();
@@ -1025,7 +1039,7 @@ function mostrarRecuperacion() {
     try {
       const res = await fetch(`${API}/api/admin/confirmar-reset`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
         body: JSON.stringify({ codigo, nueva_password: 'ZAS' + Math.random().toString(36).slice(-4).toUpperCase() })
       });
       const data = await res.json();
@@ -1048,9 +1062,10 @@ async function cargarPagosDigitales() {
   const lista = document.getElementById('lista-pagos-digitales');
   lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando pagos...</div>`;
   try {
+    const authHeader = { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` };
     const [revRes, todosRes] = await Promise.all([
-      fetch(`${API}/api/pagos/en-revision`),
-      fetch(`${API}/api/pagos?limit=100`)
+      fetch(`${API}/api/pagos/en-revision`, { headers: authHeader }),
+      fetch(`${API}/api/pagos?limit=100`, { headers: authHeader })
     ]);
     const revData = await revRes.json();
     const todosData = await todosRes.json();
@@ -1110,7 +1125,7 @@ async function cargarPagosDigitales() {
 async function confirmarPagoDigital(id) {
   if (!confirm('¿Confirmar este pago? Se acreditará el saldo al conductor automáticamente.')) return;
   try {
-    const res = await fetch(`${API}/api/pagos/confirmar/${id}`, { method: 'PATCH' });
+    const res = await fetch(`${API}/api/pagos/confirmar/${id}`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` } });
     const data = await res.json();
     if (data.ok) { mostrarToast('✅ Pago confirmado — saldo acreditado al conductor'); cargarPagosDigitales(); }
     else mostrarToast('❌ Error: ' + data.error);
@@ -1122,7 +1137,7 @@ async function rechazarPagoDigital(id) {
   try {
     const res = await fetch(`${API}/api/pagos/rechazar/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` },
       body: JSON.stringify({ motivo })
     });
     const data = await res.json();
@@ -1138,7 +1153,9 @@ async function cargarRetiros() {
   const lista = document.getElementById('lista-retiros');
   lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando retiros...</div>`;
   try {
-    const res = await fetch(`${API}/api/saldo/retiros/pendientes`);
+    const res = await fetch(`${API}/api/saldo/retiros/pendientes`, {
+      headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+    });
     const data = await res.json();
     const retiros = data.retiros || [];
 
@@ -1210,7 +1227,7 @@ async function cargarRetiros() {
 async function aprobarRetiro(id) {
   if (!confirm('¿Confirmar que ya transferiste el dinero al conductor?')) return;
   try {
-    const res = await fetch(`${API}/api/saldo/retiro/aprobar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const res = await fetch(`${API}/api/saldo/retiro/aprobar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify({}) });
     const data = await res.json();
     if (data.ok) { mostrarToast('✅ Retiro aprobado y procesado'); cargarRetiros(); }
     else mostrarToast('❌ Error: ' + data.error);
@@ -1220,7 +1237,7 @@ async function aprobarRetiro(id) {
 async function rechazarRetiro(id) {
   const motivo = prompt('Motivo del rechazo:') || 'Rechazado por admin';
   try {
-    const res = await fetch(`${API}/api/saldo/retiro/rechazar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motivo }) });
+    const res = await fetch(`${API}/api/saldo/retiro/rechazar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }, body: JSON.stringify({ motivo }) });
     const data = await res.json();
     if (data.ok) { mostrarToast('Retiro rechazado — saldo devuelto al conductor'); cargarRetiros(); }
     else mostrarToast('❌ Error: ' + data.error);
@@ -1232,10 +1249,11 @@ async function rechazarRetiro(id) {
   async function cargarMonitor() {
     const tabla = document.getElementById('monitor-table');
     try {
+      const monAuthHeader = { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` };
       const [viajesRes, conductoresRes, pagosRes] = await Promise.all([
-        fetch(`${API}/api/viajes`),
-        fetch(`${API}/api/conductores/disponibles`),
-        fetch(`${API}/api/pagos/en-revision`)
+        fetch(`${API}/api/viajes`, { headers: monAuthHeader }),
+        fetch(`${API}/api/conductores/disponibles`, { headers: monAuthHeader }),
+        fetch(`${API}/api/pagos/en-revision`, { headers: monAuthHeader })
       ]);
       const viajesData = await viajesRes.json();
       const conductoresData = await conductoresRes.json();
