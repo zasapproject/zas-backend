@@ -499,7 +499,9 @@ if (page === 'retiros') cargarRetiros();
   async function cargarConductores() {
     document.getElementById('conductores-table').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando conductores...</div>`;
     try {
-      const res = await fetch(`${API}/api/conductores/todos`);
+      const res = await fetch(`${API}/api/conductores/todos`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       conductoresData = data.conductores || [];
       renderConductores(conductoresData);
@@ -805,7 +807,9 @@ if (page === 'retiros') cargarRetiros();
     const lista = document.getElementById('lista-documentos');
     lista.innerHTML = `<div class="loading"><div class="spinner"></div>Cargando documentos...</div>`;
     try {
-      const res = await fetch(`${API}/api/conductores/todos`);
+      const res = await fetch(`${API}/api/conductores/todos`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}` }
+      });
       const data = await res.json();
       if (!data.ok || !data.conductores.length) { lista.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No hay conductores</div></div>`; return; }
       lista.innerHTML = data.conductores.map(c => `
@@ -834,7 +838,14 @@ if (page === 'retiros') cargarRetiros();
 
   async function verificarConductor(id, aprobado) {
     try {
-      const res = await fetch(`${API}/api/conductores/verificar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentos_verificados: aprobado }) });
+      const res = await fetch(`${API}/api/conductores/verificar/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}`
+        },
+        body: JSON.stringify({ documentos_verificados: aprobado })
+      });
       const data = await res.json();
       if (data.ok) { mostrarToast(aprobado?'✅ Conductor aprobado':'❌ Conductor rechazado'); cargarDocumentos(); }
     } catch { mostrarToast('❌ Error de conexión'); }
