@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
 const { emailConductorAprobado } = require('../mailer');
 
 // ─────────────────────────────────────────────
@@ -370,7 +371,7 @@ router.patch('/documentos/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Verificar documentos del conductor
 // ─────────────────────────────────────────────
-router.patch('/verificar/:id', async (req, res) => {
+router.patch('/verificar/:id', authAdmin, async (req, res) => {
   const { documentos_verificados } = req.body;
   try {
     const { data, error } = await supabase
@@ -553,10 +554,11 @@ router.post('/recuperar-password', async (req, res) => {
     }
 
     const nueva = Math.random().toString(36).slice(-6).toUpperCase();
+    const nuevaHash = await bcrypt.hash(nueva, 10);
 
     await supabase
       .from('conductores')
-      .update({ password: nueva, contrasena_temporal: true })
+      .update({ password: nuevaHash, contrasena_temporal: true })
       .eq('id', data.id);
 
     await fetch('https://api.brevo.com/v3/smtp/email', {

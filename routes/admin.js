@@ -64,6 +64,6 @@ router.post('/confirmar-reset', (req, res) => {
   }
 
   delete codigos['admin'];
-  res.json({ ok: true, nueva_password, mensaje: 'Código correcto. Actualiza ADMIN_PASS en Railway con esta contraseña.' });
+  res.json({ ok: true, mensaje: 'Código correcto. Actualiza ADMIN_PASS en Railway manualmente.' });
 });
 module.exports = router;

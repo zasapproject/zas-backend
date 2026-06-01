@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
 const { notificarRetiroAprobado, notificarRetiroRechazado } = require('../notificaciones');
 
 // ─────────────────────────────────────────────
@@ -120,7 +121,7 @@ router.post('/retiro/solicitar', async (req, res) => {
 // GET /api/saldo/retiros/pendientes
 // Admin ve todos los retiros por aprobar
 // ─────────────────────────────────────────────
-router.get('/retiros/pendientes', async (req, res) => {
+router.get('/retiros/pendientes', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('retiros')
@@ -139,7 +140,7 @@ router.get('/retiros/pendientes', async (req, res) => {
 // PATCH /api/saldo/retiro/aprobar/:id
 // Admin aprueba y procesa el retiro
 // ─────────────────────────────────────────────
-router.patch('/retiro/aprobar/:id', async (req, res) => {
+router.patch('/retiro/aprobar/:id', authAdmin, async (req, res) => {
   const { comprobante_url } = req.body;
 
   try {
@@ -193,7 +194,7 @@ router.patch('/retiro/aprobar/:id', async (req, res) => {
 // PATCH /api/saldo/retiro/rechazar/:id
 // Admin rechaza un retiro y devuelve el saldo
 // ─────────────────────────────────────────────
-router.patch('/retiro/rechazar/:id', async (req, res) => {
+router.patch('/retiro/rechazar/:id', authAdmin, async (req, res) => {
   const { motivo } = req.body;
 
   try {

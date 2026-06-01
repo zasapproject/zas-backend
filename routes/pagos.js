@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
 const { notificarPagoAprobado, notificarPagoRechazado } = require('../notificaciones');
 
 // ─────────────────────────────────────────────
@@ -274,7 +275,7 @@ router.post('/subir-comprobante/:id', async (req, res) => {
 // Admin de ZAS confirma el pago manualmente
 // Acredita saldo al conductor automáticamente
 // ─────────────────────────────────────────────
-router.patch('/confirmar/:id', async (req, res) => {
+router.patch('/confirmar/:id', authAdmin, async (req, res) => {
   try {
     const { data: pago, error: pagoError } = await supabase
       .from('pagos')
@@ -350,7 +351,7 @@ router.patch('/confirmar/:id', async (req, res) => {
 // PATCH /api/pagos/rechazar/:id
 // Admin rechaza un comprobante inválido
 // ─────────────────────────────────────────────
-router.patch('/rechazar/:id', async (req, res) => {
+router.patch('/rechazar/:id', authAdmin, async (req, res) => {
   const { motivo } = req.body;
   try {
     const { data, error } = await supabase
@@ -385,7 +386,7 @@ router.patch('/rechazar/:id', async (req, res) => {
 // GET /api/pagos/en-revision
 // Admin ve todos los pagos con comprobante esperando confirmación
 // ─────────────────────────────────────────────
-router.get('/en-revision', async (req, res) => {
+router.get('/en-revision', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pagos')
@@ -423,7 +424,7 @@ router.get('/viaje/:viaje_id', async (req, res) => {
 // GET /api/pagos/
 // Dashboard admin — todos los pagos paginados
 // ─────────────────────────────────────────────
-router.get('/', async (req, res) => {
+router.get('/', authAdmin, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const from = (page - 1) * limit;

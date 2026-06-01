@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const authAdmin = require('../middleware/authAdmin');
 
 
 // GET /suscripciones/estado/:conductorId
@@ -31,7 +32,7 @@ router.get('/estado/:conductorId', async (req, res) => {
 });
 
 // POST /suscripciones/activar
-router.post('/activar', async (req, res) => {
+router.post('/activar', authAdmin, async (req, res) => {
   const { conductor_id, metodo_pago, monto } = req.body;
 
   if (!conductor_id) {
