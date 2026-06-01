@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZAS — Tu mototaxi al instante</title>
+<meta name="description" content="ZAS es la primera app de mototaxi de Venezuela. Solicita tu moto en segundos. Conductores verificados, tarifas justas, pagos digitales.">
+<meta name="keywords" content="mototaxi venezuela, app mototaxi táchira, ZAS mototaxi, transporte Venezuela">
+<meta property="og:title" content="ZAS — Tu mototaxi al instante">
+<meta property="og:description" content="La primera app de mototaxi de Venezuela. Rápido, seguro y justo.">
+<meta property="og:image" content="https://i.ibb.co/7dRB6sZ7/123830.png">
+<link rel="icon" href="https://i.ibb.co/QjPWzGcM/142910.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0D1117;--bg2:#161D2B;--bg3:#1C2A40;--yellow:#F5C518;--yellow2:#FFD93D;--cyan:#00D4FF;--green:#39FF14;--text:#E8EDF5;--muted:#6B7A99;--border:rgba(245,197,24,0.15);--glow:rgba(245,197,24,0.3);--font:'Sora',sans-serif;--mono:'Space Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--yellow);border-radius:2px}
+
+nav{position:fixed;top:0;width:100%;z-index:100;padding:0 5%;height:70px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,17,23,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:all .3s}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo img{height:36px}
+.nav-logo span{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--yellow);letter-spacing:2px}
+.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem;font-weight:600;letter-spacing:.5px;transition:color .2s;text-transform:uppercase}
+.nav-links a:hover{color:var(--yellow)}
+.nav-cta{background:var(--yellow)!important;color:#000!important;padding:8px 20px;border-radius:6px;font-weight:700!important}
+.nav-cta:hover{background:var(--yellow2)!important}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px}
+.hamburger span{display:block;width:24px;height:2px;background:var(--yellow);transition:all .3s}
+.mobile-menu{display:none;position:fixed;top:70px;left:0;right:0;background:rgba(13,17,23,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:99;padding:24px 5%;flex-direction:column;gap:16px}
+.mobile-menu.open{display:flex}
+.mobile-menu a{color:var(--muted);text-decoration:none;font-weight:600;font-size:1rem;padding:8px 0;border-bottom:1px solid var(--border);transition:color .2s}
+.mobile-menu a:hover{color:var(--yellow)}
+
+#hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:80px 5% 0}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(245,197,24,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,197,24,.04) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at 50% 50%,black 30%,transparent 80%)}
+.hero-glow{position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(245,197,24,.1) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.hero-content{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1200px;margin:0 auto;width:100%}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(245,197,24,.1);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-size:.75rem;font-weight:600;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:24px;animation:fadeInUp .6s ease both}
+.hero-badge-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+.hero-title{font-size:clamp(3rem,6vw,5.5rem);font-weight:800;line-height:1.0;letter-spacing:-2px;animation:fadeInUp .6s .1s ease both}
+.hero-title .yellow{color:var(--yellow)}
+.hero-title .grad{background:linear-gradient(135deg,#F5C518,#39FF14,#00D4FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{margin-top:20px;font-size:1.1rem;color:var(--muted);line-height:1.7;max-width:480px;animation:fadeInUp .6s .2s ease both}
+.hero-buttons{display:flex;gap:14px;margin-top:36px;flex-wrap:wrap;animation:fadeInUp .6s .3s ease both}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:#000;font-family:var(--font);font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:8px;text-decoration:none;transition:all .2s;border:none;cursor:pointer}
+.btn-primary:hover{background:var(--yellow2);transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+.btn-outline{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--yellow);font-family:var(--font);font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:8px;text-decoration:none;border:1.5px solid var(--yellow);transition:all .2s;cursor:pointer}
+.btn-outline:hover{background:rgba(245,197,24,.08);transform:translateY(-2px)}
+.hero-stats{display:flex;gap:32px;margin-top:44px;animation:fadeInUp .6s .4s ease both}
+.stat-num{font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--yellow)}
+.stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+.hero-phones{position:relative;display:flex;justify-content:center;align-items:center;height:600px;animation:fadeInRight .8s .3s ease both}
+.phone-wrap{position:relative;width:200px}
+.phone-wrap.main{width:220px;z-index:3}
+.phone-wrap.back-left{position:absolute;left:-40px;top:40px;width:180px;z-index:2;opacity:.7;transform:rotate(-8deg)}
+.phone-wrap.back-right{position:absolute;right:-40px;top:60px;width:180px;z-index:2;opacity:.7;transform:rotate(8deg)}
+.phone-frame{background:var(--bg3);border-radius:36px;border:2px solid rgba(245,197,24,.25);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05);position:relative}
+.phone-frame::before{content:'';position:absolute;top:12px;left:50%;transform:translateX(-50%);width:60px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;z-index:10}
+.phone-frame img{width:100%;display:block}
+.phone-glow{position:absolute;inset:-20px;background:radial-gradient(ellipse,rgba(245,197,24,.15) 0%,transparent 70%);pointer-events:none}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.phone-wrap.main{animation:float 4s ease-in-out infinite}
+.phone-wrap.back-left{animation:float 4s .5s ease-in-out infinite}
+.phone-wrap.back-right{animation:float 4s 1s ease-in-out infinite}
+
+section{padding:100px 5%}
+.section-label{font-family:var(--mono);font-size:.7rem;color:var(--yellow);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.section-title{font-size:clamp(2rem,4vw,3rem);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:16px}
+.section-sub{color:var(--muted);font-size:1rem;line-height:1.7;max-width:540px}
+.max-w{max-width:1200px;margin:0 auto}
+
+#como-funciona{background:var(--bg2)}
+.tabs{display:flex;margin:48px 0 56px;background:var(--bg3);border-radius:10px;padding:4px;width:fit-content;border:1px solid var(--border)}
+.tab-btn{padding:10px 28px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:var(--font);font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--yellow);color:#000}
+.tab-content{display:none}
+.tab-content.active{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.steps{display:flex;flex-direction:column;gap:28px}
+.step{display:flex;gap:20px;align-items:flex-start;padding:20px;border-radius:12px;border:1px solid transparent;transition:all .3s}
+.step:hover{background:rgba(245,197,24,.04);border-color:var(--border);transform:translateX(4px)}
+.step-num{flex-shrink:0;width:36px;height:36px;background:rgba(245,197,24,.1);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--yellow)}
+.step-text h4{font-weight:700;font-size:1rem;margin-bottom:4px}
+.step-text p{color:var(--muted);font-size:.875rem;line-height:1.6}
+.phone-showcase{display:flex;justify-content:center}
+.phone-showcase .phone-frame{width:240px;border-radius:40px}
+
+#mision{background:var(--bg)}
+.mv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:56px}
+.mv-card{padding:32px;background:var(--bg2);border-radius:16px;border:1px solid var(--border);position:relative;overflow:hidden;transition:all .3s}
+.mv-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--yellow),transparent)}
+.mv-card:hover{transform:translateY(-4px);border-color:rgba(245,197,24,.35);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mv-icon{width:48px;height:48px;background:rgba(245,197,24,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px}
+.mv-card h3{font-family:var(--mono);font-size:.85rem;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.mv-card p{color:var(--muted);font-size:.9rem;line-height:1.7}
+
+#tarifas{background:var(--bg2)}
+.tarifas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:56px}
+.tarifa-card{background:var(--bg3);border-radius:16px;border:1px solid var(--border);padding:32px;position:relative;overflow:hidden;transition:all .3s}
+.tarifa-card:hover{border-color:rgba(245,197,24,.4);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tarifa-card.featured{border-color:var(--yellow);background:linear-gradient(135deg,rgba(245,197,24,.08),var(--bg3))}
+.tarifa-card.featured::after{content:'MAS POPULAR';position:absolute;top:16px;right:16px;background:var(--yellow);color:#000;font-size:.6rem;font-weight:800;letter-spacing:1.5px;padding:4px 10px;border-radius:100px;font-family:var(--mono)}
+.tarifa-type{font-family:var(--mono);font-size:.7rem;color:var(--yellow);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.tarifa-price{font-size:2.2rem;font-weight:800;margin-bottom:4px}
+.tarifa-price span{font-size:1rem;color:var(--muted);font-weight:400}
+.tarifa-desc{color:var(--muted);font-size:.875rem;line-height:1.6;margin-top:12px;margin-bottom:20px}
+.tarifa-features{list-style:none;display:flex;flex-direction:column;gap:8px}
+.tarifa-features li{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tarifa-features li::before{content:'';width:6px;height:6px;background:var(--yellow);border-radius:50%;flex-shrink:0}
+.pagos-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px;align-items:center}
+.pagos-label{font-size:.8rem;color:var(--muted);font-weight:600}
+.pago-chip{background:var(--bg3);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-size:.78rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+
+#conductores{background:var(--bg)}
+.conductor-hero{background:linear-gradient(135deg,rgba(245,197,24,.08) 0%,rgba(0,212,255,.04) 100%);border:1px solid var(--border);border-radius:24px;padding:60px;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;margin-top:56px;position:relative;overflow:hidden}
+.conductor-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--yellow),var(--cyan),transparent)}
+.conductor-benefits{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:32px}
+.benefit{display:flex;align-items:flex-start;gap:12px;padding:16px;background:rgba(245,197,24,.04);border-radius:10px;border:1px solid rgba(245,197,24,.08)}
+.benefit-icon{font-size:1.3rem;flex-shrink:0}
+.benefit h5{font-size:.9rem;font-weight:700;margin-bottom:2px}
+.benefit p{font-size:.78rem;color:var(--muted);line-height:1.5}
+.conductor-form-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;min-width:280px;text-align:center}
+.conductor-form-box h3{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.conductor-form-box p{font-size:.82rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.requirements{display:flex;flex-direction:column;gap:8px;margin-top:20px;text-align:left}
+.req-item{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.req-item .check{width:18px;height:18px;background:rgba(57,255,20,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.6rem;color:var(--green)}
+
+#equipo{background:var(--bg2)}
+.team-grid{display:grid;grid-template-columns:repeat(2,340px);gap:32px;margin-top:56px;justify-content:center}
+.team-card{background:var(--bg3);border-radius:20px;border:1px solid var(--border);overflow:hidden;transition:all .3s;position:relative}
+.team-card:hover{transform:translateY(-6px);border-color:rgba(245,197,24,.4);box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.team-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--yellow),var(--cyan))}
+.team-photo{width:100%;height:280px;object-fit:cover;object-position:center top;display:block;filter:grayscale(20%);transition:filter .3s}
+.team-card:hover .team-photo{filter:grayscale(0%)}
+.team-info{padding:24px}
+.team-name{font-size:1.2rem;font-weight:800;margin-bottom:4px}
+.team-role{font-family:var(--mono);font-size:.72rem;color:var(--yellow);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.team-bio{font-size:.85rem;color:var(--muted);line-height:1.6}
+.team-location{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:.78rem;color:var(--muted)}
+
+#prensa{background:var(--bg)}
+.press-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
+.press-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all .3s}
+.press-card:hover{border-color:rgba(245,197,24,.35);transform:translateY(-3px)}
+.press-tag{font-family:var(--mono);font-size:.68rem;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.press-card h4{font-size:1rem;font-weight:700;margin-bottom:10px;line-height:1.4}
+.press-card p{font-size:.82rem;color:var(--muted);line-height:1.6}
+.investor-box{margin-top:60px;background:linear-gradient(135deg,rgba(245,197,24,.06),rgba(0,212,255,.04));border:1px solid var(--border);border-radius:20px;padding:48px;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center}
+.investor-title{font-size:1.6rem;font-weight:800;margin-bottom:12px}
+.investor-sub{color:var(--muted);font-size:.95rem;line-height:1.7;max-width:500px}
+.investor-metrics{display:flex;gap:32px;margin-top:24px}
+.inv-num{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--yellow)}
+.inv-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:80px 5% 40px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;max-width:1200px;margin:0 auto 60px}
+.footer-brand img{height:44px;margin-bottom:16px}
+.footer-brand p{color:var(--muted);font-size:.875rem;line-height:1.7;max-width:280px;margin-bottom:24px}
+.social-links{display:flex;gap:12px}
+.social-link{width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:.75rem;transition:all .2s;color:var(--muted);font-weight:700}
+.social-link:hover{background:rgba(245,197,24,.1);border-color:var(--yellow);color:var(--yellow);transform:translateY(-2px)}
+.footer-col h4{font-size:.8rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;font-family:var(--mono)}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-col ul a{color:var(--muted);text-decoration:none;font-size:.875rem;transition:color .2s}
+.footer-col ul a:hover{color:var(--yellow)}
+.contact-item{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.82rem;margin-bottom:8px;text-decoration:none;transition:color .2s}
+.contact-item:hover{color:var(--yellow)}
+.footer-bottom{max-width:1200px;margin:0 auto;padding-top:32px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-bottom p{color:var(--muted);font-size:.78rem}
+.footer-bottom a{color:var(--yellow);text-decoration:none}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInRight{from{opacity:0;transform:translateX(32px)}to{opacity:1;transform:translateX(0)}}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:900px){
+  .hero-content{grid-template-columns:1fr;text-align:center}
+  .hero-sub{margin:20px auto}
+  .hero-buttons{justify-content:center}
+  .hero-stats{justify-content:center}
+  .hero-phones{height:380px}
+  .phone-wrap.main{width:170px}
+  .phone-wrap.back-left,.phone-wrap.back-right{width:140px}
+  .tab-content.active{grid-template-columns:1fr}
+  .phone-showcase{display:none}
+  .mv-grid{grid-template-columns:1fr}
+  .tarifas-grid{grid-template-columns:1fr}
+  .conductor-hero{grid-template-columns:1fr;padding:32px 24px}
+  .conductor-form-box{min-width:auto}
+  .conductor-benefits{grid-template-columns:1fr}
+  .team-grid{grid-template-columns:1fr;max-width:380px}
+  .press-grid{grid-template-columns:1fr}
+  .investor-box{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .hamburger{display:flex}
+  .footer-bottom{flex-direction:column;text-align:center}
+}
+@media(max-width:600px){
+  section{padding:70px 5%}
+  .footer-grid{grid-template-columns:1fr}
+  .investor-metrics{flex-wrap:wrap;gap:20px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="https://i.ibb.co/QjPWzGcM/142910.png" alt="ZAS">
+    <span>ZAS</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#como-funciona">Cómo funciona</a></li>
+    <li><a href="#tarifas">Tarifas</a></li>
+    <li><a href="#equipo">Equipo</a></li>
+    <li><a href="#prensa">Inversores</a></li>
+    <li><a href="#conductores" class="nav-cta">Soy conductor</a></li>
+  </ul>
+  <div class="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#como-funciona" onclick="closeMenu()">Cómo funciona</a>
+  <a href="#tarifas" onclick="closeMenu()">Tarifas</a>
+  <a href="#equipo" onclick="closeMenu()">Equipo</a>
+  <a href="#prensa" onclick="closeMenu()">Inversores</a>
+  <a href="#conductores" onclick="closeMenu()" style="color:var(--yellow)">Soy conductor ⚡</a>
+</div>
+
+<section id="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        Activo en Táchira, Venezuela
+      </div>
+      <h1 class="hero-title">
+        Tu moto,<br>
+        <span class="yellow">al</span> <span class="grad">instante</span>
+      </h1>
+      <p class="hero-sub">ZAS es la primera app de mototaxi de Venezuela construida desde cero para conductores y usuarios reales. Sin comisiones abusivas. Pagos digitales. Seguro y verificado.</p>
+      <div class="hero-buttons">
+        <a href="https://play.google.com/store/apps/details?id=com.zasapp.zasapp" class="btn-primary" target="_blank">⚡ Descargar en Android</a>
+        <a href="#como-funciona" class="btn-outline">Ver cómo funciona</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">10%</div>
+          <div class="stat-label">Comisión por viaje</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Divisas aceptadas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Conductores verificados</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-phones">
+      <div class="phone-glow"></div>
+      <div class="phone-wrap back-left">
+        <div class="phone-frame">
+          <img src="https://i.ibb.co/S4YqdVRz/123766.png" alt="ZAS Conductor" loading="lazy">
+        </div>
+      </div>
+      <div class="phone-wrap main">
+        <div class="phone-frame">
+          <img src="https://i.ibb.co/5x55s38f/123838.png" alt="ZAS App" loading="lazy">
+        </div>
+      </div>
+      <div class="phone-wrap back-right">
+        <div class="phone-frame">
+          <img src="https://i.ibb.co/QFHPKfdQ/123844.png" alt="ZAS Viaje" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona">
+  <div class="max-w reveal">
+    <div class="section-label">// Proceso</div>
+    <h2 class="section-title">Simple. Rápido. <span style="color:var(--yellow)">Sin complicaciones.</span></h2>
+    <p class="section-sub">Diseñado para el ritmo de Venezuela. Solicita en segundos, paga como quieras.</p>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('usuario', this)">Soy usuario</button>
+      <button class="tab-btn" onclick="switchTab('conductor', this)">Soy conductor</button>
+    </div>
+    <div class="tab-content active" id="tab-usuario">
+      <div class="steps">
+        <div class="step"><div class="step-num">01</div><div class="step-text"><h4>Descarga ZAS</h4><p>Disponible en Google Play. Crea tu cuenta en 2 minutos con tu número venezolano.</p></div></div>
+        <div class="step"><div class="step-num">02</div><div class="step-text"><h4>Solicita tu moto</h4><p>Pon tu destino. ZAS calcula la tarifa exacta al instante, sin sorpresas.</p></div></div>
+        <div class="step"><div class="step-num">03</div><div class="step-text"><h4>Sigue en tiempo real</h4><p>Ve al conductor moviéndose hacia ti en el mapa. Coordina con un toque.</p></div></div>
+        <div class="step"><div class="step-num">04</div><div class="step-text"><h4>Paga como prefieras</h4><p>Efectivo, Zelle, Pago Móvil o USDT. Tú decides. COP, Bs o USD.</p></div></div>
+      </div>
+      <div class="phone-showcase">
+        <div class="phone-frame"><img src="https://i.ibb.co/QFHPKfdQ/123844.png" alt="Confirmar viaje ZAS" loading="lazy"></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-conductor">
+      <div class="steps">
+        <div class="step"><div class="step-num">01</div><div class="step-text"><h4>Regístrate como conductor</h4><p>Sube tus documentos desde la app. El equipo ZAS los revisa en 24 horas.</p></div></div>
+        <div class="step"><div class="step-num">02</div><div class="step-text"><h4>Activa tu suscripción</h4><p>Cuota mensual fija. Sin comisiones abusivas. Solo el 10% por viaje completado.</p></div></div>
+        <div class="step"><div class="step-num">03</div><div class="step-text"><h4>Recibe solicitudes</h4><p>Los viajes llegan con notificación instantánea. Acepta los que quieras.</p></div></div>
+        <div class="step"><div class="step-num">04</div><div class="step-text"><h4>Cobras y retiras</h4><p>Tu saldo se acumula en la billetera ZAS. Retira cuando quieras por Zelle o USDT.</p></div></div>
+      </div>
+      <div class="phone-showcase">
+        <div class="phone-frame"><img src="https://i.ibb.co/S4YqdVRz/123766.png" alt="Conductor ZAS" loading="lazy"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="mision">
+  <div class="max-w reveal">
+    <div class="section-label">// Identidad</div>
+    <h2 class="section-title">Construidos para <span style="color:var(--yellow)">Venezuela</span></h2>
+    <p class="section-sub">Una startup que nació del problema real de movilidad en Táchira y está escalando.</p>
+    <div class="mv-grid">
+      <div class="mv-card">
+        <div class="mv-icon">🎯</div>
+        <h3>Misión</h3>
+        <p>Conectar a personas con conductores de mototaxi verificados, seguros y confiables en Venezuela mediante tecnología accesible, eliminando la intermediación costosa y poniendo el control en manos del conductor y el usuario.</p>
+      </div>
+      <div class="mv-card">
+        <div class="mv-icon">🚀</div>
+        <h3>Visión</h3>
+        <p>Ser la plataforma de movilidad urbana de referencia en Venezuela y Latinoamérica para 2027, expandiendo el ecosistema ZAS hacia pagos digitales, deliveries y servicios financieros descentralizados.</p>
+      </div>
+      <div class="mv-card">
+        <div class="mv-icon">⚡</div>
+        <h3>Valores</h3>
+        <p>Velocidad sin excusas. Transparencia total en tarifas y comisiones. Respeto al conductor como pilar del negocio. Innovación continua con impacto real en la economía local venezolana.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tarifas">
+  <div class="max-w reveal">
+    <div class="section-label">// Tarifas</div>
+    <h2 class="section-title">Precios <span style="color:var(--yellow)">justos</span> y transparentes</h2>
+    <p class="section-sub">Sin tarifas dinámicas abusivas. Sabes exactamente cuánto pagas antes de solicitar.</p>
+    <div class="tarifas-grid">
+      <div class="tarifa-card featured">
+        <div class="tarifa-type">Viaje Urbano</div>
+        <div class="tarifa-price">4.000 COP <span>tarifa fija</span></div>
+        <p class="tarifa-desc">Viajes dentro de la ciudad hasta 7 km. Precio fijo sin importar el tráfico ni la hora.</p>
+        <ul class="tarifa-features">
+          <li>Cubre hasta 7 km de recorrido</li>
+          <li>Precio fijo sin sorpresas</li>
+          <li>Calculado con Google Maps</li>
+          <li>Equiv. ~Bs 700 · ~$1.5 USD</li>
+        </ul>
+      </div>
+      <div class="tarifa-card">
+        <div class="tarifa-type">Viaje Interurbano</div>
+        <div class="tarifa-price">Variable <span>según ruta</span></div>
+        <p class="tarifa-desc">Rutas largas a San Cristóbal, La Fría, Lobatera y más. Negociación estilo inDrive disponible.</p>
+        <ul class="tarifa-features">
+          <li>Base 4.000 + 1.000 COP/km</li>
+          <li>+ 100 COP por minuto de ruta</li>
+          <li>Sistema de ofertas del conductor</li>
+          <li>Distancia real por carretera</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pagos-row">
+      <span class="pagos-label">Métodos de pago:</span>
+      <div class="pago-chip">💵 Efectivo</div>
+      <div class="pago-chip">💛 Zelle</div>
+      <div class="pago-chip">📱 Pago Móvil</div>
+      <div class="pago-chip">₿ USDT TRC20</div>
+    </div>
+  </div>
+</section>
+
+<section id="conductores">
+  <div class="max-w reveal">
+    <div class="section-label">// Para conductores</div>
+    <h2 class="section-title">Gana más.<br><span style="color:var(--yellow)">Paga menos comisión.</span></h2>
+    <div class="conductor-hero">
+      <div>
+        <p style="color:var(--muted);font-size:1rem;line-height:1.7;max-width:540px;margin-bottom:32px">
+          Mientras Ridery cobra hasta el <strong style="color:#fff">25%</strong> y BipBip hasta el <strong style="color:#fff">45%</strong>, ZAS solo cobra el <strong style="color:var(--yellow)">10% por viaje</strong> más una suscripción mensual fija. Tú te quedas con el resto.
+        </p>
+        <div class="conductor-benefits">
+          <div class="benefit"><div class="benefit-icon">🛡️</div><div><h5>Conductores verificados</h5><p>Certificado médico obligatorio. El único en Venezuela.</p></div></div>
+          <div class="benefit"><div class="benefit-icon">💰</div><div><h5>Billetera digital</h5><p>Tu saldo en USD, retira por Zelle o USDT cuando quieras.</p></div></div>
+          <div class="benefit"><div class="benefit-icon">🗺️</div><div><h5>Rutas interurbanas</h5><p>San Cristóbal, La Fría, Lobatera y más desde Municipio Ayacucho.</p></div></div>
+          <div class="benefit"><div class="benefit-icon">📲</div><div><h5>App completa</h5><p>Notificaciones push, mapa en vivo, historial y soporte directo.</p></div></div>
+        </div>
+      </div>
+      <div class="conductor-form-box">
+        <h3>¿Quieres ser conductor ZAS?</h3>
+        <p>Descarga la app, regístrate como conductor y el equipo te aprueba en menos de 24h.</p>
+        <a href="https://play.google.com/store/apps/details?id=com.zasapp.zasapp" class="btn-primary" target="_blank" style="width:100%;justify-content:center">⚡ Unirme como conductor</a>
+        <div class="requirements">
+          <div class="req-item"><div class="check">✓</div> Licencia de conducir vigente</div>
+          <div class="req-item"><div class="check">✓</div> Certificado médico</div>
+          <div class="req-item"><div class="check">✓</div> Moto propia en buen estado</div>
+          <div class="req-item"><div class="check">✓</div> Teléfono con Android</div>
+          <div class="req-item"><div class="check">✓</div> Número venezolano activo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="equipo">
+  <div class="max-w reveal" style="text-align:center">
+    <div class="section-label">// Fundadores</div>
+    <h2 class="section-title">Las personas detrás de <span style="color:var(--yellow)">ZAS</span></h2>
+    <p class="section-sub" style="margin:0 auto">Venezolanos construyendo tecnología real para Venezuela.</p>
+    <div class="team-grid">
+      <div class="team-card">
+        <img src="https://i.ibb.co/tMfPQtpT/100432.webp" alt="Jhonatan Rincón" class="team-photo">
+        <div class="team-info">
+          <div class="team-name">Jhonatan Rincón</div>
+          <div class="team-role">CEO & Co-Founder</div>
+          <p class="team-bio">Emprendedor tecnológico y desarrollador. Lidera la visión de ZAS: tecnología accesible para transformar la movilidad venezolana. Participante Venezuela Tech Week 2026.</p>
+          <div class="team-location">📍 Venezuela / Colombia</div>
+        </div>
+      </div>
+      <div class="team-card">
+        <img src="https://i.ibb.co/RdY5g6T/141300.jpg" alt="Rosmaire Vivas" class="team-photo">
+        <div class="team-info">
+          <div class="team-name">Rosmaire Vivas</div>
+          <div class="team-role">COO & Co-Founder</div>
+          <p class="team-bio">Lidera las operaciones en campo en Táchira. Responsable de las relaciones con conductores, conocimiento del mercado local e implementación operativa en Municipio Ayacucho.</p>
+          <div class="team-location">📍 Táchira, Venezuela</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:40px;padding:24px;background:var(--bg3);border-radius:14px;border:1px solid var(--border);display:inline-block;text-align:left;max-width:600px">
+      <p style="color:var(--muted);font-size:.875rem;line-height:1.7">
+        ZAS cuenta con un equipo técnico completo: <strong style="color:var(--text)">Sofía</strong> (Mobile Dev & UX), <strong style="color:var(--text)">Marcos</strong> (Backend & Google Play), <strong style="color:var(--text)">Carmen</strong> (Base de datos & Pagos) y <strong style="color:var(--text)">Raúl</strong> (Infraestructura & Deploy).
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="prensa">
+  <div class="max-w reveal">
+    <div class="section-label">// Traction & Media</div>
+    <h2 class="section-title">Momentum real.<br><span style="color:var(--yellow)">Oportunidad concreta.</span></h2>
+    <div class="press-grid">
+      <div class="press-card">
+        <div class="press-tag">// Producto</div>
+        <h4>App en Google Play — Closed Testing Activo</h4>
+        <p>15+ testers activos. Build de producción completado. Lanzamiento público inminente en Municipio Ayacucho, Táchira.</p>
+      </div>
+      <div class="press-card">
+        <div class="press-tag">// Evento</div>
+        <h4>Venezuela Tech Week 2026 — Caracas</h4>
+        <p>ZAS fue seleccionado para participar en el mayor evento tech de Venezuela. Contacto establecido con programa Valorem de financiamiento.</p>
+      </div>
+      <div class="press-card">
+        <div class="press-tag">// Mercado</div>
+        <h4>Táchira: mercado sin competencia directa real</h4>
+        <p>Ridery y BipBip tienen presencia mínima en San Cristóbal. Municipio Ayacucho está completamente desatendido por apps de movilidad.</p>
+      </div>
+    </div>
+    <div class="investor-box reveal">
+      <div>
+        <div class="section-label">// Pre-seed</div>
+        <div class="investor-title">¿Quieres invertir en ZAS?</div>
+        <p class="investor-sub">Ofrecemos participación en utilidades del <strong style="color:var(--yellow)">15% de ganancias netas mensuales</strong> por 36 meses. Modelo de negocio comprobado, equipo técnico completo, producto funcional.</p>
+        <div class="investor-metrics">
+          <div class="inv-metric"><div class="inv-num">50</div><div class="inv-label">Conductores mes 1</div></div>
+          <div class="inv-metric"><div class="inv-num">150</div><div class="inv-label">Conductores mes 3</div></div>
+          <div class="inv-metric"><div class="inv-num">15%</div><div class="inv-label">Profit sharing</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+        <a href="mailto:soporte@zasapps.com" class="btn-primary">📧 Contactar equipo</a>
+        <a href="mailto:soporte@zasapps.com" class="btn-outline" style="font-size:.82rem;padding:10px 20px">Solicitar deck de inversión</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="https://i.ibb.co/7dRB6sZ7/123830.png" alt="ZAS Mototaxi">
+      <p>La primera app de mototaxi de Venezuela. Construida por venezolanos para Venezuela. Rápido, seguro y justo.</p>
+      <div class="social-links">
+        <a href="https://instagram.com/zasapp_2026" target="_blank" class="social-link" title="Instagram">IG</a>
+        <a href="https://tiktok.com/@zasapp2026" target="_blank" class="social-link" title="TikTok">TK</a>
+        <a href="https://facebook.com/Zasapp" target="_blank" class="social-link" title="Facebook">FB</a>
+        <a href="https://play.google.com/store/apps/details?id=com.zasapp.zasapp" target="_blank" class="social-link" title="Google Play">GP</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Producto</h4>
+      <ul>
+        <li><a href="#como-funciona">Cómo funciona</a></li>
+        <li><a href="#tarifas">Tarifas</a></li>
+        <li><a href="#conductores">Para conductores</a></li>
+        <li><a href="https://play.google.com/store/apps/details?id=com.zasapp.zasapp" target="_blank">Descargar app</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <ul>
+        <li><a href="#mision">Misión y Visión</a></li>
+        <li><a href="#equipo">Nuestro equipo</a></li>
+        <li><a href="#prensa">Inversores</a></li>
+        <li><a href="/privacidad">Privacidad</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <a href="mailto:soporte@zasapps.com" class="contact-item">📧 soporte@zasapps.com</a>
+      <a href="mailto:pagos@zasapps.com" class="contact-item">💰 pagos@zasapps.com</a>
+      <a href="https://instagram.com/zasapp_2026" target="_blank" class="contact-item">📸 @zasapp_2026</a>
+      <a href="https://facebook.com/Zasapp" target="_blank" class="contact-item">👥 Zasapp en Facebook</a>
+      <div class="contact-item">📍 Municipio Ayacucho, Táchira, Venezuela</div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 ZAS Mototaxi. Todos los derechos reservados. Venezuela.</p>
+    <p><a href="/privacidad">Política de Privacidad</a> &nbsp;·&nbsp; <a href="/login">Acceso conductores</a></p>
+  </div>
+</footer>
+
+<script>
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+function toggleMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+window.addEventListener('scroll', () => {
+  document.querySelector('nav').style.background = window.scrollY > 50 ? 'rgba(13,17,23,.97)' : 'rgba(13,17,23,.92)';
+});
+</script>
+</body>
+</html>
