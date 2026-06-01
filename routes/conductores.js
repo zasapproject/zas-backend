@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
+const authConductor = require('../middleware/authConductor');
 const { emailConductorAprobado } = require('../mailer');
 
 // ─────────────────────────────────────────────
@@ -262,7 +263,7 @@ router.get('/ocupados', async (req, res) => {
 // ─────────────────────────────────────────────
 // Actualizar ubicación (patch)
 // ─────────────────────────────────────────────
-router.patch('/ubicacion/:id', async (req, res) => {
+router.patch('/ubicacion/:id', authConductor, async (req, res) => {
   const { lat, lng } = req.body;
   try {
     const { data, error } = await supabase
@@ -281,7 +282,7 @@ router.patch('/ubicacion/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Actualizar ubicación (post)
 // ─────────────────────────────────────────────
-router.post('/ubicacion', async (req, res) => {
+router.post('/ubicacion', authConductor, async (req, res) => {
   const { conductor_id, latitud, longitud } = req.body;
   const { error } = await supabase
     .from('conductores')
@@ -516,7 +517,7 @@ router.post('/logout/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 // Cambiar estado del conductor
 // ─────────────────────────────────────────────
-router.patch('/estado/:id', async (req, res) => {
+router.patch('/estado/:id', authConductor, async (req, res) => {
   const { estado } = req.body;
   const estadosValidos = ['disponible', 'ocupado', 'inactivo'];
   if (!estadosValidos.includes(estado)) {

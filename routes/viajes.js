@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const authConductor = require('../middleware/authConductor');
 
 async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
   try {
@@ -308,7 +309,7 @@ router.get('/conductor/:conductor_id', async (req, res) => {
 // ─────────────────────────────────────────────
 // PATCH /api/viajes/estado/:id
 // ─────────────────────────────────────────────
-router.patch('/estado/:id', async (req, res) => {
+router.patch('/estado/:id', authConductor, async (req, res) => {
   const { estado, conductor_id } = req.body;
 
   if (!estado) return res.status(400).json({ ok: false, error: 'El estado es obligatorio' });
