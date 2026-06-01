@@ -560,7 +560,10 @@ if (page === 'retiros') cargarRetiros();
       }
       const res = await fetch(`${API}/api/suscripciones/activar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}`
+        },
         body: JSON.stringify({ conductor_id: idParaActivar, metodo_pago: 'efectivo', monto: 20000 })
       });
       const data = await res.json();
@@ -860,7 +863,14 @@ if (page === 'retiros') cargarRetiros();
 
   async function renovarSuscripcion(id) {
     try {
-      const res = await fetch(`${API}/api/suscripciones/activar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conductor_id: id, metodo_pago: 'efectivo', monto: 20000 }) });
+      const res = await fetch(`${API}/api/suscripciones/activar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('zas_token')}`
+        },
+        body: JSON.stringify({ conductor_id: id, metodo_pago: 'efectivo', monto: 20000 })
+      });
       const data = await res.json();
       if (data.success) { mostrarToast('✅ ' + data.mensaje); cargarVencimientos(); }
     } catch { mostrarToast('❌ Error de conexión'); }
