@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const BACKEND_URL = 'https://zasapps.com';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 const GOOGLE_SERVER_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 const POLLING_INTERVAL = 4000;
 
@@ -98,6 +98,9 @@ export default function MapaViaje() {
   const [cargando, setCargando] = useState(true);
   const [navegando, setNavegando] = useState(false);
   const [etaTexto, setEtaTexto] = useState('Calculando...');
+  const [etaSegundos, setEtaSegundos] = useState<number | null>(null);
+  const etaSegundosRef = useRef<number | null>(null);
+  const cuentaRegresivaRef = useRef<any>(null);
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
   const [pagoId, setPagoId] = useState<string | null>(null);
   const [datosZas, setDatosZas] = useState<any>(null);
@@ -122,6 +125,7 @@ export default function MapaViaje() {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (locationSub.current) locationSub.current.remove();
+      if (cuentaRegresivaRef.current) clearInterval(cuentaRegresivaRef.current);
     };
   }, []);
 
@@ -200,7 +204,27 @@ export default function MapaViaje() {
       const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`);
       const data = await res.json();
       const elem = data.rows?.[0]?.elements?.[0];
-      if (elem?.status === 'OK') setEtaTexto(elem.duration.text);
+      if (elem?.status === 'OK') {
+        setEtaTexto(elem.duration.text);
+        const totalSegundos = elem.duration.value;
+        etaSegundosRef.current = totalSegundos;
+        setEtaSegundos(totalSegundos);
+        if (cuentaRegresivaRef.current) clearInterval(cuentaRegresivaRef.current);
+        cuentaRegresivaRef.current = setInterval(() => {
+          etaSegundosRef.current = (etaSegundosRef.current || 1) - 1;
+          const s = etaSegundosRef.current;
+          if (s <= 0) {
+            clearInterval(cuentaRegresivaRef.current);
+            setEtaTexto('Llegando...');
+            setEtaSegundos(0);
+          } else {
+            const min = Math.floor(s / 60);
+            const seg = s % 60;
+            setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
+            setEtaSegundos(s);
+          }
+        }, 1000);
+      }
     } catch (_) {}
   }, []);
 
