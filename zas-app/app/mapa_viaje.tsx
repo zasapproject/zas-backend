@@ -205,6 +205,7 @@ export default function MapaViaje() {
       const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_DISTANCE_KEY}`);
       const data = await res.json();
       const elem = data.rows?.[0]?.elements?.[0];
+      console.log('Distance Matrix response:', JSON.stringify(data));
       if (elem?.status === 'OK') {
         setEtaTexto(elem.duration.text);
         const totalSegundos = elem.duration.value;
@@ -226,7 +227,9 @@ export default function MapaViaje() {
           }
         }, 1000);
       }
-    } catch (_) {}
+    } catch (err) {
+      console.log('Distance Matrix error:', err);
+    }
   }, []);
 
   function iniciarPolling() {
