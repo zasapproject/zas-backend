@@ -28,20 +28,15 @@ const METODOS_DIGITALES = ['pago_movil', 'zelle', 'transferencia', 'usdt', 'banc
 const DATOS_PAGO_ZAS = {
   pago_movil: {
     banco: 'Banco de Venezuela',
-    telefono: '0414-7224623',
-    cedula: 'V-17677795',
-    nombre: 'Rosmaire Vivas',
+    telefono: '0416-4466496',
+    cedula: 'V-17056204',
+    nombre: 'Jhonatan Rincon',
   },
   zelle: {
     email: 'jrchinchilla82@gmail.com',
     nombre: 'Jhonatan Rincon',
   },
-  transferencia: {
-    banco: 'Banco de Venezuela',
-    cuenta: 'XXXX-XXXX-XXXX-XXXX',
-    nombre: 'ZAS Mototaxi',
-    rif: 'J-XXXXXXXX-X',
-  },
+
   usdt: {
     red: 'TRC20 (Tron)',
     wallet: 'TCQou8bEo2jwsvtaoRLFkA4FPWQrZXVsTt',
