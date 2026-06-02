@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 const BACKEND_URL = 'https://zasapps.com';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
 const GOOGLE_SERVER_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const GOOGLE_DISTANCE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
 const POLLING_INTERVAL = 4000;
 
 function decodificarPolyline(encoded) {
@@ -201,7 +202,7 @@ export default function MapaViaje() {
     setRuta(pts);
     if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`);
+      const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_DISTANCE_KEY}`);
       const data = await res.json();
       const elem = data.rows?.[0]?.elements?.[0];
       if (elem?.status === 'OK') {
