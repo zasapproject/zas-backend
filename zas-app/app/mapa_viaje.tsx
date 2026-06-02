@@ -6,9 +6,9 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const BACKEND_URL = 'https://zasapps.com';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
-const GOOGLE_SERVER_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
-const GOOGLE_DISTANCE_KEY = 'AIzaSyBRIoMFetJDcqNWyXe2hWhQy4_FSgW8n1I';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
+const GOOGLE_SERVER_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
+const GOOGLE_DISTANCE_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
 const POLLING_INTERVAL = 4000;
 
 function decodificarPolyline(encoded) {
