@@ -185,6 +185,22 @@ export default function ListaOfertas({
           {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
         </Text>
       </View>
+      {(viaje.distancia || viaje.duracion) && (
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+          {viaje.distancia && (
+            <View style={styles.metaDato}>
+              <Text style={styles.metaDatoIcono}>📏</Text>
+              <Text style={styles.metaDatoTexto}>{viaje.distancia}</Text>
+            </View>
+          )}
+          {viaje.duracion && (
+            <View style={styles.metaDato}>
+              <Text style={styles.metaDatoIcono}>⏱</Text>
+              <Text style={styles.metaDatoTexto}>{viaje.duracion}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {segundos > 60 && (
         <View style={styles.alertaTiempo}>
@@ -311,4 +327,7 @@ const styles = StyleSheet.create({
 
   botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 13, alignItems: 'center', marginTop: 6 },
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
+  metaDato: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#0f3460', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  metaDatoIcono: { fontSize: 12 },
+  metaDatoTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });
