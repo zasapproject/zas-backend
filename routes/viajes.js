@@ -723,7 +723,7 @@ router.get('/:id/eta', async (req, res) => {
       });
     }
 
-    return res.json({ ok: false, error: 'No se pudo calcular ETA', status: elem?.status });
+    return res.json({ ok: false, error: 'No se pudo calcular ETA', status: elem?.status, raw: data });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
   }
