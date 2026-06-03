@@ -202,15 +202,17 @@ export default function MapaViaje() {
     setRuta(pts);
     if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${desde.latitude},${desde.longitude}&destinations=${hasta.latitude},${hasta.longitude}&mode=driving&key=${GOOGLE_DISTANCE_KEY}`);
+      const res = await fetch(
+        `${BACKEND_URL}/api/viajes/${viajeIdRef.current}/eta?origen_lat=${desde.latitude}&origen_lng=${desde.longitude}&destino_lat=${hasta.latitude}&destino_lng=${hasta.longitude}`
+      );
       const data = await res.json();
-      const elem = data.rows?.[0]?.elements?.[0];
-      console.log('Distance Matrix response:', JSON.stringify(data));
-      if (elem?.status === 'OK') {
-        setEtaTexto(elem.duration.text);
-        const totalSegundos = elem.duration.value;
+      if (data.ok && data.duracion_segundos) {
+        const totalSegundos = data.duracion_segundos;
         etaSegundosRef.current = totalSegundos;
         setEtaSegundos(totalSegundos);
+        const min = Math.floor(totalSegundos / 60);
+        const seg = totalSegundos % 60;
+        setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
         if (cuentaRegresivaRef.current) clearInterval(cuentaRegresivaRef.current);
         cuentaRegresivaRef.current = setInterval(() => {
           etaSegundosRef.current = (etaSegundosRef.current || 1) - 1;
@@ -227,9 +229,7 @@ export default function MapaViaje() {
           }
         }, 1000);
       }
-    } catch (err) {
-      console.log('Distance Matrix error:', err);
-    }
+    } catch (err) {}
   }, []);
 
   function iniciarPolling() {
