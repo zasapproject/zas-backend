@@ -690,4 +690,43 @@ router.post('/:id/elegir-conductor', async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+
+// ─────────────────────────────────────────────
+// GET /api/viajes/:id/eta
+// Calcula ETA desde ubicación del conductor al destino actual
+// Se llama desde la app cada polling para actualizar cuenta regresiva
+// ─────────────────────────────────────────────
+router.get('/:id/eta', async (req, res) => {
+  const { origen_lat, origen_lng, destino_lat, destino_lng } = req.query;
+
+  if (!origen_lat || !origen_lng || !destino_lat || !destino_lng) {
+    return res.status(400).json({ ok: false, error: 'origen_lat, origen_lng, destino_lat, destino_lng son obligatorios' });
+  }
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json` +
+      `?origins=${origen_lat},${origen_lng}` +
+      `&destinations=${destino_lat},${destino_lng}` +
+      `&mode=driving` +
+      `&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+    const elem = data.rows?.[0]?.elements?.[0];
+
+    if (elem?.status === 'OK') {
+      return res.json({
+        ok: true,
+        duracion_segundos: elem.duration.value,
+        duracion_texto: elem.duration.text,
+        distancia_texto: elem.distance.text,
+      });
+    }
+
+    return res.json({ ok: false, error: 'No se pudo calcular ETA', status: elem?.status });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;
