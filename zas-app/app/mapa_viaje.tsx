@@ -196,10 +196,12 @@ export default function MapaViaje() {
     setCargando(false);
   }
 
-  const actualizarRuta = useCallback(async (desde, hasta) => {
+  const actualizarRuta = useCallback(async (desde, hasta, reiniciarTimer = false) => {
     const pts = await obtenerRuta(desde, hasta, viajeIdRef.current);
-    setRuta(pts);
-    if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
+    if (pts.length > 0) {
+      setRuta(pts);
+      if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
+    }
     try {
       const res = await fetch(
         `${BACKEND_URL}/api/viajes/${viajeIdRef.current}/eta?origen_lat=${desde.latitude}&origen_lng=${desde.longitude}&destino_lat=${hasta.latitude}&destino_lng=${hasta.longitude}`
@@ -207,26 +209,29 @@ export default function MapaViaje() {
       const data = await res.json();
       if (data.ok && data.duracion_segundos) {
         const totalSegundos = data.duracion_segundos;
-        etaSegundosRef.current = totalSegundos;
-        setEtaSegundos(totalSegundos);
-        const min = Math.floor(totalSegundos / 60);
-        const seg = totalSegundos % 60;
-        setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
-        if (cuentaRegresivaRef.current) clearInterval(cuentaRegresivaRef.current);
-        cuentaRegresivaRef.current = setInterval(() => {
-          etaSegundosRef.current = (etaSegundosRef.current || 1) - 1;
-          const s = etaSegundosRef.current;
-          if (s <= 0) {
-            clearInterval(cuentaRegresivaRef.current);
-            setEtaTexto('Llegando...');
-            setEtaSegundos(0);
-          } else {
-            const min = Math.floor(s / 60);
-            const seg = s % 60;
-            setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
-            setEtaSegundos(s);
-          }
-        }, 1000);
+        // Solo reiniciar el timer si es la primera vez o si se pide explícitamente
+        if (reiniciarTimer || etaSegundosRef.current === null || etaSegundosRef.current <= 0) {
+          etaSegundosRef.current = totalSegundos;
+          setEtaSegundos(totalSegundos);
+          const min = Math.floor(totalSegundos / 60);
+          const seg = totalSegundos % 60;
+          setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
+          if (cuentaRegresivaRef.current) clearInterval(cuentaRegresivaRef.current);
+          cuentaRegresivaRef.current = setInterval(() => {
+            etaSegundosRef.current = (etaSegundosRef.current || 1) - 1;
+            const s = etaSegundosRef.current;
+            if (s <= 0) {
+              clearInterval(cuentaRegresivaRef.current);
+              setEtaTexto('Llegando...');
+              setEtaSegundos(0);
+            } else {
+              const min = Math.floor(s / 60);
+              const seg = s % 60;
+              setEtaTexto(min > 0 ? `${min} min ${seg} seg` : `${seg} seg`);
+              setEtaSegundos(s);
+            }
+          }, 1000);
+        }
       }
     } catch (err) {}
   }, []);
