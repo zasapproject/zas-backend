@@ -12,7 +12,7 @@ async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
     const res = await fetch(url);
     const data = await res.json();
     if (data.status !== 'OK' || !data.routes.length) {
-      console.error('Directions API error:', data.status);
+      console.error('Directions API error:', data.status, JSON.stringify(data.error_message));
       return null;
     }
     const ruta = data.routes[0].legs[0];
