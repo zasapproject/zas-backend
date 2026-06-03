@@ -38,11 +38,13 @@ async function geocodificar(direccion) {
   return null;
 }
 
-async function obtenerRuta(origen, destino) {
+async function obtenerRuta(origen, destino, viajeId) {
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${origen.latitude},${origen.longitude}&destination=${destino.latitude},${destino.longitude}&mode=driving&key=${GOOGLE_SERVER_KEY}`);
+    const res = await fetch(
+      `${BACKEND_URL}/api/viajes/${viajeId}/ruta?origen_lat=${origen.latitude}&origen_lng=${origen.longitude}&destino_lat=${destino.latitude}&destino_lng=${destino.longitude}`
+    );
     const data = await res.json();
-    if (data.routes && data.routes.length > 0) return decodificarPolyline(data.routes[0].overview_polyline.points);
+    if (data.ok && data.polyline) return decodificarPolyline(data.polyline);
   } catch (e) {}
   return [];
 }
@@ -146,15 +148,13 @@ export default function MapaViaje() {
       coordOrigenRef.current = cOrig;
       coordDestinoRef.current = cDest;
       // Usuario: calcular ETA desde ubicación actual del conductor hacia el origen
-      if (!esCondutorRef.current && conductorIdRef.current) {
-        const ubicCond = await obtenerUbicacionConductor(conductorIdRef.current);
+      if (!esCondutorRef.current) {
+        const ubicCond = conductorIdRef.current ? await obtenerUbicacionConductor(conductorIdRef.current) : null;
         if (ubicCond) {
           setUbicacionConductor(ubicCond);
           actualizarRuta(ubicCond, cOrig);
         } else {
-          // Si aún no tiene GPS, mostrar ruta origen→destino como fallback visual
           actualizarRuta(cOrig, cDest);
-          setEtaTexto('Esperando al conductor...');
         }
       } else {
         actualizarRuta(cOrig, cDest);
@@ -166,14 +166,13 @@ export default function MapaViaje() {
       coordOrigenRef.current = cOrig;
       coordDestinoRef.current = cDest;
       if (cOrig && cDest) {
-        if (!esCondutorRef.current && conductorIdRef.current) {
-          const ubicCond = await obtenerUbicacionConductor(conductorIdRef.current);
+        if (!esCondutorRef.current) {
+          const ubicCond = conductorIdRef.current ? await obtenerUbicacionConductor(conductorIdRef.current) : null;
           if (ubicCond) {
             setUbicacionConductor(ubicCond);
             actualizarRuta(ubicCond, cOrig);
           } else {
             actualizarRuta(cOrig, cDest);
-            setEtaTexto('Esperando al conductor...');
           }
         } else {
           actualizarRuta(cOrig, cDest);
@@ -198,7 +197,7 @@ export default function MapaViaje() {
   }
 
   const actualizarRuta = useCallback(async (desde, hasta) => {
-    const pts = await obtenerRuta(desde, hasta);
+    const pts = await obtenerRuta(desde, hasta, viajeIdRef.current);
     setRuta(pts);
     if (pts.length > 1 && mapRef.current) mapRef.current.fitToCoordinates(pts, { edgePadding: { top: 80, right: 40, bottom: 220, left: 40 }, animated: true });
     try {
@@ -502,7 +501,7 @@ export default function MapaViaje() {
         )}
         {coordOrigen && <Marker coordinate={coordOrigen} title="Origen" pinColor="#F5A623" />}
         {coordDestino && <Marker coordinate={coordDestino} title="Destino" pinColor="#E53935" />}
-        {ruta.length > 1 && <Polyline coordinates={ruta} strokeColor="#F5A623" strokeWidth={4} />}
+        {ruta.length > 1 && <Polyline coordinates={ruta} strokeColor="#000000" strokeWidth={5} />}
       </MapView>
 
       <View style={styles.bannerEstado}>
