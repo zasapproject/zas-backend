@@ -704,26 +704,20 @@ router.get('/:id/eta', async (req, res) => {
   }
 
   try {
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json` +
-      `?origins=${origen_lat},${origen_lng}` +
-      `&destinations=${destino_lat},${destino_lng}` +
-      `&mode=driving` +
-      `&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+    const rutaData = await obtenerRuta(origen_lat, origen_lng, destino_lat, destino_lng);
 
-    const response = await fetch(url);
-    const data = await response.json();
-    const elem = data.rows?.[0]?.elements?.[0];
-
-    if (elem?.status === 'OK') {
+    if (rutaData) {
+      const duracion_segundos = rutaData.duracion_minutos * 60;
+      const min = rutaData.duracion_minutos;
       return res.json({
         ok: true,
-        duracion_segundos: elem.duration.value,
-        duracion_texto: elem.duration.text,
-        distancia_texto: elem.distance.text,
+        duracion_segundos,
+        duracion_texto: `${min} min`,
+        distancia_texto: `${rutaData.distancia_km} km`,
       });
     }
 
-    return res.json({ ok: false, error: 'No se pudo calcular ETA', status: elem?.status, raw: data });
+    return res.json({ ok: false, error: 'No se pudo calcular ETA' });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
   }
