@@ -12,7 +12,7 @@ const TARIFA_BASE      = 4000;
 const TARIFA_URBANA    = 4000;
 const PRECIO_POR_KM    = 1000;
 const PRECIO_POR_MIN   = 100;
-const LIMITE_URBANO_KM = 5;
+const LIMITE_URBANO_KM = 6;
 
 function calcularTarifaZAS(distancia_km, duracion_minutos) {
   const km  = parseFloat(distancia_km)  || 1;

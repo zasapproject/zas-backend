@@ -51,7 +51,7 @@ router.post('/nuevo', async (req, res) => {
 
     // Determinar si el viaje es negociable según distancia real de Google
     const distanciaReal = rutaData?.distancia_km || 0;
-    const esInterurbano = distanciaReal > 7;
+    const esInterurbano = distanciaReal > 6;
 
     const { data, error } = await supabase
       .from('viajes')
