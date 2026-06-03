@@ -723,4 +723,20 @@ router.get('/:id/eta', async (req, res) => {
   }
 });
 
+router.get('/:id/ruta', async (req, res) => {
+  const { origen_lat, origen_lng, destino_lat, destino_lng } = req.query;
+  if (!origen_lat || !origen_lng || !destino_lat || !destino_lng) {
+    return res.status(400).json({ ok: false, error: 'Faltan coordenadas' });
+  }
+  try {
+    const rutaData = await obtenerRuta(origen_lat, origen_lng, destino_lat, destino_lng);
+    if (rutaData) {
+      return res.json({ ok: true, polyline: rutaData.polyline, distancia_km: rutaData.distancia_km, duracion_minutos: rutaData.duracion_minutos });
+    }
+    res.json({ ok: false, error: 'No se pudo calcular la ruta' });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;
