@@ -29,8 +29,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-session-token', 'x-admin-key'],
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Archivos estáticos (solicitar.html, privacidad.html, card/index.html, etc.)
 app.use(express.static('public'));
@@ -55,14 +55,7 @@ app.get('/api/health', async (req, res) => {
   try {
     const { error } = await supabase.from('usuarios').select('id').limit(1);
     const dbStatus = error ? 'error' : 'connected';
-    res.json({
-      status: 'ok',
-      version: '1.0.0',
-      db: dbStatus,
-      uptime: Math.floor(process.uptime()) + 's',
-      memoria: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ status: 'ok', db: dbStatus });
   } catch (e) {
     res.status(500).json({ status: 'error', db: 'disconnected' });
   }

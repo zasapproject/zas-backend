@@ -554,7 +554,7 @@ router.post('/recuperar-password', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email' });
     }
 
-    const nueva = Math.random().toString(36).slice(-6).toUpperCase();
+    const nueva = crypto.randomBytes(4).toString('hex').toUpperCase();
     const nuevaHash = await bcrypt.hash(nueva, 10);
 
     await supabase

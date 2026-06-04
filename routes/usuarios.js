@@ -26,6 +26,12 @@ const registroLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { ok: false, error: 'Demasiados intentos. Espera 15 minutos.' },
+});
+
 // ─────────────────────────────────────────────
 // Registrar nuevo usuario
 // ─────────────────────────────────────────────
@@ -38,8 +44,8 @@ router.post('/registro', registroLimiter, async (req, res) => {
   if (!email || !email.includes('@')) {
     return res.status(400).json({ ok: false, error: 'El correo electrónico es obligatorio y debe ser válido' });
   }
-  if (password.length < 4) {
-    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
+  if (password.length < 8) {
+    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 8 caracteres' });
   }
   if (!/^(0412|0414|0416|0422|0424|0426)[0-9]{7}$/.test(telefono)) {
     return res.status(400).json({ ok: false, error: 'Número inválido. Usa formato venezolano: 04XX-XXXXXXX' });
@@ -398,15 +404,15 @@ router.post('/solicitar-reset', async (req, res) => {
 // ─────────────────────────────────────────────
 // Confirmar código y cambiar contraseña
 // ─────────────────────────────────────────────
-router.post('/confirmar-reset', async (req, res) => {
+router.post('/confirmar-reset', resetLimiter, async (req, res) => {
   const { telefono, codigo, nueva_password } = req.body;
 
   if (!telefono || !codigo || !nueva_password) {
     return res.status(400).json({ ok: false, error: 'Teléfono, código y nueva contraseña son obligatorios' });
   }
 
-  if (nueva_password.length < 4) {
-    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 4 caracteres' });
+  if (nueva_password.length < 8) {
+    return res.status(400).json({ ok: false, error: 'La contraseña debe tener mínimo 8 caracteres' });
   }
 
   try {
@@ -462,7 +468,7 @@ router.post('/recuperar-password', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'No encontramos una cuenta con ese email' });
     }
 
-    const nueva = Math.random().toString(36).slice(-6).toUpperCase();
+    const nueva = crypto.randomBytes(4).toString('hex').toUpperCase();
     const nuevaHash = await bcrypt.hash(nueva, 10);
 
     await supabase
