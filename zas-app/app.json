@@ -21,7 +21,7 @@
           "apiKey": "AIzaSyDO9LPsunt9OARi75HDX6YuEQ2GwMItVzk"
         }
       },
-      "package": "com.zasapp.zasapp",
+      "package": "com.zasapps.mototaxi",
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "permissions": [
