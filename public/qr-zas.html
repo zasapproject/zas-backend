@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ZAS Mototaxi — Descarga</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#f0f0f0;font-family:'Syne',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#12121a;border:1px solid #2a2a3f;border-radius:24px;padding:36px 32px;text-align:center;max-width:360px;width:100%}
+.logo{font-size:36px;font-weight:800;color:#FFD700;letter-spacing:-1px;margin-bottom:4px}
+.tagline{font-size:13px;color:#666680;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
+.qr-wrap{background:#ffffff;border-radius:16px;padding:16px;display:inline-block;margin-bottom:24px}
+#qrcode canvas,#qrcode img{display:block}
+.instruction{font-size:13px;color:#666680;margin-bottom:20px;line-height:1.6}
+.instruction span{color:#f0f0f0;font-weight:700}
+.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#FFD700;color:#0a0a0f;border:none;border-radius:12px;padding:14px 24px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;width:100%;text-decoration:none;transition:background .2s}
+.download-btn:hover{background:#ffec6e}
+.footer{margin-top:20px;font-size:11px;color:#444460;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">⚡ ZAS</div>
+  <div class="tagline">Tu mototaxi al instante</div>
+  <div class="qr-wrap"><div id="qrcode"></div></div>
+  <p class="instruction"><span>Escanea el código QR</span> con la cámara de tu celular para descargar la app</p>
+  <a class="download-btn" href="https://play.google.com/store/apps/details?id=com.zasapps.mototaxi" target="_blank">▶ Descargar en Google Play</a>
+  <div class="footer">VENEZUELA · MUNICIPIO AYACUCHO · TÁCHIRA</div>
+</div>
+<script>
+new QRCode(document.getElementById('qrcode'),{text:'https://play.google.com/store/apps/details?id=com.zasapps.mototaxi',width:220,height:220,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+</script>
+</body>
+</html>
