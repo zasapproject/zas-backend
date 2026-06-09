@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>ZAS — Operaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0a0f;--s:#12121a;--s2:#1a1a28;
+  --gold:#FFD700;--gold2:#ffec6e;
+  --green:#00e676;--red:#ff1744;--orange:#ff9100;--blue:#2979ff;
+  --text:#f0f0f0;--muted:#666680;--border:#2a2a3f;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif}
+body{display:flex;flex-direction:column}
+
+/* ── TOP BAR ── */
+.topbar{
+  background:var(--s);border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,12px) 16px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.topbar-logo{display:flex;flex-direction:column}
+.topbar-logo .name{font-size:20px;font-weight:800;color:var(--gold);letter-spacing:-1px}
+.topbar-logo .sub{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--green);font-family:'Space Mono',monospace;letter-spacing:1px}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+
+/* ── SCROLL CONTENT ── */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+.page{display:none;padding:14px;gap:12px;flex-direction:column}
+.page.active{display:flex}
+
+/* ── LOGIN ── */
+#login-screen{
+  position:fixed;inset:0;background:#0a0a0f;
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;padding:24px;flex-direction:column;gap:0;
+}
+.login-box{width:100%;max-width:340px;background:var(--s);border:1px solid var(--gold);border-radius:20px;padding:28px 24px}
+.login-title{text-align:center;font-size:28px;font-weight:800;color:var(--gold);margin-bottom:4px}
+.login-sub{text-align:center;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:24px;letter-spacing:1px}
+.login-input{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  color:var(--text);padding:14px 16px;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:15px;outline:none;
+  margin-bottom:12px;transition:border-color .2s;
+}
+.login-input:focus{border-color:var(--gold)}
+.login-btn{
+  width:100%;background:var(--gold);color:#0a0a0f;border:none;
+  padding:16px;border-radius:10px;font-family:'Syne',sans-serif;
+  font-size:16px;font-weight:800;cursor:pointer;margin-top:4px;
+  transition:background .2s;
+}
+.login-btn:active{background:var(--gold2)}
+.login-error{color:var(--red);text-align:center;font-size:13px;margin-top:10px;display:none}
+
+/* ── STATS GRID ── */
+.stats-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{
+  background:var(--s);border:1px solid var(--border);
+  border-radius:14px;padding:14px 12px;position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.gold::before{background:var(--gold)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-family:'Space Mono',monospace}
+.stat-val{font-size:28px;font-weight:800;margin-top:4px;letter-spacing:-1px}
+.stat-card.gold .stat-val{color:var(--gold)}
+.stat-card.green .stat-val{color:var(--green)}
+.stat-card.red .stat-val{color:var(--red)}
+.stat-card.blue .stat-val{color:var(--blue)}
+
+/* ── CARDS ── */
+.card{background:var(--s);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-ttl{font-size:13px;font-weight:700}
+.card-empty{text-align:center;padding:28px 20px;color:var(--muted);font-size:13px}
+.card-empty-icon{font-size:32px;margin-bottom:8px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;font-family:'Space Mono',monospace;white-space:nowrap}
+.badge.green{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.badge.red{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.badge.gold{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
+.badge.blue{background:rgba(41,121,255,.1);color:var(--blue);border:1px solid rgba(41,121,255,.3)}
+.badge.orange{background:rgba(255,145,0,.1);color:var(--orange);border:1px solid rgba(255,145,0,.3)}
+.badge.muted{background:rgba(102,102,128,.1);color:var(--muted);border:1px solid var(--border)}
+
+/* ── ALERTS / ITEMS ── */
+.alert-item{padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.alert-item:last-child{border-bottom:none}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;color:#0a0a0f;font-size:14px;flex-shrink:0;font-family:'Syne',sans-serif}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px}
+.item-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;transition:all .15s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-green{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.btn-red{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.btn-gold{background:var(--gold);color:#0a0a0f}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-full{width:100%;padding:14px;font-size:14px;border-radius:10px;margin-top:6px}
+
+/* ── VIAJES ── */
+.viaje-row{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.viaje-row:last-child{border-bottom:none}
+.semaforo{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.semaforo.verde{background:var(--green)}
+.semaforo.amarillo{background:var(--orange)}
+.semaforo.rojo{background:var(--red)}
+.viaje-data{flex:1;min-width:0}
+.viaje-ruta{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viaje-sub{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px}
+.viaje-right{text-align:right;flex-shrink:0}
+.viaje-precio{font-size:13px;font-weight:800;color:var(--gold)}
+
+/* ── CONDUCTOR EXPANDIBLE ── */
+.conductor-item{border-bottom:1px solid var(--border)}
+.conductor-item:last-child{border-bottom:none}
+.conductor-head{padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.conductor-head:active{background:var(--s2)}
+.conductor-body{display:none;padding:12px 16px;background:var(--s2);border-top:1px solid var(--border)}
+.conductor-body.open{display:block}
+.chevron{color:var(--muted);font-size:16px;margin-left:auto;transition:transform .2s;flex-shrink:0}
+.chevron.open{transform:rotate(90deg)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-key{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace}
+.info-val{font-size:12px;font-weight:700}
+.doc-grid{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.doc-thumb{text-align:center}
+.doc-img{width:64px;height:46px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer}
+.doc-empty{width:64px;height:46px;border-radius:8px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.doc-label{font-size:9px;color:var(--muted);margin-top:3px;text-align:center}
+.action-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* ── FILTER TABS ── */
+.filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s}
+.filter-btn.active{border-color:var(--gold);color:var(--gold)}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative}
+.search-input{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  color:var(--text);padding:12px 16px 12px 40px;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:border-color .2s;
+}
+.search-input:focus{border-color:var(--gold)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px;pointer-events:none}
+
+/* ── RETIRO CARD ── */
+.retiro-card{background:var(--s);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.retiro-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.retiro-monto{font-size:24px;font-weight:800;color:var(--green)}
+.retiro-body{padding:0 16px 14px}
+.datos-box{background:var(--s2);border-radius:10px;padding:12px;margin-bottom:12px}
+
+/* ── TARIFAS ── */
+.tarifa-card{background:var(--s);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.tarifa-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.tarifa-body{padding:0 16px 14px}
+
+/* ── SOPORTE ── */
+.soporte-card{background:var(--s);border-left:3px solid var(--orange);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.soporte-card.resuelto{border-left-color:var(--green)}
+.soporte-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.soporte-msg{padding:10px 16px;background:var(--s2);margin:0 16px 14px;border-radius:10px;font-size:13px;line-height:1.6;color:var(--text)}
+.soporte-actions{padding:0 16px 14px;display:flex;gap:8px}
+
+/* ── LOADING ── */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;color:var(--muted);gap:12px;font-family:'Space Mono',monospace;font-size:12px}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODAL ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:500;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-bg.show{display:flex}
+.modal{
+  background:var(--s);border:1px solid var(--border);
+  border-radius:20px 20px 0 0;padding:24px 20px;
+  width:100%;max-width:480px;
+  max-height:85vh;overflow-y:auto;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+}
+.modal-handle{width:36px;height:3px;background:var(--border);border-radius:3px;margin:0 auto 20px}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.form-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;display:block;margin-bottom:6px;margin-top:12px}
+.form-input{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--gold)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── SUBS BOX ── */
+.subs-box{background:var(--s2);border-radius:12px;padding:14px;margin-bottom:14px}
+.subs-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.subs-row:last-child{border-bottom:none}
+.subs-key{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace}
+.subs-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace}
+
+/* ── LIGHTBOX ── */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;align-items:center;justify-content:center;cursor:pointer}
+.lightbox.show{display:flex}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--s);border:1px solid var(--green);color:var(--green);
+  padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;
+  z-index:900;display:none;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  background:var(--s);border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;flex-shrink:0;
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;padding:4px 12px;
+  color:var(--muted);font-family:'Space Mono',monospace;font-size:8px;
+  letter-spacing:.5px;text-transform:uppercase;transition:color .2s;
+  position:relative;
+}
+.nav-btn .nav-ico{font-size:20px;line-height:1}
+.nav-btn.active{color:var(--gold)}
+.nav-btn .badge-dot{
+  position:absolute;top:2px;right:10px;width:7px;height:7px;
+  background:var(--red);border-radius:50%;border:2px solid var(--s);
+  display:none;
+}
+.nav-btn .badge-dot.show{display:block}
+
+/* ── REFRESH BAR ── */
+.refresh-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-bottom:4px}
+.refresh-info{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace}
+.refresh-btn{font-size:10px;color:var(--gold);font-family:'Space Mono',monospace;background:none;border:none;cursor:pointer;font-weight:700}
+
+/* ── RESPONSIVE ── */
+@media(min-width:480px){
+  .modal{border-radius:20px;margin-bottom:24px;max-width:440px}
+  .bottom-nav{max-width:480px;margin:0 auto}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">⚡ ZAS</div>
+    <div class="login-sub">CENTRO DE OPERACIONES</div>
+    <div style="position:relative">
+      <input id="l-user" class="login-input" type="text" placeholder="Usuario" autocomplete="username"/>
+    </div>
+    <div style="position:relative">
+      <input id="l-pass" class="login-input" type="password" placeholder="Contraseña" autocomplete="current-password"
+        style="padding-right:44px" onkeypress="if(event.key==='Enter')doLogin()"/>
+      <button onclick="var p=document.getElementById('l-pass');p.type=p.type==='password'?'text':'password'"
+        style="position:absolute;right:14px;top:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">👁</button>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="l-err">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="name">⚡ ZAS</div>
+    <div class="sub">OPERACIONES</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot" id="live-dot">EN VIVO</div>
+    <button class="icon-btn" onclick="refreshCurrent()" title="Actualizar">↻</button>
+    <button class="icon-btn" onclick="doLogout()" title="Salir" style="color:var(--red)">⏻</button>
+  </div>
+</div>
+
+<div class="scroll-area">
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div class="page active" id="p-dashboard">
+    <div class="refresh-bar">
+      <div class="refresh-info" id="dash-ts">Cargando...</div>
+      <button class="refresh-btn" onclick="loadDashboard()">↻ Actualizar</button>
+    </div>
+
+    <div class="stats-2">
+      <div class="stat-card green"><div class="stat-label">Conductores activos</div><div class="stat-val" id="d-activos">—</div></div>
+      <div class="stat-card red"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
+    </div>
+    <div class="stats-2">
+      <div class="stat-card gold"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
+      <div class="stat-card blue"><div class="stat-label">Viajes hoy</div><div class="stat-val" id="d-viajes">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-ttl">🧾 Comprobantes por revisar</span>
+        <span class="badge red" id="badge-comp">0</span>
+      </div>
+      <div id="dash-comp-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-ttl">⚠️ Suscripciones vencidas</span>
+        <span class="badge orange" id="badge-venc">0</span>
+      </div>
+      <div id="dash-venc-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-ttl">🔴 Viajes activos ahora</span>
+        <span class="badge green" id="badge-activos">0</span>
+      </div>
+      <div id="dash-viajes-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ CONDUCTORES ═══ -->
+  <div class="page" id="p-conductores">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="search" placeholder="Buscar conductor..." oninput="filtrarConductores(this.value)"/>
+    </div>
+    <div class="stats-2">
+      <div class="stat-card gold"><div class="stat-label">Total</div><div class="stat-val" id="c-total">—</div></div>
+      <div class="stat-card green"><div class="stat-label">Con suscripción</div><div class="stat-val" id="c-act">—</div></div>
+    </div>
+    <div class="stats-2">
+      <div class="stat-card red"><div class="stat-label">Sin suscripción</div><div class="stat-val" id="c-sin">—</div></div>
+      <div class="stat-card blue"><div class="stat-label">Docs pendientes</div><div class="stat-val" id="c-docs">—</div></div>
+    </div>
+    <div class="card" id="cond-list">
+      <div class="loading"><div class="spinner"></div>Cargando conductores...</div>
+    </div>
+  </div>
+
+  <!-- ═══ VIAJES ═══ -->
+  <div class="page" id="p-viajes">
+    <div class="filter-row" id="viajes-filters">
+      <button class="filter-btn active" onclick="filtrarViajes('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filtrarViajes('en_curso',this)">En curso</button>
+      <button class="filter-btn" onclick="filtrarViajes('solicitado',this)">Solicitados</button>
+      <button class="filter-btn" onclick="filtrarViajes('completado',this)">Completados</button>
+      <button class="filter-btn" onclick="filtrarViajes('cancelado',this)">Cancelados</button>
+    </div>
+    <div class="refresh-bar">
+      <div class="refresh-info" id="viajes-total">—</div>
+      <button class="refresh-btn" onclick="loadViajes()">↻ Actualizar</button>
+    </div>
+    <div class="card" id="viajes-list">
+      <div class="loading"><div class="spinner"></div>Cargando viajes...</div>
+    </div>
+  </div>
+
+  <!-- ═══ RETIROS ═══ -->
+  <div class="page" id="p-retiros">
+    <div class="stats-2">
+      <div class="stat-card gold"><div class="stat-label">Pendientes</div><div class="stat-val" id="r-pend">—</div></div>
+      <div class="stat-card red"><div class="stat-label">Monto total</div><div class="stat-val" id="r-monto">—</div></div>
+    </div>
+    <div id="retiros-list"><div class="loading"><div class="spinner"></div>Cargando retiros...</div></div>
+  </div>
+
+  <!-- ═══ MÁS (Tarifas / Usuarios / Soporte) ═══ -->
+  <div class="page" id="p-mas">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="switchMas('tarifas',this)">💲 Tarifas</button>
+      <button class="filter-btn" onclick="switchMas('usuarios',this)">👤 Usuarios</button>
+      <button class="filter-btn" onclick="switchMas('soporte',this)">🆘 Soporte</button>
+    </div>
+
+    <div id="sub-tarifas">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn btn-gold" onclick="abrirModalTarifa()">+ Nuevo municipio</button>
+      </div>
+      <div class="stats-2" style="margin-bottom:12px">
+        <div class="stat-card gold"><div class="stat-label">Municipios</div><div class="stat-val" id="t-total">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Activos</div><div class="stat-val" id="t-act">—</div></div>
+      </div>
+      <div id="tarifas-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+
+    <div id="sub-usuarios" style="display:none">
+      <div class="search-wrap" style="margin-bottom:10px">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="search" placeholder="Buscar usuario..." oninput="filtrarUsuarios(this.value)"/>
+      </div>
+      <div class="stats-2" style="margin-bottom:10px">
+        <div class="stat-card gold"><div class="stat-label">Total</div><div class="stat-val" id="u-total">—</div></div>
+        <div class="stat-card blue"><div class="stat-label">Pagos pendientes</div><div class="stat-val" id="u-pagos">—</div></div>
+      </div>
+      <div class="card" id="usuarios-list">
+        <div class="loading"><div class="spinner"></div>Cargando usuarios...</div>
+      </div>
+    </div>
+
+    <div id="sub-soporte" style="display:none">
+      <div id="soporte-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+  </div>
+
+</div><!-- end scroll-area -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="goPage('dashboard',this)" id="nav-dashboard">
+    <div class="nav-ico">📊</div>Dashboard
+  </button>
+  <button class="nav-btn" onclick="goPage('conductores',this)" id="nav-conductores">
+    <div class="nav-ico">🏍️</div>Conductores
+    <div class="badge-dot" id="dot-conductores"></div>
+  </button>
+  <button class="nav-btn" onclick="goPage('viajes',this)" id="nav-viajes">
+    <div class="nav-ico">🗺️</div>Viajes
+  </button>
+  <button class="nav-btn" onclick="goPage('retiros',this)" id="nav-retiros">
+    <div class="nav-ico">💸</div>Retiros
+    <div class="badge-dot" id="dot-retiros"></div>
+  </button>
+  <button class="nav-btn" onclick="goPage('mas',this)" id="nav-mas">
+    <div class="nav-ico">⚙️</div>Más
+  </button>
+</nav>
+
+<!-- MODAL ACTIVAR SUSCRIPCIÓN -->
+<div class="modal-bg" id="modal-subs">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ Activar Suscripción</div>
+    <div class="modal-sub" id="ms-nombre">Conductor</div>
+    <div class="subs-box">
+      <div class="subs-row"><span class="subs-key">Costo semanal</span><span class="subs-val" style="color:var(--gold)">$20.000 COP</span></div>
+      <div class="subs-row"><span class="subs-key">Duración</span><span class="subs-val">7 días</span></div>
+      <div class="subs-row"><span class="subs-key">Estado</span><span class="subs-val" id="ms-estado">—</span></div>
+    </div>
+    <button class="btn btn-gold btn-full" onclick="confirmarSubs()">✅ Confirmar activación</button>
+    <button class="btn btn-outline btn-full" onclick="cerrarModal('modal-subs')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL TARIFA -->
+<div class="modal-bg" id="modal-tarifa">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mt-titulo">💲 Nuevo Municipio</div>
+    <div class="modal-sub">Configurar tarifa</div>
+    <input type="hidden" id="mt-id"/>
+    <label class="form-label">Municipio</label>
+    <input class="form-input" type="text" id="mt-municipio" placeholder="Ej: San Cristóbal"/>
+    <div class="form-row">
+      <div><label class="form-label">Latitud</label><input class="form-input" type="number" step="any" id="mt-lat" placeholder="7.7633"/></div>
+      <div><label class="form-label">Longitud</label><input class="form-input" type="number" step="any" id="mt-lng" placeholder="-72.2249"/></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Radio (km)</label><input class="form-input" type="number" step="0.1" id="mt-radio" placeholder="6"/></div>
+      <div><label class="form-label">Tipo</label>
+        <select class="form-input" id="mt-tipo" onchange="toggleTarifa()">
+          <option value="fija">Fija</option>
+          <option value="dinamica">Dinámica</option>
+        </select>
+      </div>
+    </div>
+    <div id="mt-fija"><label class="form-label">Tarifa fija (COP)</label><input class="form-input" type="number" id="mt-tfija" placeholder="4000"/></div>
+    <div id="mt-din" style="display:none">
+      <div class="form-row">
+        <div><label class="form-label">Base (COP)</label><input class="form-input" type="number" id="mt-base" placeholder="3000"/></div>
+        <div><label class="form-label">Por km (COP)</label><input class="form-input" type="number" id="mt-km" placeholder="800"/></div>
+      </div>
+    </div>
+    <button class="btn btn-gold btn-full" onclick="guardarTarifa()">💾 Guardar</button>
+    <button class="btn btn-outline btn-full" onclick="cerrarModal('modal-tarifa')" style="margin-top:6px">Cancelar</button>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
+  <img id="lb-img" src="" alt="Doc"/>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://zasapps.com';
+let conductoresData = [], usuariosData = [], viajesData = [], viajesFiltro = 'todos';
+let conductorSelId = null, masSub = 'tarifas';
+
+// ── HELPERS ──
+function getToken(){ return sessionStorage.getItem('zas_token')||''; }
+function aH(){ return {'Authorization':'Bearer '+getToken()}; }
+function jH(){ return {'Content-Type':'application/json','Authorization':'Bearer '+getToken()}; }
+
+function toast(msg, tipo){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = tipo==='red'?'var(--red)':'var(--green)';
+  t.style.color = tipo==='red'?'var(--red)':'var(--green)';
+  t.style.display = 'block';
+  setTimeout(()=>t.style.display='none', 3200);
+}
+
+function lb(url){ document.getElementById('lb-img').src=url; document.getElementById('lightbox').classList.add('show'); }
+
+function avatar(nombre, color){
+  const l = nombre?nombre[0].toUpperCase():'?';
+  const bg = color||'var(--gold)';
+  const tc = (color&&color!=='var(--gold)')?'#fff':'#0a0a0f';
+  return `<div class="avatar" style="background:${bg};color:${tc}">${l}</div>`;
+}
+
+function badgeSubs(c){
+  if(!c.suscripcion_hasta) return '<span class="badge red">Sin suscripción</span>';
+  const d = Math.ceil((new Date(c.suscripcion_hasta)-new Date())/(86400000));
+  if(d<=0) return '<span class="badge red">Vencida</span>';
+  if(d<=3) return `<span class="badge orange">Vence ${d}d</span>`;
+  return `<span class="badge green">Activa ${d}d</span>`;
+}
+
+function cerrarModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// Cerrar modal al tocar fondo
+document.querySelectorAll('.modal-bg').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('show'); });
+});
+
+// ── LOGIN ──
+async function doLogin(){
+  const user = document.getElementById('l-user').value;
+  const pass = document.getElementById('l-pass').value;
+  const err = document.getElementById('l-err');
+  err.style.display='none';
+  try {
+    const res = await fetch(`${API}/api/admin/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:user,password:pass})});
+    const data = await res.json();
+    if(data.ok && data.token){
+      sessionStorage.setItem('zas_admin','true');
+      sessionStorage.setItem('zas_token', data.token);
+      document.getElementById('login-screen').style.display='none';
+      loadDashboard();
+    } else {
+      err.style.display='block';
+    }
+  } catch {
+    err.textContent='Error de conexión';
+    err.style.display='block';
+  }
+}
+
+function doLogout(){
+  if(!confirm('¿Cerrar sesión?')) return;
+  sessionStorage.clear();
+  location.reload();
+}
+
+if(sessionStorage.getItem('zas_admin')==='true'){
+  document.getElementById('login-screen').style.display='none';
+  loadDashboard();
+}
+
+// ── NAVEGACIÓN ──
+let currentPage = 'dashboard';
+function goPage(page, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+page).classList.add('active');
+  btn.classList.add('active');
+  currentPage = page;
+  document.querySelector('.scroll-area').scrollTop = 0;
+  const loaders = {dashboard:loadDashboard,conductores:loadConductores,viajes:loadViajes,retiros:loadRetiros,mas:loadMas};
+  if(loaders[page]) loaders[page]();
+}
+
+function refreshCurrent(){
+  const loaders = {dashboard:loadDashboard,conductores:loadConductores,viajes:loadViajes,retiros:loadRetiros,mas:loadMas};
+  if(loaders[currentPage]) loaders[currentPage]();
+}
+
+// ── DASHBOARD ──
+async function loadDashboard(){
+  document.getElementById('dash-ts').textContent = new Date().toLocaleString('es-VE');
+  try {
+    const [cR, vR, sR] = await Promise.all([
+      fetch(`${API}/api/conductores/todos`,{headers:aH()}),
+      fetch(`${API}/api/viajes`,{headers:aH()}),
+      fetch(`${API}/api/suscripciones/historial`,{headers:aH()})
+    ]);
+    const cD=await cR.json(), vD=await vR.json(), sD=await sR.json();
+    const conds = cD.conductores||[];
+    const viajes = vD.viajes||[];
+    const pagos = sD.pagos||[];
+    const hoy = new Date().toDateString();
+
+    const activos = conds.filter(c=>c.suscripcion_hasta&&new Date(c.suscripcion_hasta)>new Date()).length;
+    const vencidas = conds.filter(c=>!c.suscripcion_hasta||new Date(c.suscripcion_hasta)<=new Date());
+    const comps = pagos.filter(p=>p.estado==='en_revision');
+    const viajesHoy = viajes.filter(v=>new Date(v.created_at).toDateString()===hoy);
+    const viajesVivos = viajes.filter(v=>['solicitado','aceptado','en_camino','en_curso','asignado'].includes(v.estado));
+
+    document.getElementById('d-activos').textContent = activos;
+    document.getElementById('d-comp').textContent = comps.length;
+    document.getElementById('d-venc').textContent = vencidas.length;
+    document.getElementById('d-viajes').textContent = viajesHoy.length;
+    document.getElementById('badge-comp').textContent = comps.length;
+    document.getElementById('badge-venc').textContent = vencidas.length;
+    document.getElementById('badge-activos').textContent = viajesVivos.length;
+
+    // Puntos de alerta en nav
+    document.getElementById('dot-retiros').classList.toggle('show', false);
+    document.getElementById('dot-conductores').classList.toggle('show', comps.length>0);
+
+    // Comprobantes
+    const cl = document.getElementById('dash-comp-list');
+    if(!comps.length){
+      cl.innerHTML=`<div class="card-empty"><div class="card-empty-icon">✅</div>Sin comprobantes pendientes</div>`;
+    } else {
+      cl.innerHTML = comps.map(p=>`
+        <div class="alert-item">
+          ${avatar(p.conductor_nombre)}
+          <div class="item-info">
+            <div class="item-name">${p.conductor_nombre||'Conductor'}</div>
+            <div class="item-meta">${p.metodo_pago||'—'} · $${Number(p.monto||0).toLocaleString()} COP</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn btn-green" onclick="aprobarCompDash('${p.id}','${p.conductor_id}')">✅ Aprobar</button>
+            <button class="btn btn-red" onclick="rechazarCompDash('${p.id}')">❌</button>
+          </div>
+        </div>`).join('');
+    }
+
+    // Vencidas
+    const vl = document.getElementById('dash-venc-list');
+    if(!vencidas.length){
+      vl.innerHTML=`<div class="card-empty"><div class="card-empty-icon">✅</div>Todas al día</div>`;
+    } else {
+      vl.innerHTML = vencidas.map(c=>{
+        const dias = c.suscripcion_hasta?Math.abs(Math.ceil((new Date(c.suscripcion_hasta)-new Date())/86400000)):null;
+        return `<div class="alert-item">
+          ${avatar(c.nombre)}
+          <div class="item-info">
+            <div class="item-name">${c.nombre}</div>
+            <div class="item-meta">${dias?`Venció hace ${dias}d`:'Sin suscripción'}</div>
+          </div>
+          <button class="btn btn-outline" onclick="abrirSubs('${c.id}','${c.nombre.replace(/'/g,"\\'")}',false)">Activar</button>
+        </div>`;
+      }).join('');
+    }
+
+    // Viajes activos
+    const vl2 = document.getElementById('dash-viajes-list');
+    if(!viajesVivos.length){
+      vl2.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🏍️</div>Sin viajes activos ahora mismo</div>`;
+    } else {
+      vl2.innerHTML = viajesVivos.map(v=>{
+        const min = Math.floor((new Date()-new Date(v.created_at))/60000);
+        const sem = min>10?'rojo':min>5?'amarillo':'verde';
+        return `<div class="viaje-row">
+          <div class="semaforo ${sem}"></div>
+          <div class="viaje-data">
+            <div class="viaje-ruta">${v.origen_texto||v.origen||'—'}</div>
+            <div class="viaje-sub">${v.conductor_nombre||'Sin conductor'} · ${min}min</div>
+          </div>
+          <div class="viaje-right">
+            <div class="viaje-precio">$${Number(v.precio||0).toLocaleString()}</div>
+            <span class="badge ${v.estado==='en_curso'?'green':'gold'}">${v.estado}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e){ toast('❌ Error cargando dashboard','red'); }
+}
+
+async function aprobarCompDash(pagoId, conductorId){
+  if(!confirm('¿Aprobar comprobante y activar suscripción?')) return;
+  const res = await fetch(`${API}/api/suscripciones/activar`,{method:'POST',headers:jH(),body:JSON.stringify({conductor_id:conductorId,metodo_pago:'digital',monto:20000})});
+  const data = await res.json();
+  if(data.success){ toast('✅ Suscripción activada'); loadDashboard(); }
+  else toast('❌ '+(data.error||'Error'),'red');
+}
+async function rechazarCompDash(pagoId){
+  if(!confirm('¿Rechazar este comprobante?')) return;
+  toast('Comprobante rechazado');
+  loadDashboard();
+}
+
+// ── CONDUCTORES ──
+async function loadConductores(){
+  document.getElementById('cond-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const [cR, sR] = await Promise.all([
+      fetch(`${API}/api/conductores/todos`,{headers:aH()}),
+      fetch(`${API}/api/suscripciones/historial`,{headers:aH()})
+    ]);
+    const cD=await cR.json(), sD=await sR.json();
+    conductoresData = cD.conductores||[];
+    const pagos = sD.pagos||[];
+    const act = conductoresData.filter(c=>c.suscripcion_hasta&&new Date(c.suscripcion_hasta)>new Date()).length;
+    const sinDoc = conductoresData.filter(c=>!c.documentos_verificados).length;
+    document.getElementById('c-total').textContent = conductoresData.length;
+    document.getElementById('c-act').textContent = act;
+    document.getElementById('c-sin').textContent = conductoresData.length-act;
+    document.getElementById('c-docs').textContent = sinDoc;
+    renderConductores(conductoresData, pagos);
+  } catch { document.getElementById('cond-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+function renderConductores(lista, pagos){
+  const el = document.getElementById('cond-list');
+  if(!lista.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🏍️</div>No hay conductores</div>`;return;}
+  el.innerHTML = lista.map(c=>{
+    const pagoC = (pagos||[]).filter(p=>p.conductor_id===c.id);
+    const enRev = pagoC.filter(p=>p.estado==='en_revision');
+    const tieneAct = c.suscripcion_hasta&&new Date(c.suscripcion_hasta)>new Date();
+    const diasSubs = tieneAct?Math.ceil((new Date(c.suscripcion_hasta)-new Date())/86400000):0;
+    return `<div class="conductor-item">
+      <div class="conductor-head" onclick="toggleCond('${c.id}')">
+        ${avatar(c.nombre)}
+        <div class="item-info">
+          <div class="item-name">${c.nombre}</div>
+          <div class="item-meta">${c.telefono||'—'} · ${c.placa_moto||'—'}</div>
+          <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
+            ${badgeSubs(c)}
+            ${c.documentos_verificados?'<span class="badge green">✓ Docs</span>':'<span class="badge orange">Docs pendientes</span>'}
+            ${enRev.length?`<span class="badge blue">📋 ${enRev.length} comp.</span>`:''}
+          </div>
+        </div>
+        <span class="chevron" id="chev-${c.id}">›</span>
+      </div>
+      <div class="conductor-body" id="cbody-${c.id}">
+        <div class="info-row"><span class="info-key">Modelo moto</span><span class="info-val">${c.modelo_moto||'—'}</span></div>
+        <div class="info-row"><span class="info-key">Suscripción</span><span class="info-val" style="color:${tieneAct?'var(--green)':'var(--red)'}">${tieneAct?'Activa — '+diasSubs+'d restantes':'Vencida'}</span></div>
+        ${c.suscripcion_hasta?`<div class="info-row"><span class="info-key">Vence</span><span class="info-val">${new Date(c.suscripcion_hasta).toLocaleDateString('es-VE')}</span></div>`:''}
+        <div style="margin-top:10px">
+          <div class="info-key" style="margin-bottom:6px">Documentos</div>
+          <div class="doc-grid">
+            ${docThumb(c.foto_cedula,'Cédula')}
+            ${docThumb(c.foto_licencia,'Licencia')}
+            ${docThumb(c.foto_registro_moto,'Registro')}
+            ${docThumb(c.foto_rcv,'RCV')}
+          </div>
+        </div>
+        ${enRev.length?`<div style="margin-top:10px">
+          <div class="info-key" style="margin-bottom:6px">Comprobante pendiente</div>
+          ${enRev.map(p=>`<div style="background:var(--s);border-radius:10px;padding:10px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:11px;font-family:'Space Mono',monospace">${p.metodo_pago} · $${Number(p.monto||0).toLocaleString()}</span>
+              <span class="badge blue">En revisión</span>
+            </div>
+            ${p.comprobante_url?`<img src="${p.comprobante_url}" onclick="lb('${p.comprobante_url}')" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);margin-bottom:8px">`:''}
+            <div class="action-row">
+              <button class="btn btn-green" style="flex:1" onclick="aprobarSubsCond('${p.id}','${c.id}')">✅ Aprobar</button>
+              <button class="btn btn-red" onclick="rechazarComp('${p.id}')">❌</button>
+            </div>
+          </div>`).join('')}
+        </div>`:''}
+        <div class="action-row">
+          <button class="btn btn-gold" onclick="abrirSubs('${c.id}','${c.nombre.replace(/'/g,"\\'")}',${tieneAct})">${tieneAct?'Renovar +7d':'Activar subs'}</button>
+          <button class="btn btn-green" onclick="verificarCond('${c.id}',true)">✅ Docs</button>
+          <button class="btn btn-red" onclick="verificarCond('${c.id}',false)">❌ Docs</button>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-outline" style="flex:1" onclick="resetPassCond('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">🔑 Reset contraseña</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function docThumb(url, label){
+  if(!url||!url.startsWith('http'))
+    return `<div class="doc-thumb"><div class="doc-empty">Sin foto</div><div class="doc-label">${label}</div></div>`;
+  return `<div class="doc-thumb" onclick="lb('${url}')"><img class="doc-img" src="${url}" alt="${label}"><div class="doc-label">${label}</div></div>`;
+}
+
+function toggleCond(id){
+  const b=document.getElementById('cbody-'+id);
+  const c=document.getElementById('chev-'+id);
+  const open=b.classList.toggle('open');
+  c.classList.toggle('open',open);
+}
+
+function filtrarConductores(q){
+  const f = conductoresData.filter(c=>
+    c.nombre?.toLowerCase().includes(q.toLowerCase())||
+    c.telefono?.includes(q)||
+    c.placa_moto?.toLowerCase().includes(q.toLowerCase())
+  );
+  renderConductores(f,[]);
+}
+
+async function verificarCond(id, ok){
+  const res = await fetch(`${API}/api/conductores/verificar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({documentos_verificados:ok})});
+  const data = await res.json();
+  if(data.ok){ toast(ok?'✅ Conductor aprobado':'❌ Docs rechazados'); loadConductores(); }
+  else toast('❌ '+data.error,'red');
+}
+
+async function aprobarSubsCond(pagoId, condId){
+  if(!confirm('¿Aprobar y activar suscripción?')) return;
+  const res = await fetch(`${API}/api/suscripciones/activar`,{method:'POST',headers:jH(),body:JSON.stringify({conductor_id:condId,metodo_pago:'digital',monto:20000})});
+  const data = await res.json();
+  if(data.success){ toast('✅ '+data.mensaje); loadConductores(); }
+  else toast('❌ '+(data.error||'Error'),'red');
+}
+
+async function rechazarComp(id){
+  if(!confirm('¿Rechazar comprobante?')) return;
+  toast('Comprobante rechazado');
+  loadConductores();
+}
+
+async function resetPassCond(id, nombre){
+  const pass = prompt(`Nueva contraseña para ${nombre}:`);
+  if(!pass||pass.length<4){ if(pass!==null)alert('Mínimo 4 caracteres'); return; }
+  const res = await fetch(`${API}/api/conductores/reset-password/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({password:pass})});
+  const data = await res.json();
+  if(data.ok) toast('✅ Contraseña actualizada');
+  else toast('❌ '+data.error,'red');
+}
+
+// ── SUSCRIPCIONES ──
+function abrirSubs(id, nombre, renovar){
+  conductorSelId = id;
+  document.getElementById('ms-nombre').textContent = nombre;
+  document.getElementById('ms-estado').textContent = renovar?'Renovar +7 días':'Nueva suscripción';
+  document.getElementById('modal-subs').classList.add('show');
+}
+
+async function confirmarSubs(){
+  if(!conductorSelId) return;
+  const id = conductorSelId;
+  cerrarModal('modal-subs');
+  const res = await fetch(`${API}/api/suscripciones/activar`,{method:'POST',headers:jH(),body:JSON.stringify({conductor_id:id,metodo_pago:'efectivo',monto:20000})});
+  const data = await res.json();
+  if(data.success){ toast('✅ '+data.mensaje); loadConductores(); }
+  else toast('❌ Error al activar','red');
+  conductorSelId = null;
+}
+
+// ── VIAJES ──
+async function loadViajes(){
+  document.getElementById('viajes-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/viajes`,{headers:aH()});
+    const data = await res.json();
+    viajesData = data.viajes||[];
+    document.getElementById('viajes-total').textContent = `${viajesData.length} viajes registrados`;
+    renderViajes();
+  } catch { document.getElementById('viajes-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+function filtrarViajes(f, btn){
+  viajesFiltro = f;
+  document.querySelectorAll('#viajes-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderViajes();
+}
+
+function renderViajes(){
+  const lista = viajesFiltro==='todos'?viajesData:viajesData.filter(v=>v.estado===viajesFiltro);
+  const el = document.getElementById('viajes-list');
+  if(!lista.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🗺️</div>Sin viajes en este estado</div>`;return;}
+  const ahora = new Date();
+  el.innerHTML = lista.slice(0,80).map(v=>{
+    const min = Math.floor((ahora-new Date(v.created_at))/60000);
+    const sem = (v.estado==='solicitado'&&min>10)?'rojo':(v.estado==='solicitado'&&min>5)?'amarillo':'verde';
+    const eColor = {completado:'green',cancelado:'red',en_curso:'green',solicitado:'gold',aceptado:'gold',en_camino:'blue'}[v.estado]||'muted';
+    return `<div class="viaje-row">
+      <div class="semaforo ${sem}"></div>
+      <div class="viaje-data">
+        <div class="viaje-ruta">${v.origen_texto||v.origen||'—'} → ${v.destino_texto||v.destino||'—'}</div>
+        <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}</div>
+        <div class="viaje-sub">${new Date(v.created_at).toLocaleDateString('es-VE')} · ${min}min</div>
+      </div>
+      <div class="viaje-right">
+        <div class="viaje-precio">$${Number(v.precio||0).toLocaleString()}</div>
+        <span class="badge ${eColor}">${v.estado}</span>
+        ${v.distancia_km?`<div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:3px">${Number(v.distancia_km).toFixed(1)}km</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RETIROS ──
+async function loadRetiros(){
+  document.getElementById('retiros-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/saldo/retiros/pendientes`,{headers:aH()});
+    const data = await res.json();
+    const retiros = data.retiros||[];
+    const total = retiros.reduce((s,r)=>s+Number(r.monto||0),0);
+    document.getElementById('r-pend').textContent = retiros.length;
+    document.getElementById('r-monto').textContent = '$'+total.toFixed(0);
+    document.getElementById('dot-retiros').classList.toggle('show', retiros.length>0);
+
+    const el = document.getElementById('retiros-list');
+    if(!retiros.length){el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">✅</div>Sin retiros pendientes</div>`;return;}
+    el.innerHTML = retiros.map(r=>{
+      const db = r.datos_bancarios||{};
+      const m = r.metodo_retiro||'';
+      let datosH = '';
+      if(m==='pago_movil'||m==='transferencia'){
+        if(db.banco) datosH+=`<div class="info-row"><span class="info-key">Banco</span><span class="info-val">${db.banco}</span></div>`;
+        if(db.telefono_pago_movil) datosH+=`<div class="info-row"><span class="info-key">Teléfono</span><span class="info-val">${db.telefono_pago_movil}</span></div>`;
+        if(db.cedula) datosH+=`<div class="info-row"><span class="info-key">Cédula</span><span class="info-val">${db.cedula}</span></div>`;
+      } else if(m==='zelle'){
+        if(db.zelle_email) datosH+=`<div class="info-row"><span class="info-key">Email Zelle</span><span class="info-val">${db.zelle_email}</span></div>`;
+        if(db.zelle_telefono) datosH+=`<div class="info-row"><span class="info-key">Teléfono</span><span class="info-val">${db.zelle_telefono}</span></div>`;
+      } else if(m==='usdt'){
+        if(db.wallet_usdt) datosH+=`<div class="info-row"><span class="info-key">Wallet USDT</span><span class="info-val" style="font-size:10px;word-break:break-all">${db.wallet_usdt}</span></div>`;
+        datosH+=`<div class="info-row"><span class="info-key">Red</span><span class="info-val">TRC20</span></div>`;
+      }
+      return `<div class="retiro-card">
+        <div class="retiro-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            ${avatar(r.conductores?.nombre)}
+            <div>
+              <div style="font-weight:700;font-size:14px">${r.conductores?.nombre||'Conductor'}</div>
+              <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${r.conductores?.telefono||''}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="retiro-monto">$${Number(r.monto||0).toFixed(2)}</div>
+            <span class="badge orange">${m.toUpperCase()}</span>
+          </div>
+        </div>
+        <div class="retiro-body">
+          <div class="datos-box">${datosH||'<div style="color:var(--muted);font-size:12px">Sin datos bancarios</div>'}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:10px">Solicitado: ${new Date(r.created_at).toLocaleString('es-VE')}</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-green" style="flex:1" onclick="aprobarRetiro('${r.id}')">✅ Aprobar</button>
+            <button class="btn btn-red" onclick="rechazarRetiro('${r.id}')">❌ Rechazar</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch { document.getElementById('retiros-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+async function aprobarRetiro(id){
+  if(!confirm('¿Confirmar que ya transferiste el dinero al conductor?')) return;
+  const res = await fetch(`${API}/api/saldo/retiro/aprobar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({})});
+  const data = await res.json();
+  if(data.ok){ toast('✅ Retiro aprobado'); loadRetiros(); }
+  else toast('❌ '+data.error,'red');
+}
+
+async function rechazarRetiro(id){
+  const motivo = prompt('Motivo del rechazo:')||'Rechazado por admin';
+  const res = await fetch(`${API}/api/saldo/retiro/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ toast('Retiro rechazado — saldo devuelto al conductor'); loadRetiros(); }
+  else toast('❌ '+data.error,'red');
+}
+
+// ── MÁS ──
+function switchMas(sub, btn){
+  masSub = sub;
+  ['tarifas','usuarios','soporte'].forEach(s=>document.getElementById('sub-'+s).style.display=s===sub?'block':'none');
+  document.querySelectorAll('#p-mas .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const loaders = {tarifas:loadTarifas, usuarios:loadUsuarios, soporte:loadSoporte};
+  if(loaders[sub]) loaders[sub]();
+}
+
+function loadMas(){
+  if(masSub==='tarifas') loadTarifas();
+  else if(masSub==='usuarios') loadUsuarios();
+  else loadSoporte();
+}
+
+// ── TARIFAS ──
+async function loadTarifas(){
+  document.getElementById('tarifas-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/tarifas/municipios`,{headers:aH()});
+    const data = await res.json();
+    const list = data.municipios||[];
+    document.getElementById('t-total').textContent = list.length;
+    document.getElementById('t-act').textContent = list.filter(m=>m.activo).length;
+    const el = document.getElementById('tarifas-list');
+    if(!list.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)">Sin municipios configurados</div>`;return;}
+    el.innerHTML = list.map(m=>`
+      <div class="tarifa-card" style="${!m.activo?'opacity:.5':''}">
+        <div class="tarifa-head">
+          <div>
+            <div style="font-size:14px;font-weight:700">📍 ${m.municipio}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px">Radio ${m.radio_km}km</div>
+          </div>
+          <div style="text-align:right">
+            ${m.tipo==='fija'?`<div style="font-size:16px;font-weight:800;color:var(--gold)">$${Number(m.tarifa_fija||0).toLocaleString()}</div>`:
+              `<div style="font-size:13px;font-weight:700;color:var(--gold)">$${Number(m.tarifa_base||0).toLocaleString()}+${Number(m.tarifa_por_km||0).toLocaleString()}/km</div>`}
+            <span class="badge ${m.activo?'green':'red'}">${m.activo?m.tipo.toUpperCase():'INACTIVO'}</span>
+          </div>
+        </div>
+        <div class="tarifa-body">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick='abrirModalTarifa(${JSON.stringify(m)})'>✏️ Editar</button>
+            <button class="btn btn-outline" onclick="toggleTarifaActivo('${m.id}',${m.activo})">${m.activo?'⏸ Desactivar':'▶ Activar'}</button>
+            <button class="btn btn-red" onclick="eliminarTarifa('${m.id}','${m.municipio.replace(/'/g,"\\'")}')">🗑 Eliminar</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch { document.getElementById('tarifas-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+function toggleTarifa(){
+  const t = document.getElementById('mt-tipo').value;
+  document.getElementById('mt-fija').style.display = t==='fija'?'block':'none';
+  document.getElementById('mt-din').style.display = t==='dinamica'?'block':'none';
+}
+
+function abrirModalTarifa(m){
+  ['mt-id','mt-municipio','mt-lat','mt-lng','mt-radio','mt-tfija','mt-base','mt-km'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mt-tipo').value='fija';
+  document.getElementById('mt-titulo').textContent = m?'✏️ Editar: '+m.municipio:'💲 Nuevo Municipio';
+  if(m){
+    document.getElementById('mt-id').value=m.id||'';
+    document.getElementById('mt-municipio').value=m.municipio||'';
+    document.getElementById('mt-lat').value=m.lat_centro||'';
+    document.getElementById('mt-lng').value=m.lng_centro||'';
+    document.getElementById('mt-radio').value=m.radio_km||'';
+    document.getElementById('mt-tipo').value=m.tipo||'fija';
+    document.getElementById('mt-tfija').value=m.tarifa_fija||'';
+    document.getElementById('mt-base').value=m.tarifa_base||'';
+    document.getElementById('mt-km').value=m.tarifa_por_km||'';
+  }
+  toggleTarifa();
+  document.getElementById('modal-tarifa').classList.add('show');
+}
+
+async function guardarTarifa(){
+  const id=document.getElementById('mt-id').value;
+  const municipio=document.getElementById('mt-municipio').value.trim();
+  const lat=parseFloat(document.getElementById('mt-lat').value);
+  const lng=parseFloat(document.getElementById('mt-lng').value);
+  const radio=parseFloat(document.getElementById('mt-radio').value);
+  const tipo=document.getElementById('mt-tipo').value;
+  if(!municipio||isNaN(lat)||isNaN(lng)||isNaN(radio)){toast('⚠️ Completa todos los campos','red');return;}
+  const payload={municipio,lat_centro:lat,lng_centro:lng,radio_km:radio,tipo,activo:true,
+    tarifa_fija:tipo==='fija'?parseInt(document.getElementById('mt-tfija').value)||0:null,
+    tarifa_base:tipo==='dinamica'?parseInt(document.getElementById('mt-base').value)||0:null,
+    tarifa_por_km:tipo==='dinamica'?parseInt(document.getElementById('mt-km').value)||0:null};
+  try {
+    const url = id?`${API}/api/tarifas/municipios/${id}`:`${API}/api/tarifas/municipios`;
+    const method = id?'PATCH':'POST';
+    const res = await fetch(url,{method,headers:jH(),body:JSON.stringify(payload)});
+    const data = await res.json();
+    if(data.ok){ toast(id?'✅ Municipio actualizado':'✅ Municipio creado'); cerrarModal('modal-tarifa'); loadTarifas(); }
+    else toast('❌ '+(data.error||'Error'),'red');
+  } catch { toast('❌ Error de conexión','red'); }
+}
+
+async function toggleTarifaActivo(id, activo){
+  const res=await fetch(`${API}/api/tarifas/municipios/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({activo:!activo})});
+  const data=await res.json();
+  if(data.ok){toast(activo?'⏸ Desactivado':'✅ Activado');loadTarifas();}
+}
+
+async function eliminarTarifa(id, nombre){
+  if(!confirm(`¿Eliminar tarifa de ${nombre}?`)) return;
+  const res=await fetch(`${API}/api/tarifas/municipios/${id}`,{method:'DELETE',headers:aH()});
+  const data=await res.json();
+  if(data.ok){toast('🗑 Eliminado');loadTarifas();}
+  else toast('❌ '+data.error,'red');
+}
+
+// ── USUARIOS ──
+async function loadUsuarios(){
+  document.getElementById('usuarios-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const [uR, pR] = await Promise.all([
+      fetch(`${API}/api/usuarios/todos`,{headers:aH()}),
+      fetch(`${API}/api/pagos/en-revision`,{headers:aH()})
+    ]);
+    const uD=await uR.json(), pD=await pR.json();
+    usuariosData = uD.usuarios||[];
+    const pagosDigitales = pD.pagos||[];
+    document.getElementById('u-total').textContent = usuariosData.length;
+    document.getElementById('u-pagos').textContent = pagosDigitales.length;
+    renderUsuarios(usuariosData, pagosDigitales);
+  } catch { document.getElementById('usuarios-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+function renderUsuarios(lista, pagos){
+  const el = document.getElementById('usuarios-list');
+  if(!lista.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">👤</div>No hay usuarios</div>`;return;}
+  el.innerHTML = lista.map(u=>{
+    const pagosU = (pagos||[]).filter(p=>p.viajes?.usuario_id===u.id);
+    return `<div class="conductor-item">
+      <div class="conductor-head" onclick="toggleUser('${u.id}')">
+        ${avatar(u.nombre,'var(--blue)')}
+        <div class="item-info">
+          <div class="item-name">${u.nombre}</div>
+          <div class="item-meta">${u.telefono||'—'}</div>
+          <div style="margin-top:5px;display:flex;gap:5px">
+            ${u.foto_cedula?'<span class="badge green">✓ Cédula</span>':'<span class="badge muted">Sin cédula</span>'}
+            ${pagosU.length?`<span class="badge blue">💳 ${pagosU.length} pago${pagosU.length>1?'s':''}</span>`:''}
+          </div>
+        </div>
+        <span class="chevron" id="uchev-${u.id}">›</span>
+      </div>
+      <div class="conductor-body" id="ubody-${u.id}">
+        ${u.email?`<div class="info-row"><span class="info-key">Email</span><span class="info-val">${u.email}</span></div>`:''}
+        ${u.foto_cedula?`<div style="margin:10px 0">
+          <div class="info-key" style="margin-bottom:6px">Documentos</div>
+          <div class="doc-grid">${docThumb(u.foto_cedula,'Cédula')}</div>
+        </div>`:''}
+        ${pagosU.length?`<div style="margin-top:10px">
+          <div class="info-key" style="margin-bottom:6px">Pagos de viajes</div>
+          ${pagosU.map(p=>`<div style="background:var(--s);border-radius:10px;padding:10px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:11px;font-family:'Space Mono',monospace">${p.metodo} · $${Number(p.monto||0).toFixed(2)}</span>
+              <span class="badge blue">${p.estado}</span>
+            </div>
+            ${p.comprobante_url?`<img src="${p.comprobante_url}" onclick="lb('${p.comprobante_url}')" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px">`:''}
+            <div class="action-row">
+              <button class="btn btn-green" style="flex:1" onclick="confirmarPago('${p.id}')">✅ Confirmar</button>
+              <button class="btn btn-red" onclick="rechazarPago('${p.id}')">❌</button>
+            </div>
+          </div>`).join('')}
+        </div>`:''}
+        <div class="action-row">
+          <button class="btn btn-outline" style="flex:1" onclick="resetPassUser('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">🔑 Reset contraseña</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleUser(id){
+  const b=document.getElementById('ubody-'+id);
+  const c=document.getElementById('uchev-'+id);
+  const open=b.classList.toggle('open');
+  c.classList.toggle('open',open);
+}
+
+function filtrarUsuarios(q){
+  const f = usuariosData.filter(u=>u.nombre?.toLowerCase().includes(q.toLowerCase())||u.telefono?.includes(q)||u.email?.toLowerCase().includes(q.toLowerCase()));
+  renderUsuarios(f,[]);
+}
+
+async function confirmarPago(id){
+  if(!confirm('¿Confirmar pago? Se acreditará saldo al conductor.')) return;
+  const res = await fetch(`${API}/api/pagos/confirmar/${id}`,{method:'PATCH',headers:aH()});
+  const data = await res.json();
+  if(data.ok){ toast('✅ Pago confirmado — saldo acreditado'); loadUsuarios(); }
+  else toast('❌ '+data.error,'red');
+}
+
+async function rechazarPago(id){
+  const motivo = prompt('Motivo del rechazo:')||'Comprobante no válido';
+  const res = await fetch(`${API}/api/pagos/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ toast('❌ Pago rechazado'); loadUsuarios(); }
+  else toast('❌ '+data.error,'red');
+}
+
+async function resetPassUser(id, nombre){
+  const pass = prompt(`Nueva contraseña para ${nombre}:`);
+  if(!pass||pass.length<4){ if(pass!==null)alert('Mínimo 4 caracteres'); return; }
+  const res = await fetch(`${API}/api/usuarios/reset-password/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({password:pass})});
+  const data = await res.json();
+  if(data.ok) toast('✅ Contraseña actualizada');
+  else toast('❌ '+data.error,'red');
+}
+
+// ── SOPORTE ──
+async function loadSoporte(){
+  document.getElementById('soporte-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/soporte/todos`,{headers:aH()});
+    const data = await res.json();
+    const el = document.getElementById('soporte-list');
+    if(!data.ok||!data.mensajes?.length){el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">🆘</div>Sin mensajes de soporte</div>`;return;}
+    el.innerHTML = data.mensajes.map(m=>`
+      <div class="soporte-card ${m.estado==='resuelto'?'resuelto':''}">
+        <div class="soporte-head">
+          <div>
+            <div style="font-weight:700;font-size:14px">${m.nombre||'Desconocido'}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px">${m.telefono||''} · ${new Date(m.created_at).toLocaleDateString('es-VE')}</div>
+          </div>
+          <span class="badge ${m.estado==='resuelto'?'green':'orange'}">${m.estado==='resuelto'?'RESUELTO':'PENDIENTE'}</span>
+        </div>
+        <div class="soporte-msg">${m.mensaje}</div>
+        ${m.estado!=='resuelto'?`<div class="soporte-actions">
+          <button class="btn btn-green" onclick="resolverSoporte('${m.id}')">✅ Resolver</button>
+          <button class="btn btn-outline" onclick="window.open('https://wa.me/${m.telefono}?text=Hola%20${encodeURIComponent(m.nombre||'')},%20te%20contactamos%20desde%20ZAS')">💬 WhatsApp</button>
+        </div>`:''}
+      </div>`).join('');
+  } catch { document.getElementById('soporte-list').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+async function resolverSoporte(id){
+  const res = await fetch(`${API}/api/soporte/resolver/${id}`,{method:'PATCH',headers:aH()});
+  const data = await res.json();
+  if(data.ok){ toast('✅ Marcado como resuelto'); loadSoporte(); }
+}
+
+// ── AUTO REFRESH ──
+let refreshTick = 30;
+setInterval(()=>{
+  refreshTick--;
+  if(refreshTick<=0){
+    refreshTick=30;
+    if(sessionStorage.getItem('zas_admin')!=='true') return;
+    if(currentPage==='dashboard') loadDashboard();
+    else if(currentPage==='conductores') loadConductores();
+    else if(currentPage==='viajes') loadViajes();
+    else if(currentPage==='retiros') loadRetiros();
+  }
+},1000);
+</script>
+</body>
+</html>
