@@ -280,8 +280,15 @@ export default function LoginScreen() {
       if (data.ok) {
         await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
         await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
-        Alert.alert("Registro exitoso", "Bienvenido a ZAS " + data.usuario.nombre);
-        router.push("/home");
+        router.push({
+  pathname: '/VerificarTelefono',
+  params: {
+    telefono: telefono,
+    tipo: 'usuario',
+    id: data.usuario.id,
+    nombre: data.usuario.nombre,
+  }
+});
       } else {
         Alert.alert("Error", data.error || "No se pudo registrar");
       }
