@@ -103,7 +103,7 @@ export default function HomeScreen() {
   const [viaje, setViaje] = useState<any>(null);
   const [navegandoAlMapa, setNavegandoAlMapa] = useState(false);
 
-  const [paso, setPaso] = useState<'origen' | 'destino' | 'confirmar'>('origen');
+  const [paso, setPaso] = useState<'origen' | 'destino' | 'confirmar' | 'pagar'>('origen');
   const [region, setRegion] = useState({ latitude: 7.7633, longitude: -72.2249, latitudeDelta: 0.01, longitudeDelta: 0.01 });
   const [pinCoord, setPinCoord] = useState<Coord>({ latitude: 7.7633, longitude: -72.2249 });
   const [coordOrigen, setCoordOrigen] = useState<Coord | null>(null);
@@ -204,6 +204,7 @@ export default function HomeScreen() {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (viaje) { BackHandler.exitApp(); return true; }
       if (paso === 'destino') { setPaso('origen'); return true; }
+      if (paso === 'pagar') { setPaso('confirmar'); return true; }
       if (paso === 'confirmar') { setPaso('destino'); return true; }
       return false;
     });
@@ -785,6 +786,47 @@ export default function HomeScreen() {
             </View>
           )}
 
+          <TouchableOpacity
+            style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]}
+            onPress={() => setPaso('pagar')}
+            disabled={calculandoPrecio || !precioCalculado}
+          >
+            <Text style={styles.botonTexto}>Continuar al pago →</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}>
+            <Text style={styles.botonCancelarTexto}>Cambiar ruta</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── PANTALLA PAGO ─────────────────────────────────────────────────────────────
+  if (paso === 'pagar') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.logo}>ZAS</Text>
+            <TouchableOpacity onPress={cerrarSesion} style={styles.botonCerrarHeader}>
+              <Text style={styles.botonCerrarHeaderTexto}>Salir</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.saludo}>Hola, {usuarioNombre}</Text>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20 }}>
+          <Text style={[styles.viajeActivoTitulo, { marginBottom: 20 }]}>Elige tu metodo de pago</Text>
+          <View style={styles.viajeInfo}>
+            <Text style={styles.viajeLabel}>Total a pagar</Text>
+            <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>
+              {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).cop} COP
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).bs}</Text>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).usd}</Text>
+            </View>
+          </View>
+
           {/* MÉTODO DE PAGO */}
           <View style={styles.pagoContainer}>
             <Text style={styles.pagoLabel}>Metodo de pago</Text>
@@ -820,8 +862,8 @@ export default function HomeScreen() {
           >
             {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Solicitar ZAS</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={reiniciarFlujo}>
-            <Text style={styles.botonCancelarTexto}>Cambiar ruta</Text>
+          <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={() => setPaso('confirmar')}>
+            <Text style={styles.botonCancelarTexto}>← Volver</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
