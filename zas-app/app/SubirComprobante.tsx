@@ -47,6 +47,15 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
       const dataStorage = await resStorage.json();
       if (!dataStorage.ok) { Alert.alert('Error', 'No se pudo subir la foto'); setEnviando(false); return; }
 
+      // Si es comprobante previo (antes del viaje) — solo guardar en storage, no vincular al pago
+      if (pagoId === 'previo') {
+        Alert.alert('✅ Comprobante recibido', 'ZAS verificará tu pago mientras realizas el viaje.', [
+          { text: 'OK', onPress: onComprobanteEnviado }
+        ]);
+        setEnviando(false);
+        return;
+      }
+
       // Luego enviar al backend
       const res = await fetch(`${API_URL}/api/pagos/subir-comprobante/${pagoId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

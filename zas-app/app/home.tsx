@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
 import ListaOfertas from './components/ListaOfertas';
+import SubirComprobante from './SubirComprobante';
 
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
@@ -136,6 +137,10 @@ export default function HomeScreen() {
   const [datosZas, setDatosZas] = useState<any>(null);
   const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 36 });
   const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
+  const [mostrarComprobantePrevio, setMostrarComprobantePrevio] = useState(false);
+  const [datosZasPrevio, setDatosZasPrevio] = useState<any>(null);
+  const [cargandoDatosZas, setCargandoDatosZas] = useState(false);
+  const [comprobanteEnviado, setComprobanteEnviado] = useState(false);
 
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
   useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
@@ -489,6 +494,8 @@ export default function HomeScreen() {
     setPrecioUsuario(0); precioUsuarioRef.current = 0;
     setEsNegociable(false); setEsNegociableViaje(false); setDesglosePrecios(null);
     setTipoTarifa(''); setMunicipioTarifa(null);
+    setMostrarComprobantePrevio(false); setDatosZasPrevio(null);
+    setComprobanteEnviado(false); setCargandoDatosZas(false);
   };
 
   const cancelarViaje = async () => {
@@ -801,8 +808,37 @@ export default function HomeScreen() {
     );
   }
 
-  // ── PANTALLA PAGO ─────────────────────────────────────────────────────────────
+  // ── PANTALLA PAGAR — selección de método + comprobante previo ───────────────
   if (paso === 'pagar') {
+    const precios = formatearPrecio(esNegociable ? precioUsuario : precioCalculado);
+    const esDigital = metodoPago !== 'efectivo';
+
+    // Si ya se eligió método digital y se pide mostrar el comprobante
+    if (mostrarComprobantePrevio && esDigital && datosZasPrevio) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
+          <SubirComprobante
+            pagoId={'previo'}
+            metodo={metodoPago}
+            monto={esNegociable ? precioUsuario : precioCalculado}
+            datosZas={datosZasPrevio}
+            tasas={{ usd_cop: tasas.cop_bs * (1 / tasas.usd_bs), usd_bs: tasas.usd_bs }}
+            onComprobanteEnviado={() => {
+              setComprobanteEnviado(true);
+              setMostrarComprobantePrevio(false);
+            }}
+          />
+          {/* Botón volver */}
+          <TouchableOpacity
+            style={{ margin: 16, padding: 14, alignItems: 'center', backgroundColor: '#16213e', borderRadius: 12 }}
+            onPress={() => setMostrarComprobantePrevio(false)}
+          >
+            <Text style={{ color: '#ff6b6b', fontWeight: 'bold' }}>← Cambiar método de pago</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -812,28 +848,31 @@ export default function HomeScreen() {
               <Text style={styles.botonCerrarHeaderTexto}>Salir</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.saludo}>Hola, {usuarioNombre}</Text>
+          <Text style={styles.saludo}>Elige cómo pagar</Text>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={[styles.viajeActivoTitulo, { marginBottom: 20 }]}>Elige tu metodo de pago</Text>
+
+          {/* RESUMEN DEL VIAJE */}
           <View style={styles.viajeInfo}>
+            <Text style={styles.viajeLabel}>Origen</Text>
+            <Text style={styles.viajeValor}>{nombreOrigen}</Text>
+            <Text style={styles.viajeLabel}>Destino</Text>
+            <Text style={styles.viajeValor}>{nombreDestino}</Text>
             <Text style={styles.viajeLabel}>Total a pagar</Text>
-            <Text style={[styles.viajeEstado, { color: '#FFD700', fontSize: 26 }]}>
-              {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).cop} COP
-            </Text>
+            <Text style={[styles.viajeEstado, { fontSize: 26, color: '#FFD700' }]}>{precios.cop} COP</Text>
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-              <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).bs}</Text>
-              <Text style={{ color: '#aaa', fontSize: 13 }}>$ {formatearPrecio(esNegociable ? precioUsuario : precioCalculado).usd}</Text>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>Bs {precios.bs}</Text>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>$ {precios.usd}</Text>
             </View>
           </View>
 
-          {/* MÉTODO DE PAGO */}
+          {/* SELECCIÓN MÉTODO DE PAGO */}
           <View style={styles.pagoContainer}>
-            <Text style={styles.pagoLabel}>Metodo de pago</Text>
+            <Text style={styles.pagoLabel}>Método de pago</Text>
             <View style={{ gap: 8 }}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['efectivo', 'bancolombia', 'nequi'].map(m => (
-                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => { setMetodoPago(m); setComprobanteEnviado(false); }}>
                     <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
                       {m === 'efectivo' ? 'Efectivo' : m === 'bancolombia' ? 'Bancolombia' : 'Nequi'}
                     </Text>
@@ -842,7 +881,7 @@ export default function HomeScreen() {
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['pago_movil', 'zelle', 'usdt'].map(m => (
-                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => setMetodoPago(m)}>
+                  <TouchableOpacity key={m} style={[styles.pagoBoton, metodoPago === m && styles.pagoBotonActivo]} onPress={() => { setMetodoPago(m); setComprobanteEnviado(false); }}>
                     <Text style={[styles.pagoTexto, metodoPago === m && styles.pagoTextoActivo]}>
                       {m === 'pago_movil' ? 'Pago Movil' : m === 'zelle' ? 'Zelle' : 'USDT'}
                     </Text>
@@ -851,20 +890,61 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-              {metodoPago === 'efectivo' ? 'Pago directo al conductor en efectivo' : 'Despues del viaje deberas subir el comprobante de pago'}
+              {metodoPago === 'efectivo' ? 'Pago directo al conductor en efectivo' : 'Transfiere a ZAS y sube el comprobante para confirmar'}
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.boton, (calculandoPrecio || !precioCalculado) && { opacity: 0.5 }]}
-            onPress={solicitarViaje}
-            disabled={cargando || calculandoPrecio || !precioCalculado}
-          >
-            {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Solicitar ZAS</Text>}
-          </TouchableOpacity>
+          {/* ESTADO COMPROBANTE ENVIADO */}
+          {comprobanteEnviado && (
+            <View style={{ backgroundColor: 'rgba(0,200,83,0.1)', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#00c853', alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>✅</Text>
+              <Text style={{ color: '#00c853', fontWeight: 'bold', fontSize: 15, marginBottom: 4 }}>Comprobante enviado</Text>
+              <Text style={{ color: '#aaa', fontSize: 12, textAlign: 'center' }}>ZAS verificará el pago mientras realizas el viaje</Text>
+            </View>
+          )}
+
+          {/* BOTÓN PRINCIPAL */}
+          {metodoPago === 'efectivo' || comprobanteEnviado ? (
+            // Efectivo o comprobante ya enviado → solicitar directo
+            <TouchableOpacity
+              style={[styles.boton, (calculandoPrecio || !precioCalculado || cargando) && { opacity: 0.5 }]}
+              onPress={solicitarViaje}
+              disabled={cargando || calculandoPrecio || !precioCalculado}
+            >
+              {cargando
+                ? <ActivityIndicator color="#1a1a2e" />
+                : <Text style={styles.botonTexto}>Solicitar ZAS ⚡</Text>
+              }
+            </TouchableOpacity>
+          ) : (
+            // Digital sin comprobante → ir a pagar primero
+            <TouchableOpacity
+              style={[styles.boton, cargandoDatosZas && { opacity: 0.6 }]}
+              disabled={cargandoDatosZas}
+              onPress={async () => {
+                setCargandoDatosZas(true);
+                try {
+                  const res = await fetch(`${API_URL}/api/pagos/datos-pago/${metodoPago}`);
+                  const data = await res.json();
+                  setDatosZasPrevio(data.ok ? data.datos : null);
+                } catch {
+                  setDatosZasPrevio(null);
+                }
+                setCargandoDatosZas(false);
+                setMostrarComprobantePrevio(true);
+              }}
+            >
+              {cargandoDatosZas
+                ? <ActivityIndicator color="#1a1a2e" />
+                : <Text style={styles.botonTexto}>Pagar ahora →</Text>
+              }
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={[styles.botonCancelar, { marginTop: 12 }]} onPress={() => setPaso('confirmar')}>
             <Text style={styles.botonCancelarTexto}>← Volver</Text>
           </TouchableOpacity>
+
         </ScrollView>
       </View>
     );
