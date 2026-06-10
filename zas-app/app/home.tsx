@@ -11,6 +11,7 @@ import { registrarNotificaciones } from '../notificaciones';
 import { AppState } from 'react-native';
 import ListaOfertas from './components/ListaOfertas';
 import SubirComprobante from './SubirComprobante';
+import Svg, { Ellipse, Line, Rect } from 'react-native-svg';
 
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
@@ -612,7 +613,13 @@ export default function HomeScreen() {
             c.latitud && c.longitud ? (
               <Marker key={c.id} coordinate={{ latitude: Number(c.latitud), longitude: Number(c.longitud) }} anchor={{ x: 0.5, y: 0.5 }}>
                 <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5 }}>
-                  <Text style={{ fontSize: 18 }}>🏍</Text>
+                  <Svg width={32} height={36} viewBox="0 0 32 36">
+                    <Ellipse cx="16" cy="16" rx="5" ry="10" fill="#FFD700"/>
+                    <Ellipse cx="16" cy="28" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
+                    <Ellipse cx="16" cy="5" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
+                    <Line x1="9" y1="7" x2="23" y2="7" stroke="#FFD700" strokeWidth="2" strokeLinecap="round"/>
+                    <Rect x="12" y="13" width="8" height="6" rx="2" fill="#cc9900"/>
+                  </Svg>
                 </View>
               </Marker>
             ) : null
@@ -959,7 +966,13 @@ export default function HomeScreen() {
           conductor.latitud && conductor.longitud ? (
             <Marker key={conductor.id} coordinate={{ latitude: Number(conductor.latitud), longitude: Number(conductor.longitud) }} title={conductor.nombre} description={conductor.modelo_moto || 'Mototaxi ZAS'}>
               <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 18 }}>🏍</Text>
+                <Svg width={32} height={36} viewBox="0 0 32 36">
+                  <Ellipse cx="16" cy="16" rx="5" ry="10" fill="#FFD700"/>
+                  <Ellipse cx="16" cy="28" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
+                  <Ellipse cx="16" cy="5" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
+                  <Line x1="9" y1="7" x2="23" y2="7" stroke="#FFD700" strokeWidth="2" strokeLinecap="round"/>
+                  <Rect x="12" y="13" width="8" height="6" rx="2" fill="#cc9900"/>
+                </Svg>
               </View>
             </Marker>
           ) : null
