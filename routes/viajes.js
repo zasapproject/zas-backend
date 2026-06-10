@@ -453,7 +453,7 @@ router.get('/', async (req, res) => {
 router.get('/cercanos/:lat/:lng', async (req, res) => {
   const lat = parseFloat(req.params.lat);
   const lng = parseFloat(req.params.lng);
-  const radioKm = 5;
+  const radioKm = 3;
 
   if (!lat || !lng) return res.status(400).json({ ok: false, error: 'Latitud y longitud son obligatorios' });
 
