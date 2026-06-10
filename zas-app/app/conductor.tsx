@@ -392,8 +392,15 @@ export default function ConductorScreen() {
       });
       const data = await res.json();
       if (data.ok) {
-        Alert.alert('Registro exitoso!', 'Tu cuenta esta pendiente de aprobacion por el administrador. Te avisaremos pronto.');
-        setPantalla('login');
+        router.push({
+          pathname: '/VerificarTelefono',
+          params: {
+            telefono: regTelefono,
+            tipo: 'conductor',
+            id: data.conductor.id,
+            nombre: data.conductor.nombre,
+          }
+        });
       } else Alert.alert('Error', data.error || 'No se pudo registrar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }

@@ -181,7 +181,7 @@ export default function VerificarTelefono() {
 
       Alert.alert(
         'Registro exitoso',
-        'Bienvenido a ZAS ' + nombre,
+        tipo === 'conductor' ? 'Bienvenido a ZAS ' + nombre + '. Tu cuenta está pendiente de aprobación por el administrador. Te avisaremos pronto.' : 'Bienvenido a ZAS ' + nombre,
         [
           {
             text: 'Continuar',
