@@ -386,22 +386,24 @@ export default function ConductorScreen() {
       if (!urlRcv) { setCargando(false); return; }
       const urlAntecedentes = await subirAStorage(regFotoAntecedentes, `antecedentes_${regTelefono}`);
       if (!urlAntecedentes) { setCargando(false); return; }
-      const res = await fetch(API_URL + '/api/conductores/registro', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: regNombre, telefono: regTelefono, email: regEmail, password: regPassword, foto_url: urlFotoPerfil, placa_moto: regPlaca, modelo_moto: regModelo, foto_cedula: urlCedula, foto_licencia: urlLicencia, foto_registro_moto: urlRegistro, foto_rcv: urlRcv, foto_antecedentes: urlAntecedentes })
+      router.push({
+        pathname: '/VerificarTelefono',
+        params: {
+          telefono: regTelefono,
+          tipo: 'conductor',
+          nombre: regNombre,
+          email: regEmail || '',
+          password: regPassword,
+          fotoUrl: urlFotoPerfil,
+          placa: regPlaca,
+          modelo: regModelo,
+          fotoCedula: urlCedula,
+          fotoLicencia: urlLicencia,
+          fotoRegistro: urlRegistro,
+          fotoRcv: urlRcv,
+          fotoAntecedentes: urlAntecedentes,
+        }
       });
-      const data = await res.json();
-      if (data.ok) {
-        router.push({
-          pathname: '/VerificarTelefono',
-          params: {
-            telefono: regTelefono,
-            tipo: 'conductor',
-            id: data.conductor.id,
-            nombre: data.conductor.nombre,
-          }
-        });
-      } else Alert.alert('Error', data.error || 'No se pudo registrar');
     } catch { Alert.alert('Error', 'No se pudo conectar'); }
     finally { setCargando(false); }
   };

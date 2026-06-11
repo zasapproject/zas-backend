@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BACKEND_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function VerificarTelefono() {
-  const { telefono, tipo, id, nombre, email, password, fotoUrl, fotoCedula } = useLocalSearchParams<{ telefono: string; tipo: string; id: string; nombre: string; email: string; password: string; fotoUrl: string; fotoCedula: string }>();
+  const { telefono, tipo, id, nombre, email, password, fotoUrl, fotoCedula, placa, modelo, fotoLicencia, fotoRegistro, fotoRcv, fotoAntecedentes } = useLocalSearchParams<{ telefono: string; tipo: string; id: string; nombre: string; email: string; password: string; fotoUrl: string; fotoCedula: string; placa: string; modelo: string; fotoLicencia: string; fotoRegistro: string; fotoRcv: string; fotoAntecedentes: string }>();
   const router = useRouter();
   const [codigo, setCodigo] = useState('');
   const [confirm, setConfirm] = useState<any>(null);
@@ -67,6 +67,19 @@ export default function VerificarTelefono() {
         usuarioId = dataRegistro.usuario.id;
         await AsyncStorage.setItem('usuario_sesion', JSON.stringify({ ...dataRegistro.usuario, telefono_verificado: true }));
         await AsyncStorage.setItem('session_token', dataRegistro.usuario.session_token || '');
+      }
+
+      if (!id && tipo === 'conductor') {
+        const resRegistro = await fetch(`${BACKEND_URL}/api/conductores/registro`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, placa_moto: placa, modelo_moto: modelo, foto_cedula: fotoCedula, foto_licencia: fotoLicencia, foto_registro_moto: fotoRegistro, foto_rcv: fotoRcv, foto_antecedentes: fotoAntecedentes }),
+        });
+        const dataRegistro = await resRegistro.json();
+        if (!dataRegistro.ok) throw new Error(dataRegistro.error || 'Error al registrar conductor');
+        usuarioId = dataRegistro.conductor.id;
+        await AsyncStorage.setItem('conductor_sesion', JSON.stringify({ ...dataRegistro.conductor, telefono_verificado: true }));
+        await AsyncStorage.setItem('session_token', dataRegistro.conductor.session_token || '');
       }
 
       const response = await fetch(`${BACKEND_URL}/api/verificacion/confirmar-firebase`, {
