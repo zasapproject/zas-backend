@@ -21,7 +21,8 @@ const supabase = require('../supabase');
 let admin;
 try {
   admin = require('firebase-admin');
-  if (!admin.apps.length) {
+  const apps = admin.apps;
+  if (!apps || apps.length === 0) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID || 'zas-app-9876e',
@@ -31,7 +32,7 @@ try {
     });
   }
 } catch (err) {
-  console.error('Firebase Admin no disponible:', err.message);
+  console.error('Firebase Admin error:', err.message);
 }
 
 // ─────────────────────────────────────────────
