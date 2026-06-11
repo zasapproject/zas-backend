@@ -597,28 +597,28 @@ export default function HomeScreen() {
         >
           {origenCoord && (
             <Marker coordinate={origenCoord} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={{ backgroundColor: '#00c853', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff', elevation: 6 }}>
-                <Text style={{ fontSize: 16 }}>📍</Text>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#00c853', borderWidth: 2, borderColor: '#fff', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#fff' }}>A</Text>
               </View>
             </Marker>
           )}
           {destinoCoord && (
             <Marker coordinate={destinoCoord} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={{ backgroundColor: '#E53935', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff', elevation: 6 }}>
-                <Text style={{ fontSize: 16 }}>🏁</Text>
+              <View style={{ backgroundColor: 'transparent', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 22 }}>🏁</Text>
               </View>
             </Marker>
           )}
           {conductoresActivos.map(c =>
             c.latitud && c.longitud ? (
               <Marker key={c.id} coordinate={{ latitude: Number(c.latitud), longitude: Number(c.longitud) }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5 }}>
+                <View style={{ backgroundColor: 'transparent', elevation: 5, alignItems: 'center', justifyContent: 'center' }}>
                   <Svg width={32} height={36} viewBox="0 0 32 36">
                     <Ellipse cx="16" cy="16" rx="5" ry="10" fill="#FFD700"/>
                     <Ellipse cx="16" cy="28" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
                     <Ellipse cx="16" cy="5" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
                     <Line x1="9" y1="7" x2="23" y2="7" stroke="#FFD700" strokeWidth="2" strokeLinecap="round"/>
-                    <Rect x="12" y="13" width="8" height="6" rx="2" fill="#cc9900"/>
+                    <Rect x="12" y="13" width="8" height="6" rx="2" fill="#1a1a2e"/>
                   </Svg>
                 </View>
               </Marker>
@@ -961,17 +961,23 @@ export default function HomeScreen() {
   return (
     <View style={styles.container} onTouchStart={resetearTimer}>
       <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
-        {paso === 'destino' && coordOrigen && <Marker coordinate={coordOrigen} pinColor="#00c853" title="Origen" />}
+        {paso === 'destino' && coordOrigen && (
+  <Marker coordinate={coordOrigen} anchor={{ x: 0.5, y: 1 }}>
+    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#00c853', borderWidth: 2, borderColor: '#fff', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#fff' }}>A</Text>
+    </View>
+  </Marker>
+)}
         {conductoresActivos.map(conductor => (
           conductor.latitud && conductor.longitud ? (
             <Marker key={conductor.id} coordinate={{ latitude: Number(conductor.latitud), longitude: Number(conductor.longitud) }} title={conductor.nombre} description={conductor.modelo_moto || 'Mototaxi ZAS'}>
-              <View style={{ backgroundColor: '#FFD700', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#1a1a2e', elevation: 5, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ backgroundColor: 'transparent', elevation: 5, alignItems: 'center', justifyContent: 'center' }}>
                 <Svg width={32} height={36} viewBox="0 0 32 36">
                   <Ellipse cx="16" cy="16" rx="5" ry="10" fill="#FFD700"/>
                   <Ellipse cx="16" cy="28" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
                   <Ellipse cx="16" cy="5" rx="4" ry="5" fill="none" stroke="#FFD700" strokeWidth="2.5"/>
                   <Line x1="9" y1="7" x2="23" y2="7" stroke="#FFD700" strokeWidth="2" strokeLinecap="round"/>
-                  <Rect x="12" y="13" width="8" height="6" rx="2" fill="#cc9900"/>
+                  <Rect x="12" y="13" width="8" height="6" rx="2" fill="#1a1a2e"/>
                 </Svg>
               </View>
             </Marker>
