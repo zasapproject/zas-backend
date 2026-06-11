@@ -19,6 +19,10 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "prebuildCommand": "npx expo prebuild --platform android --clean",
+      "env": {
+        "EAS_BUILD_GRADLE_PROPERTIES": "android.suppressUnsupportedCompileSdk=36"
       }
     }
   },
