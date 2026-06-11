@@ -98,7 +98,7 @@ export default function VerificarTelefono() {
         onPress: () => router.replace(tipo === 'conductor' ? '/conductor' : '/home'),
       }]);
     } catch (error: any) {
-      Alert.alert('Error', (error.code || 'sin codigo') + ': ' + (error.message || 'sin mensaje'));
+      Alert.alert('Error', 'No pudimos verificar el código. Intenta de nuevo.');
     } finally {
       setVerificando(false);
     }
