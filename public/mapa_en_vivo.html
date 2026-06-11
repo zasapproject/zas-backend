@@ -436,7 +436,13 @@
             <!-- Círculo interior -->
             <circle cx="24" cy="22" r="12" fill="rgba(0,0,0,0.3)"/>
             <!-- Icono moto -->
-            <text x="24" y="27" text-anchor="middle" font-size="14" fill="white">🏍</text>
+            <g transform="translate(14, 10)">
+              <ellipse cx="10" cy="10" rx="3" ry="6" fill="#FFD700"/>
+              <ellipse cx="10" cy="17" rx="2.5" ry="3" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+              <ellipse cx="10" cy="3" rx="2.5" ry="3" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+              <line x1="5" y1="4" x2="15" y2="4" stroke="#FFD700" stroke-width="1.2" stroke-linecap="round"/>
+              <rect x="7" y="8" width="6" height="4" rx="1" fill="#cc9900"/>
+            </g>
             <!-- Pulso si disponible -->
             ${esDisponible ? `<circle cx="24" cy="22" r="18" fill="none" stroke="${color}" stroke-width="2" opacity="0.4"/>` : ''}
           </svg>`;
