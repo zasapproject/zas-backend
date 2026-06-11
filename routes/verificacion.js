@@ -18,11 +18,10 @@ const supabase = require('../supabase');
 // Reutiliza la Service Account Key ya configurada
 // para las notificaciones push (FCM)
 // ─────────────────────────────────────────────
-let admin;
+let firebaseAdmin;
 try {
-  admin = require('firebase-admin');
-  const apps = admin.apps;
-  if (!apps || apps.length === 0) {
+  const admin = require('firebase-admin');
+  if (admin.apps.length === 0) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID || 'zas-app-9876e',
@@ -31,6 +30,7 @@ try {
       }),
     });
   }
+  firebaseAdmin = admin;
 } catch (err) {
   console.error('Firebase Admin error:', err.message);
 }
@@ -64,7 +64,7 @@ router.post('/confirmar-firebase', async (req, res) => {
     });
   }
 
-  if (!admin) {
+  if (!firebaseAdmin) {
     return res.status(500).json({
       ok: false,
       error: 'Firebase Admin no está configurado en el servidor',
@@ -73,7 +73,7 @@ router.post('/confirmar-firebase', async (req, res) => {
 
   try {
     // Verificar el token con Firebase — si es inválido o expirado lanza excepción
-    const decodedToken = await admin.auth().verifyIdToken(firebase_id_token);
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(firebase_id_token);
 
     // El token es válido — extraer el número de teléfono verificado
     const telefonoFirebase = decodedToken.phone_number;
