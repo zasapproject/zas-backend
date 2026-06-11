@@ -20,17 +20,20 @@ const supabase = require('../supabase');
 // ─────────────────────────────────────────────
 let firebaseAdmin;
 try {
-  const admin = require('firebase-admin');
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
+  const { initializeApp, cert, getApps, getApp } = require('firebase-admin/app');
+  const { getAuth } = require('firebase-admin/auth');
+
+  if (getApps().length === 0) {
+    initializeApp({
+      credential: cert({
         projectId: process.env.FIREBASE_PROJECT_ID || 'zas-app-9876e',
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       }),
     });
   }
-  firebaseAdmin = admin;
+
+  firebaseAdmin = { auth: () => getAuth() };
 } catch (err) {
   console.error('Firebase Admin error:', err.message);
 }
