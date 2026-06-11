@@ -69,7 +69,7 @@ export default function VerificarTelefono() {
         onPress: () => router.replace(tipo === 'conductor' ? '/conductor' : '/home'),
       }]);
     } catch (error: any) {
-      Alert.alert('Error', 'Código incorrecto o expirado. Intenta de nuevo.');
+      Alert.alert('Error', (error.code || 'sin codigo') + ': ' + (error.message || 'sin mensaje'));
     } finally {
       setVerificando(false);
     }
