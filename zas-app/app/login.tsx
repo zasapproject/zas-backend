@@ -270,28 +270,18 @@ export default function LoginScreen() {
         const dataFoto = await resFoto.json();
         if (dataFoto.ok) fotoUrl = dataFoto.url;
       }
-      const res = await fetch(API_URL + "/api/usuarios/registro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, foto_cedula: fotoCedula })
+      router.push({
+        pathname: '/VerificarTelefono',
+        params: {
+          telefono: telefono,
+          tipo: 'usuario',
+          nombre: nombre,
+          email: email || '',
+          password: password,
+          fotoUrl: fotoUrl,
+          fotoCedula: fotoCedula || '',
+        }
       });
-
-      const data = await res.json();
-      if (data.ok) {
-        await AsyncStorage.setItem("usuario_sesion", JSON.stringify(data.usuario));
-        await AsyncStorage.setItem("session_token", data.usuario.session_token || '');
-        router.push({
-  pathname: '/VerificarTelefono',
-  params: {
-    telefono: telefono,
-    tipo: 'usuario',
-    id: data.usuario.id,
-    nombre: data.usuario.nombre,
-  }
-});
-      } else {
-        Alert.alert("Error", data.error || "No se pudo registrar");
-      }
     } catch {
       Alert.alert("Sin conexión", "Revisa tu internet e intenta de nuevo.");
     } finally {

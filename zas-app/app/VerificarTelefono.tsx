@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BACKEND_URL = 'https://zas-backend-production-fb4e.up.railway.app';
 
 export default function VerificarTelefono() {
-  const { telefono, tipo, id, nombre } = useLocalSearchParams<{ telefono: string; tipo: string; id: string; nombre: string }>();
+  const { telefono, tipo, id, nombre, email, password, fotoUrl, fotoCedula } = useLocalSearchParams<{ telefono: string; tipo: string; id: string; nombre: string; email: string; password: string; fotoUrl: string; fotoCedula: string }>();
   const router = useRouter();
   const [codigo, setCodigo] = useState('');
   const [confirm, setConfirm] = useState<any>(null);
@@ -53,10 +53,26 @@ export default function VerificarTelefono() {
     try {
       const userCredential = await confirm.confirm(codigo);
       const idToken = await userCredential.user.getIdToken();
+
+      let usuarioId = id;
+
+      if (!id && tipo === 'usuario') {
+        const resRegistro = await fetch(`${BACKEND_URL}/api/usuarios/registro`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, telefono, email: email || null, password, foto_url: fotoUrl, foto_cedula: fotoCedula }),
+        });
+        const dataRegistro = await resRegistro.json();
+        if (!dataRegistro.ok) throw new Error(dataRegistro.error || 'Error al registrar usuario');
+        usuarioId = dataRegistro.usuario.id;
+        await AsyncStorage.setItem('usuario_sesion', JSON.stringify({ ...dataRegistro.usuario, telefono_verificado: true }));
+        await AsyncStorage.setItem('session_token', dataRegistro.usuario.session_token || '');
+      }
+
       const response = await fetch(`${BACKEND_URL}/api/verificacion/confirmar-firebase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebase_id_token: idToken, tipo, id }),
+        body: JSON.stringify({ firebase_id_token: idToken, tipo, id: usuarioId }),
       });
       const data = await response.json();
       if (!data.ok) throw new Error(data.error || 'Error al confirmar');
