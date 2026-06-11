@@ -258,7 +258,7 @@ export default function LoginScreen() {
     if (!nombre || !telefono || !password || !email) { Alert.alert("Error", "Nombre, teléfono, contraseña y correo son obligatorios"); return; }
     if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }
     if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
-    if (password.length < 4) { Alert.alert("Error", "La contrasena debe tener minimo 4 caracteres"); return; }
+    if (password.length < 5) { Alert.alert("Error", "La contrasena debe tener minimo 5 caracteres"); return; }
     setCargando(true);
     try {
       let fotoUrl = foto;
@@ -365,12 +365,12 @@ export default function LoginScreen() {
               </View>
             </View>
             <Text style={styles.label}>Nombre completo</Text>
-            <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={nombre} onChangeText={setNombre} />
+            <TextInput style={styles.input} placeholder="Nombre(s) y Apellido(s)" placeholderTextColor="#888" value={nombre} onChangeText={setNombre} />
             <Text style={styles.label}>Telefono</Text>
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <View style={styles.inputContenedor}>
-              <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
+              <TextInput style={styles.inputFlex} placeholder="Minimo 5 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
               <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
                 <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>

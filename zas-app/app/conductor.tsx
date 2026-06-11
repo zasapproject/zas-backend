@@ -666,14 +666,14 @@ export default function ConductorScreen() {
                 {regFoto ? <Image source={{ uri: regFoto }} style={styles.fotoCirculoImg} /> : <Text style={styles.fotoCirculoTexto}>Foto</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Nombre completo</Text>
-              <TextInput style={styles.input} placeholder="Tu nombre" placeholderTextColor="#888" value={regNombre} onChangeText={setRegNombre} />
+              <TextInput style={styles.input} placeholder="Nombre(s) y Apellido(s)" placeholderTextColor="#888" value={regNombre} onChangeText={setRegNombre} />
               <Text style={styles.label}>Telefono</Text>
               <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={regTelefono} onChangeText={setRegTelefono} maxLength={11} />
               <Text style={styles.label}>Correo electronico</Text>
               <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" value={regEmail} onChangeText={setRegEmail} />
               <Text style={styles.label}>Contrasena</Text>
               <View style={styles.inputContenedor}>
-                <TextInput style={styles.inputFlex} placeholder="Minimo 4 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
+                <TextInput style={styles.inputFlex} placeholder="Minimo 5 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
                 <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
                   <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
@@ -681,7 +681,7 @@ export default function ConductorScreen() {
               <TouchableOpacity style={styles.boton} onPress={() => {
                 if (!regNombre || !regTelefono || !regPassword || !regEmail) { Alert.alert('Error', 'Todos los campos son obligatorios incluyendo el correo'); return; }
                 if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
-                if (regPassword.length < 4) { Alert.alert('Error', 'La contrasena debe tener minimo 4 caracteres'); return; }
+                if (regPassword.length < 5) { Alert.alert('Error', 'La contrasena debe tener minimo 5 caracteres'); return; }
                 setPantalla('reg2');
               }}>
                 <Text style={styles.botonTexto}>Siguiente</Text>
