@@ -8,7 +8,7 @@
   <style>
     :root {
       --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a28;
-      --gold: #FFD700; --gold2: #ffec6e; --green: #00e676;
+      --gold: #2ED9C3; --gold2: #B6F23B; --brand-grad: linear-gradient(135deg,#2E9DF7 0%,#2ED9C3 50%,#B6F23B 100%); --green: #00e676;
       --red: #ff1744; --blue: #2196F3; --orange: #ff9100;
       --text: #f0f0f0; --muted: #666680; --border: #2a2a3f;
     }
@@ -25,6 +25,8 @@
       width: 320px; border: 1px solid var(--gold);
     }
     .login-logo { color: var(--gold); font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+    .brand-logo { height: 32px; display: block; }
+    .brand-logo.lg { height: 56px; margin: 0 auto 8px; }
     .login-sub { color: var(--muted); text-align: center; font-size: 13px; margin-bottom: 24px; font-family: 'Space Mono', monospace; }
     .login-input {
       width: 100%; background: #0f3460; border: 1px solid #0f3460;
@@ -34,11 +36,11 @@
     }
     .login-input:focus { border-color: var(--gold); }
     .login-btn {
-      width: 100%; background: var(--gold); color: #1a1a2e; border: none;
+      width: 100%; background: var(--brand-grad); color: #08111f; border: none;
       border-radius: 10px; padding: 14px; font-weight: 800; font-size: 15px;
-      cursor: pointer; font-family: 'Syne', sans-serif; transition: background 0.2s;
+      cursor: pointer; font-family: 'Syne', sans-serif; transition: opacity 0.2s;
     }
-    .login-btn:hover { background: var(--gold2); }
+    .login-btn:hover { opacity: .85; }
     .login-error { color: #ff6b6b; text-align: center; margin-top: 10px; font-size: 13px; display: none; }
 
     /* ── LAYOUT ── */
@@ -55,7 +57,7 @@
     }
     .logo-text { font-size: 24px; font-weight: 800; color: var(--gold); }
     .logo-badge {
-      background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3);
+      background: rgba(46,217,195,0.15); border: 1px solid rgba(46,217,195,0.3);
       color: var(--gold); padding: 3px 10px; border-radius: 20px;
       font-size: 11px; font-family: 'Space Mono', monospace; font-weight: 700;
     }
@@ -94,7 +96,7 @@
       transition: all 0.2s; display: flex; align-items: center; gap: 10px;
     }
     .conductor-item:hover { border-color: var(--gold); }
-    .conductor-item.selected { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+    .conductor-item.selected { border-color: var(--gold); background: rgba(46,217,195,0.05); }
     .conductor-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .conductor-dot.verde { background: var(--green); box-shadow: 0 0 6px var(--green); }
     .conductor-dot.rojo { background: var(--red); box-shadow: 0 0 6px var(--red); }
@@ -217,7 +219,7 @@
 <!-- LOGIN -->
 <div id="login-overlay">
   <div class="login-box">
-    <div class="login-logo">⚡ ZAS</div>
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo lg"/>
     <div class="login-sub">Mapa en Vivo</div>
     <input id="login-user" class="login-input" type="text" placeholder="Usuario" />
     <input id="login-pass" class="login-input" type="password" placeholder="Contraseña" />
@@ -233,7 +235,7 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <div>
-        <div class="logo-text">⚡ ZAS</div>
+        <img src="zas-logo.png" alt="ZAS" class="brand-logo"/>
       </div>
       <div class="logo-badge">EN VIVO</div>
     </div>
@@ -372,7 +374,7 @@
         { featureType: 'poi', stylers: [{ visibility: 'off' }] },
         { featureType: 'transit', stylers: [{ visibility: 'off' }] },
         { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2a2a3f' }] },
-        { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#FFD700' }] },
+        { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#2ED9C3' }] },
         { featureType: 'road.arterial', elementType: 'labels', stylers: [{ visibility: 'off' }] },
         { featureType: 'road.highway', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
       ],

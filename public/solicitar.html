@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg: #1a1a2e; --surface: #16213e; --surface2: #0f3460;
-      --gold: #FFD700; --gold2: #ffec6e; --green: #00c853;
+      --gold: #2ED9C3; --gold2: #B6F23B; --brand-grad: linear-gradient(135deg,#2E9DF7 0%,#2ED9C3 50%,#B6F23B 100%); --green: #00c853;
       --red: #ff1744; --text: #ffffff; --muted: #888888;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -20,6 +20,8 @@
     #screen-auth { align-items: center; justify-content: center; padding: 24px; }
     .auth-box { background: var(--surface); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 400px; border: 1px solid var(--surface2); }
     .auth-logo { font-size: 40px; font-weight: 800; color: var(--gold); text-align: center; margin-bottom: 4px; }
+    .brand-logo { height: 32px; display: block; }
+    .brand-logo.lg { height: 64px; margin: 0 auto 8px; }
     .auth-sub { color: var(--muted); text-align: center; font-size: 14px; margin-bottom: 28px; }
     .auth-tabs { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
     .auth-tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); border: none; background: transparent; transition: all 0.2s; }
@@ -29,7 +31,8 @@
     .input-group input { width: 100%; background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px; padding: 14px 16px; color: var(--text); font-size: 16px; outline: none; transition: border-color 0.2s; }
     .input-group input:focus { border-color: var(--gold); }
     .input-group input::placeholder { color: var(--muted); }
-    .btn-primary { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+    .btn-primary { width: 100%; background: var(--brand-grad); color: #08111f; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+    .btn-primary:hover { opacity: .85; }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-outline { width: 100%; background: transparent; color: var(--gold); border: 1px solid var(--gold); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
     .error-msg { background: rgba(255,23,68,0.1); border: 1px solid rgba(255,23,68,0.3); color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
@@ -55,7 +58,7 @@
     .origen-tag p { color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pin-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 5; pointer-events: none; font-size: 40px; }
     .map-footer { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; background: rgba(26,26,46,0.97); padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); border-top-left-radius: 20px; border-top-right-radius: 20px; }
-    .btn-confirmar { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .btn-confirmar { width: 100%; background: var(--brand-grad); color: #08111f; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
     .btn-texto-rojo { width: 100%; background: transparent; color: var(--red); border: none; padding: 10px; font-size: 13px; cursor: pointer; margin-top: 8px; }
     #screen-confirmar { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
     .confirmar-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
@@ -81,7 +84,7 @@
     .viaje-titulo { font-size: 22px; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 4px; }
     .viaje-sub { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
     .conductor-card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--gold); display: flex; align-items: center; gap: 14px; }
-    .c-avatar { width: 64px; height: 64px; border-radius: 32px; background: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: var(--bg); flex-shrink: 0; overflow: hidden; }
+    .c-avatar { width: 64px; height: 64px; border-radius: 32px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: #08111f; flex-shrink: 0; overflow: hidden; }
     .c-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .c-nombre { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
     .c-detalle { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
@@ -131,7 +134,7 @@
 <!-- AUTH -->
 <div class="screen" id="screen-auth">
   <div class="auth-box">
-    <div class="auth-logo">⚡ ZAS</div>
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo lg"/>
     <div class="auth-sub">Tu mototaxi al instante</div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchTab('login',this)">Iniciar sesión</button>
@@ -175,7 +178,7 @@
 <!-- RECUPERAR CONTRASEÑA -->
 <div class="screen" id="screen-recuperar">
   <div class="rec-box">
-    <div class="auth-logo">⚡ ZAS</div>
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo lg"/>
     <div class="auth-sub" style="margin-bottom:24px">Recuperar contraseña</div>
     <p style="color:var(--muted);font-size:14px;margin-bottom:20px;text-align:center">Ingresa tu email y te enviaremos una contraseña temporal.</p>
     <div class="input-group"><label>Email</label><input type="email" id="rec-email" placeholder="tu@email.com" /></div>
@@ -191,7 +194,7 @@
   <div class="pin-center">📍</div>
   <div class="map-header">
     <div class="map-header-top">
-      <div class="map-logo">⚡ ZAS — <span id="header-nombre" style="font-size:13px;font-weight:400;color:var(--muted)"></span></div>
+      <div class="map-logo" style="display:flex;align-items:center;gap:8px"><img src="zas-logo.png" alt="ZAS" class="brand-logo"/> <span id="header-nombre" style="font-size:13px;font-weight:400;color:var(--muted)"></span></div>
       <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
     </div>
     <div class="progress-bar">
@@ -211,7 +214,7 @@
       <p id="origen-tag-texto"></p>
     </div>
   </div>
-  <button onclick="irAMiUbicacion()" style="position:absolute;bottom:100px;right:16px;z-index:10;width:48px;height:48px;border-radius:50%;background:#1a1a2e;border:2px solid #FFD700;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">🎯</button>
+  <button onclick="irAMiUbicacion()" style="position:absolute;bottom:100px;right:16px;z-index:10;width:48px;height:48px;border-radius:50%;background:#1a1a2e;border:2px solid #2ED9C3;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">🎯</button>
   <div class="map-footer">
     <button class="btn-confirmar" id="btn-confirmar" onclick="confirmarPunto()">✅ Confirmar origen</button>
     <button class="btn-texto-rojo" onclick="cerrarSesion()">Cerrar sesión</button>
