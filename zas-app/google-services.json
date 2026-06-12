@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:834771425940:android:8acc95415541266707b281",
+        "android_client_info": {
+          "package_name": "com.zasapp.zasapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRYwUAUApTvdbwUZOQr4bfVNh3K6XQyuQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:834771425940:android:1e130e51e43c9cd607b281",
         "android_client_info": {
           "package_name": "com.zasapps.mototaxi"
