@@ -11,7 +11,7 @@
 <style>
 :root{
   --bg:#0a0a0f;--s:#12121a;--s2:#1a1a28;
-  --gold:#FFD700;--gold2:#ffec6e;
+  --gold:#2ED9C3;--gold2:#B6F23B;--brand-grad:linear-gradient(135deg,#2E9DF7 0%,#2ED9C3 50%,#B6F23B 100%);
   --green:#00e676;--red:#ff1744;--orange:#ff9100;--blue:#2979ff;
   --text:#f0f0f0;--muted:#666680;--border:#2a2a3f;
 }
@@ -33,7 +33,8 @@ body{display:flex;flex-direction:column}
 .live-dot{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--green);font-family:'Space Mono',monospace;letter-spacing:1px}
 .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.icon-btn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.brand-logo{height:28px;display:block;border-radius:6px}
+.brand-logo.lg{height:48px;border-radius:10px;margin:0 auto 4px}
 
 /* ── SCROLL CONTENT ── */
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:80px}
@@ -57,12 +58,12 @@ body{display:flex;flex-direction:column}
 }
 .login-input:focus{border-color:var(--gold)}
 .login-btn{
-  width:100%;background:var(--gold);color:#0a0a0f;border:none;
+  width:100%;background:var(--brand-grad);color:#08111f;border:none;
   padding:16px;border-radius:10px;font-family:'Syne',sans-serif;
   font-size:16px;font-weight:800;cursor:pointer;margin-top:4px;
-  transition:background .2s;
+  transition:opacity .2s;
 }
-.login-btn:active{background:var(--gold2)}
+.login-btn:active{opacity:.85}
 .login-error{color:var(--red);text-align:center;font-size:13px;margin-top:10px;display:none}
 
 /* ── STATS GRID ── */
@@ -102,7 +103,7 @@ body{display:flex;flex-direction:column}
 /* ── ALERTS / ITEMS ── */
 .alert-item{padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
 .alert-item:last-child{border-bottom:none}
-.avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;color:#0a0a0f;font-size:14px;flex-shrink:0;font-family:'Syne',sans-serif}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--brand-grad);display:flex;align-items:center;justify-content:center;font-weight:800;color:#08111f;font-size:14px;flex-shrink:0;font-family:'Syne',sans-serif}
 .item-info{flex:1;min-width:0}
 .item-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-meta{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px}
@@ -113,7 +114,7 @@ body{display:flex;flex-direction:column}
 .btn:active{transform:scale(.97)}
 .btn-green{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3)}
 .btn-red{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.3)}
-.btn-gold{background:var(--gold);color:#0a0a0f}
+.btn-gold{background:var(--brand-grad);color:#08111f}
 .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
 .btn-full{width:100%;padding:14px;font-size:14px;border-radius:10px;margin-top:6px}
 
@@ -272,7 +273,7 @@ body{display:flex;flex-direction:column}
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-title">⚡ ZAS</div>
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo lg"/>
     <div class="login-sub">CENTRO DE OPERACIONES</div>
     <div style="position:relative">
       <input id="l-user" class="login-input" type="text" placeholder="Usuario" autocomplete="username"/>
@@ -291,7 +292,7 @@ body{display:flex;flex-direction:column}
 <!-- MAIN -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="name">⚡ ZAS</div>
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo"/>
     <div class="sub">OPERACIONES</div>
   </div>
   <div class="topbar-right">

@@ -10,20 +10,20 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a0f;color:#f0f0f0;font-family:'Syne',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .card{background:#12121a;border:1px solid #2a2a3f;border-radius:24px;padding:36px 32px;text-align:center;max-width:360px;width:100%}
-.logo{font-size:36px;font-weight:800;color:#FFD700;letter-spacing:-1px;margin-bottom:4px}
+.logo-img{width:80px;height:80px;display:block;margin:0 auto 12px;border-radius:16px}
 .tagline{font-size:13px;color:#666680;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
 .qr-wrap{background:#ffffff;border-radius:16px;padding:16px;display:inline-block;margin-bottom:24px}
 #qrcode canvas,#qrcode img{display:block}
 .instruction{font-size:13px;color:#666680;margin-bottom:20px;line-height:1.6}
-.instruction span{color:#f0f0f0;font-weight:700}
-.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#FFD700;color:#0a0a0f;border:none;border-radius:12px;padding:14px 24px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;width:100%;text-decoration:none;transition:background .2s}
-.download-btn:hover{background:#ffec6e}
+.instruction span{color:#2ED9C3;font-weight:700}
+.download-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#2E9DF7 0%,#2ED9C3 50%,#B6F23B 100%);color:#08111f;border:none;border-radius:12px;padding:14px 24px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;width:100%;text-decoration:none;transition:opacity .2s}
+.download-btn:hover{opacity:.85}
 .footer{margin-top:20px;font-size:11px;color:#444460;letter-spacing:1px}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="logo">⚡ ZAS</div>
+  <img src="zas-logo.png" alt="ZAS" class="logo-img"/>
   <div class="tagline">Tu mototaxi al instante</div>
   <div class="qr-wrap"><div id="qrcode"></div></div>
   <p class="instruction"><span>Escanea el código QR</span> con la cámara de tu celular para descargar la app</p>
