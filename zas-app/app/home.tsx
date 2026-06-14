@@ -12,6 +12,7 @@ import { AppState } from 'react-native';
 import ListaOfertas from './components/ListaOfertas';
 import SubirComprobante from './SubirComprobante';
 import Svg, { Ellipse, Line, Rect } from 'react-native-svg';
+import SplashAnuncios from '../components/SplashAnuncios';
 
 const API_URL = 'https://zasapps.com';
 const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
@@ -142,6 +143,7 @@ export default function HomeScreen() {
   const [datosZasPrevio, setDatosZasPrevio] = useState<any>(null);
   const [cargandoDatosZas, setCargandoDatosZas] = useState(false);
   const [comprobanteEnviado, setComprobanteEnviado] = useState(false);
+  const [splashVisto, setSplashVisto] = useState(false);
 
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
   useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
@@ -958,6 +960,8 @@ export default function HomeScreen() {
   }
 
   // ── MAPA PRINCIPAL ───────────────────────────────────────────────────────────
+  if (!splashVisto) return <SplashAnuncios onFinish={() => setSplashVisto(true)} />;
+
   return (
     <View style={styles.container} onTouchStart={resetearTimer}>
       <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
