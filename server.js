@@ -75,6 +75,8 @@ app.use('/api/soporte', soporteRouter);
 app.use('/api/tarifas', tarifasRouter);
 app.use('/api/tasas', tasasRouter);
 app.use('/api/admin', adminRouter);
+const anunciosRouter = require('./routes/anuncios');
+app.use('/api/anuncios', anunciosRouter);
 const verificacionRouter = require('./routes/verificacion');
 app.use('/api/verificacion', verificacionRouter);
 
