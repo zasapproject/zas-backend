@@ -215,6 +215,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
     <div class="nav-item" onclick="showPage('tarifas',this)"><span class="nav-icon">💲</span> Tarifas</div>
     <div class="nav-item" onclick="showPage('monitor',this)"><span class="nav-icon">🔴</span> Monitor en vivo</div>
     <div class="nav-item" onclick="showPage('soporte',this)"><span class="nav-icon">🆘</span> Soporte</div>
+    <div class="nav-item" onclick="showPage('anuncios',this)"><span class="nav-icon">📢</span> Anuncios</div>
     <div class="nav-item" onclick="sessionStorage.clear();location.reload()" style="color:var(--red);margin-top:auto"><span class="nav-icon">🚪</span> Cerrar sesión</div>
   </nav>
   <div class="sidebar-footer">ZAS v2.0<br><span id="last-update">—</span><br><a href="/mapa_en_vivo.html" style="color:var(--gold);text-decoration:none;font-size:10px;margin-top:6px;display:inline-block">🗺️ Mapa en vivo</a></div>
@@ -378,6 +379,84 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
     <button class="btn btn-outline" onclick="cargarSoporte()">↻ Actualizar</button>
   </div>
   <div id="soporte-lista"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+</div>
+
+<!-- ═══ ANUNCIOS ═══ -->
+<div class="page" id="page-anuncios">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Anun<span>cios</span></div>
+      <div class="page-sub">Anunciantes · Splash · Gestión</div>
+    </div>
+    <button class="btn btn-outline" onclick="cargarAnuncios()">↻ Actualizar</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">🏢 Nuevo anunciante</div></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nombre del negocio *</label><input class="form-input" type="text" id="anc-negocio" placeholder="Ej: Farmacia ZAS"/></div>
+        <div class="form-group"><label class="form-label">Nombre del contacto</label><input class="form-input" type="text" id="anc-contacto" placeholder="Ej: María Pérez"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Teléfono del contacto</label><input class="form-input" type="text" id="anc-telefono" placeholder="Ej: 0416-1234567"/></div>
+        <div class="form-group"><label class="form-label">Plan</label>
+          <select class="form-input" id="anc-plan" onchange="actualizarMontoAnunciante()">
+            <option value="splash">splash $50/mes</option>
+            <option value="carrusel">carrusel $25/mes</option>
+            <option value="premium">premium $65/mes</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="max-width:220px"><label class="form-label">Monto mensual (USD)</label><input class="form-input" type="number" id="anc-monto" readonly/></div>
+      <button class="btn btn-gold" onclick="guardarAnunciante()">💾 Guardar anunciante</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">🖼️ Nuevo anuncio splash</div></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Anunciante *</label><select class="form-input" id="an-anunciante"></select></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="an-tipo"><option value="splash">splash</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">URL de la imagen *</label><input class="form-input" type="text" id="an-imagen" placeholder="https://..."/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Título</label><input class="form-input" type="text" id="an-titulo" placeholder="Ej: Oferta especial"/></div>
+        <div class="form-group"><label class="form-label">Subtítulo</label><input class="form-input" type="text" id="an-subtitulo" placeholder="Ej: Solo por hoy"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Texto botón CTA</label><input class="form-input" type="text" id="an-cta" placeholder="Ver más"/></div>
+        <div class="form-group"><label class="form-label">Orden</label>
+          <select class="form-input" id="an-orden">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Duración (segundos)</label><input class="form-input" type="number" id="an-duracion" value="5" min="1"/></div>
+        <div class="form-group">
+          <label class="form-label">Activo</label>
+          <div style="display:flex;align-items:center;height:40px;gap:10px;padding-top:2px">
+            <input type="checkbox" id="an-activo" checked style="width:18px;height:18px;accent-color:var(--gold)"/>
+            <label for="an-activo" style="font-size:13px;cursor:pointer">Activo al crear</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="an-fecha-inicio"/></div>
+        <div class="form-group"><label class="form-label">Fecha fin</label><input class="form-input" type="date" id="an-fecha-fin"/></div>
+      </div>
+      <button class="btn btn-gold" onclick="guardarAnuncio()">💾 Guardar anuncio</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">📋 Anuncios registrados</div></div>
+    <div id="anuncios-tabla"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+  </div>
 </div>
 
 </main>
@@ -544,7 +623,7 @@ function showPage(page, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   if(el) el.classList.add('active');
-  const loaders = {dashboard:cargarDashboard,conductores:cargarConductores,usuarios:cargarUsuarios,viajes:cargarViajes,retiros:cargarRetiros,tarifas:cargarTarifas,monitor:cargarMonitor,soporte:cargarSoporte};
+  const loaders = {dashboard:cargarDashboard,conductores:cargarConductores,usuarios:cargarUsuarios,viajes:cargarViajes,retiros:cargarRetiros,tarifas:cargarTarifas,monitor:cargarMonitor,soporte:cargarSoporte,anuncios:cargarAnuncios};
   if(loaders[page]) loaders[page]();
 }
 
@@ -1218,6 +1297,107 @@ async function resolverSoporte(id){
   const res=await fetch(`${API}/api/soporte/resolver/${id}`,{method:'PATCH',headers:authH()});
   const data=await res.json();
   if(data.ok){mostrarToast('✅ Marcado como resuelto');cargarSoporte();}
+}
+
+// ═══ ANUNCIOS ═══
+const PLANES_MONTO = {splash:50, carrusel:25, premium:65};
+
+function actualizarMontoAnunciante(){
+  const plan = document.getElementById('anc-plan').value;
+  document.getElementById('anc-monto').value = PLANES_MONTO[plan] || 0;
+}
+
+async function cargarAnuncios(){
+  actualizarMontoAnunciante();
+  try {
+    const res = await fetch(`${API}/api/anuncios/anunciantes`, {headers:authH()});
+    const data = await res.json();
+    const anunciantes = data.anunciantes || [];
+    const sel = document.getElementById('an-anunciante');
+    sel.innerHTML = anunciantes.length
+      ? anunciantes.map(a=>`<option value="${a.id}">${a.nombre_negocio}</option>`).join('')
+      : '<option value="">Sin anunciantes</option>';
+  } catch {}
+
+  document.getElementById('anuncios-tabla').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/anuncios`, {headers:authH()});
+    const data = await res.json();
+    const anuncios = data.anuncios || [];
+    if(!anuncios.length){
+      document.getElementById('anuncios-tabla').innerHTML=`<div class="empty"><div class="empty-icon">📢</div><div class="empty-text">Sin anuncios registrados</div></div>`;
+      return;
+    }
+    document.getElementById('anuncios-tabla').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>Anunciante</th><th>Tipo</th><th>Orden</th><th>Título</th><th>Activo</th><th>Fecha inicio</th><th>Fecha fin</th><th>Acciones</th></tr></thead>
+      <tbody>${anuncios.map(a=>`<tr>
+        <td style="font-size:13px;font-weight:700">${a.anunciantes?.nombre_negocio||'—'}</td>
+        <td><span class="badge revision">${a.tipo}</span></td>
+        <td style="text-align:center;font-family:'Space Mono',monospace;font-weight:700">${a.orden}</td>
+        <td style="font-size:12px">${a.titulo||'—'}</td>
+        <td><span class="badge ${a.activo?'activo':'vencido'}">${a.activo?'● Activo':'● Inactivo'}</span></td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${a.fecha_inicio?new Date(a.fecha_inicio).toLocaleDateString('es-VE'):'—'}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${a.fecha_fin?new Date(a.fecha_fin).toLocaleDateString('es-VE'):'—'}</td>
+        <td><button class="btn btn-sm ${a.activo?'btn-red':'btn-green'}" onclick="toggleActivoAnuncio('${a.id}',${a.activo})">${a.activo?'⏸️ Desactivar':'▶️ Activar'}</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+    actualizarTimestamp();
+  } catch { document.getElementById('anuncios-tabla').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
+}
+
+async function guardarAnunciante(){
+  const negocio = document.getElementById('anc-negocio').value.trim();
+  if(!negocio){ mostrarToast('⚠️ El nombre del negocio es obligatorio','red'); return; }
+  const payload = {
+    nombre_negocio: negocio,
+    nombre_contacto: document.getElementById('anc-contacto').value.trim() || null,
+    telefono_contacto: document.getElementById('anc-telefono').value.trim() || null,
+    plan: document.getElementById('anc-plan').value,
+    monto_mensual: Number(document.getElementById('anc-monto').value) || 0,
+  };
+  try {
+    const res = await fetch(`${API}/api/anuncios/anunciante`, {method:'POST', headers:jsonH(), body:JSON.stringify(payload)});
+    const data = await res.json();
+    if(data.ok){ mostrarToast('✅ Anunciante guardado'); ['anc-negocio','anc-contacto','anc-telefono'].forEach(id=>document.getElementById(id).value=''); cargarAnuncios(); }
+    else mostrarToast('❌ '+(data.error||'Error'),'red');
+  } catch { mostrarToast('❌ Error de conexión','red'); }
+}
+
+async function guardarAnuncio(){
+  const anunciante_id = document.getElementById('an-anunciante').value;
+  const imagen_url = document.getElementById('an-imagen').value.trim();
+  const orden = parseInt(document.getElementById('an-orden').value);
+  if(!anunciante_id||!imagen_url){ mostrarToast('⚠️ Anunciante e imagen son obligatorios','red'); return; }
+  const payload = {
+    anunciante_id,
+    tipo: document.getElementById('an-tipo').value,
+    imagen_url,
+    titulo: document.getElementById('an-titulo').value.trim() || null,
+    subtitulo: document.getElementById('an-subtitulo').value.trim() || null,
+    cta_texto: document.getElementById('an-cta').value.trim() || 'Ver más',
+    orden,
+    duracion_segundos: parseInt(document.getElementById('an-duracion').value) || 5,
+    activo: document.getElementById('an-activo').checked,
+    fecha_inicio: document.getElementById('an-fecha-inicio').value || null,
+    fecha_fin: document.getElementById('an-fecha-fin').value || null,
+  };
+  try {
+    const res = await fetch(`${API}/api/anuncios`, {method:'POST', headers:jsonH(), body:JSON.stringify(payload)});
+    const data = await res.json();
+    if(data.ok){
+      mostrarToast('✅ Anuncio creado');
+      ['an-imagen','an-titulo','an-subtitulo','an-cta','an-fecha-inicio','an-fecha-fin'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('an-activo').checked=true;
+      cargarAnuncios();
+    } else mostrarToast('❌ '+(data.error||'Error'),'red');
+  } catch { mostrarToast('❌ Error de conexión','red'); }
+}
+
+async function toggleActivoAnuncio(id, activo){
+  const res = await fetch(`${API}/api/anuncios/${id}/activo`, {method:'PATCH', headers:jsonH(), body:JSON.stringify({activo:!activo})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast(activo?'⏸️ Anuncio desactivado':'✅ Anuncio activado'); cargarAnuncios(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
 }
 
 // ═══ AUTO-REFRESH ═══

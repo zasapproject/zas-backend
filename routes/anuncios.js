@@ -99,4 +99,48 @@ router.post('/', authAdmin, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// POST /api/anuncios/anunciante
+// Crea un nuevo anunciante
+// Campo requerido: nombre
+// ─────────────────────────────────────────────
+router.post('/anunciante', authAdmin, async (req, res) => {
+  const { nombre, contacto_nombre, contacto_telefono, plan, monto_mensual } = req.body;
+
+  if (!nombre) {
+    return res.status(400).json({ ok: false, error: 'nombre es obligatorio' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('anunciantes')
+      .insert([{ nombre, contacto_nombre, contacto_telefono, plan, monto_mensual }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({ ok: true, anunciante: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/anuncios/anunciantes
+// Lista todos los anunciantes
+// ─────────────────────────────────────────────
+router.get('/anunciantes', authAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('anunciantes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ ok: true, anunciantes: data, total: data.length });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;

@@ -33,27 +33,10 @@ export default function VerificarTelefono() {
     return `+58${limpio}`;
   };
 
-  const enviarSMS = async () => {
-    setEnviando(true);
-    try {
-      const confirmation = await auth().signInWithPhoneNumber(formatearTelefono(telefono));
-      setConfirm(confirmation);
-      setCooldown(60);
-    } catch (error: any) {
-      Alert.alert('Error', 'No pudimos enviar el código. Verifica el número e intenta de nuevo.');
-    } finally {
-      setEnviando(false);
-    }
-  };
-
-  const confirmarCodigo = async () => {
-    if (codigo.length !== 6) { Alert.alert('Código incompleto', 'El código tiene 6 dígitos.'); return; }
-    if (!confirm) { Alert.alert('Error', 'Primero debes recibir el SMS.'); return; }
+  const completarRegistro = async (userCredential: any) => {
     setVerificando(true);
     try {
-      const userCredential = await confirm.confirm(codigo);
       const idToken = await userCredential.user.getIdToken();
-
       let usuarioId = id;
 
       if (!id && tipo === 'usuario') {
@@ -97,6 +80,62 @@ export default function VerificarTelefono() {
         text: 'Continuar',
         onPress: () => router.replace(tipo === 'conductor' ? '/conductor' : '/home'),
       }]);
+    } catch (error: any) {
+      Alert.alert('Error', 'No pudimos completar el registro. Intenta de nuevo.');
+    } finally {
+      setVerificando(false);
+    }
+  };
+
+  const enviarSMS = async () => {
+    setEnviando(true);
+    try {
+      const telefonoFormateado = formatearTelefono(telefono);
+
+      auth().verifyPhoneNumber(telefonoFormateado)
+        .on('state_changed', async (phoneAuthSnapshot) => {
+          switch (phoneAuthSnapshot.state) {
+
+            // Firebase auto-verificó — no necesita que el usuario ingrese nada
+            case auth.PhoneAuthState.AUTO_VERIFIED: {
+              const credential = auth.PhoneAuthProvider.credential(
+                phoneAuthSnapshot.verificationId,
+                phoneAuthSnapshot.code!
+              );
+              const userCredential = await auth().signInWithCredential(credential);
+              await completarRegistro(userCredential);
+              break;
+            }
+
+            // SMS enviado — el usuario debe ingresar el código manualmente
+            case auth.PhoneAuthState.CODE_SENT: {
+              setConfirm({ verificationId: phoneAuthSnapshot.verificationId });
+              setCooldown(60);
+              setEnviando(false);
+              break;
+            }
+
+            case auth.PhoneAuthState.ERROR: {
+              Alert.alert('Error', 'No pudimos enviar el código. Verifica el número e intenta de nuevo.');
+              setEnviando(false);
+              break;
+            }
+          }
+        });
+    } catch (error: any) {
+      Alert.alert('Error', 'No pudimos enviar el código.');
+      setEnviando(false);
+    }
+  };
+
+  const confirmarCodigo = async () => {
+    if (codigo.length !== 6) { Alert.alert('Código incompleto', 'El código tiene 6 dígitos.'); return; }
+    if (!confirm) { Alert.alert('Error', 'Primero debes recibir el SMS.'); return; }
+    setVerificando(true);
+    try {
+      const credential = auth.PhoneAuthProvider.credential(confirm.verificationId, codigo);
+      const userCredential = await auth().signInWithCredential(credential);
+      await completarRegistro(userCredential);
     } catch (error: any) {
       Alert.alert('Error', 'No pudimos verificar el código. Intenta de nuevo.');
     } finally {
