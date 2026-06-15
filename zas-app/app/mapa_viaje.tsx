@@ -260,21 +260,8 @@ export default function MapaViaje() {
           setCalificacionTitulo('¿Cómo fue el usuario?');
           setMostrarCalificacion(true);
         } else {
-          const metodo = metodoPagoRef.current;
-          const pId = pagoIdRef.current;
-          if (metodo && metodo !== 'efectivo' && metodo !== '') {
-            setPagoId(pId || null);
-            setMontoViaje(montoViajeRef.current);
-            setMetodoViaje(metodo);
-            try {
-              const resDatos = await fetch(`${BACKEND_URL}/api/pagos/datos-pago/${metodo}`);
-              const jsonDatos = await resDatos.json();
-              setDatosZas(jsonDatos.ok ? jsonDatos.datos : null);
-            } catch { setDatosZas(null); }
-            setMostrarComprobante(true);
-          } else {
-            setMostrarPagoEfectivo(true);
-          }
+          setCalificacionTitulo('¿Cómo fue tu conductor?');
+          setMostrarCalificacion(true);
         }
         return;
       }

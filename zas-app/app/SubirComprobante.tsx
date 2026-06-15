@@ -9,7 +9,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
   metodo: string;
   monto: number;
   datosZas: any;
-  onComprobanteEnviado: () => void;
+  onComprobanteEnviado: (comprobanteUrl?: string) => void;
   tasas?: { usd_cop: number; usd_bs: number };
 }) {
   const tasasDefault = tasas || { usd_cop: 4000, usd_bs: 487.12 };
@@ -50,7 +50,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
       // Si es comprobante previo (antes del viaje) — solo guardar en storage, no vincular al pago
       if (pagoId === 'previo') {
         Alert.alert('✅ Comprobante recibido', 'ZAS verificará tu pago mientras realizas el viaje.', [
-          { text: 'OK', onPress: onComprobanteEnviado }
+          { text: 'OK', onPress: () => onComprobanteEnviado(dataStorage.url) }
         ]);
         setEnviando(false);
         return;

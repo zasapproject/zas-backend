@@ -142,6 +142,7 @@ export default function HomeScreen() {
   const [datosZasPrevio, setDatosZasPrevio] = useState<any>(null);
   const [cargandoDatosZas, setCargandoDatosZas] = useState(false);
   const [comprobanteEnviado, setComprobanteEnviado] = useState(false);
+  const [urlComprobantePrevio, setUrlComprobantePrevio] = useState<string | null>(null);
 
   useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
   useEffect(() => { precioCalculadoRef.current = precioCalculado; }, [precioCalculado]);
@@ -317,7 +318,14 @@ export default function HomeScreen() {
       if (viajeGuardado) {
         const v = JSON.parse(viajeGuardado);
         if (v.estado !== 'completado' && v.estado !== 'cancelado') setViaje(v);
-        else await AsyncStorage.removeItem('viaje_activo');
+        else {
+          await AsyncStorage.removeItem('viaje_activo');
+          setPaso('origen');
+          setMetodoPago('efectivo');
+          metodoPagoRef.current = 'efectivo';
+        }
+      } else {
+        setPaso('origen');
       }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -481,6 +489,16 @@ export default function HomeScreen() {
               setDatosZas(dataPago.datos_pago_zas);
               datosZasRef.current = dataPago.datos_pago_zas;
             }
+            // Si había comprobante previo, vincularlo al pago recién creado
+            if (urlComprobantePrevio) {
+              try {
+                await fetch(`${API_URL}/api/pagos/subir-comprobante/${dataPago.pago.id}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ comprobante_url: urlComprobantePrevio, referencia: null })
+                });
+              } catch {}
+            }
           }
         } catch {}
       } else Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
@@ -497,6 +515,7 @@ export default function HomeScreen() {
     setTipoTarifa(''); setMunicipioTarifa(null);
     setMostrarComprobantePrevio(false); setDatosZasPrevio(null);
     setComprobanteEnviado(false); setCargandoDatosZas(false);
+    setUrlComprobantePrevio(null);
   };
 
   const cancelarViaje = async () => {
@@ -830,9 +849,10 @@ export default function HomeScreen() {
             monto={esNegociable ? precioUsuario : precioCalculado}
             datosZas={datosZasPrevio}
             tasas={{ usd_cop: tasas.cop_bs * (1 / tasas.usd_bs), usd_bs: tasas.usd_bs }}
-            onComprobanteEnviado={() => {
+            onComprobanteEnviado={(url) => {
               setComprobanteEnviado(true);
               setMostrarComprobantePrevio(false);
+              if (url) setUrlComprobantePrevio(url);
             }}
           />
           {/* Botón volver */}
