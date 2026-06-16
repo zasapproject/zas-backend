@@ -72,7 +72,7 @@ router.post('/activar', authAdmin, async (req, res) => {
   } else {
     await supabase.from('pagos_suscripcion').insert({
       conductor_id,
-      monto: monto || 20000,
+      monto: monto || 15000,
       moneda: 'COP',
       metodo_pago: metodo_pago || 'efectivo',
       suscripcion_hasta: nueva_fecha.toISOString()
@@ -113,7 +113,7 @@ router.post('/registrar-solicitud', async (req, res) => {
     .from('pagos_suscripcion')
     .insert({
       conductor_id,
-      monto: monto || 20000,
+      monto: monto || 15000,
       moneda: 'COP',
       metodo_pago: metodo_pago || 'efectivo',
       estado: 'pendiente',
