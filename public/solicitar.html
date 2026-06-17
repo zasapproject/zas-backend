@@ -248,8 +248,10 @@
       <div class="pago-op" onclick="selectPago('pago_movil',this)">📱 Pago Móvil</div>
       <div class="pago-op" onclick="selectPago('zelle',this)">💸 Zelle</div>
       <div class="pago-op" onclick="selectPago('usdt',this)">🔐 USDT</div>
+      <div class="pago-op" onclick="selectPago('bancolombia',this)">🏦 Bancolombia</div>
+      <div class="pago-op" onclick="selectPago('nequi',this)">📲 Nequi</div>
     </div>
-    <p class="pago-nota" id="pago-nota" style="display:none">Después del viaje deberás subir el comprobante de pago</p>
+    <p class="pago-nota" id="pago-nota" style="display:none">Antes de pedir tu conductor verás los datos de pago de ZAS y subirás el comprobante</p>
   </div>
   <button class="btn-primary" onclick="solicitarViaje()" id="btn-solicitar" disabled>⚡ Solicitar ZAS</button>
 </div>
@@ -286,8 +288,9 @@
 
 <!-- COMPROBANTE DE PAGO -->
 <div class="screen" id="screen-comprobante">
+  <button class="btn-back" onclick="volverDeComprobante()" style="margin-bottom:16px">←</button>
   <div style="font-size:22px;font-weight:700;margin-bottom:8px">💳 Subir comprobante</div>
-  <p style="color:var(--muted);font-size:14px;margin-bottom:20px">El viaje terminó. Sube tu comprobante de pago para confirmar.</p>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Antes de solicitar tu conductor, realiza el pago y sube el comprobante.</p>
   <div class="card">
     <div class="lbl">Monto a pagar</div>
     <div style="color:var(--gold);font-size:22px;font-weight:700;margin-top:4px" id="comp-precio">—</div>
@@ -308,7 +311,7 @@
   </div>
   <input type="file" id="comp-foto-input" accept="image/*" capture="environment" style="display:none" onchange="onComprobanteSeleccionado(this)" />
   <button class="btn-primary" onclick="subirComprobante()" id="btn-subir-comp">Enviar comprobante</button>
-  <button class="btn-cancelar" onclick="saltarComprobante()" style="margin-top:8px">Omitir por ahora</button>
+  <button class="btn-cancelar" onclick="saltarComprobante()" style="margin-top:8px">Pedir conductor sin comprobante</button>
 </div>
 
 <!-- CALIFICACIÓN -->
@@ -699,7 +702,27 @@ function selectPago(metodo, el) {
 // ── SOLICITAR VIAJE ──
 async function solicitarViaje() {
   if (!precioCalculado) { mostrarToast('Esperando cálculo de precio...', '#ff1744'); return; }
+  if (metodoPago !== 'efectivo') {
+    await irAComprobantePrevio();
+    return;
+  }
   setLoading('btn-solicitar', true, '⚡ Solicitar ZAS');
+  await crearViajeYPago(null);
+  setLoading('btn-solicitar', false, '⚡ Solicitar ZAS');
+}
+
+async function irAComprobantePrevio() {
+  setLoading('btn-solicitar', true, '⚡ Solicitar ZAS');
+  try {
+    const res = await fetch(`${API}/api/pagos/datos-pago/${metodoPago}`);
+    const data = await res.json();
+    datosZas = data.ok ? data.datos : null;
+  } catch { datosZas = null; }
+  setLoading('btn-solicitar', false, '⚡ Solicitar ZAS');
+  mostrarComprobante();
+}
+
+async function crearViajeYPago(comprobanteInfo) {
   try {
     const res = await fetch(`${API}/api/viajes/nuevo`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -711,28 +734,33 @@ async function solicitarViaje() {
       })
     });
     const data = await res.json();
-    if (data.ok) {
-      viajeActivo = data.viaje;
-      // Crear pago
-      try {
-        const resPago = await fetch(`${API}/api/pagos/nuevo`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
-        });
-        const dataPago = await resPago.json();
-        if (dataPago.ok) {
-          pagoId = dataPago.pago.id;
-          if (dataPago.datos_pago_zas) datosZas = dataPago.datos_pago_zas;
-        }
-      } catch {}
-      mostrarViajeActivo(viajeActivo);
-      showScreen('viaje');
-      iniciarPolling();
-    } else {
+    if (!data.ok) {
       mostrarToast(data.error || 'No se pudo solicitar el viaje', '#ff1744');
+      return;
     }
+    viajeActivo = data.viaje;
+    try {
+      const resPago = await fetch(`${API}/api/pagos/nuevo`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
+      });
+      const dataPago = await resPago.json();
+      if (dataPago.ok) {
+        pagoId = dataPago.pago.id;
+        if (dataPago.datos_pago_zas) datosZas = dataPago.datos_pago_zas;
+        if (comprobanteInfo) {
+          await fetch(`${API}/api/pagos/subir-comprobante/${pagoId}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comprobante_url: comprobanteInfo.url, referencia: comprobanteInfo.referencia })
+          });
+          mostrarToast('✅ Viaje solicitado. ZAS revisará tu comprobante en breve.');
+        }
+      }
+    } catch {}
+    mostrarViajeActivo(viajeActivo);
+    showScreen('viaje');
+    iniciarPolling();
   } catch { mostrarToast('Error de conexión', '#ff1744'); }
-  setLoading('btn-solicitar', false, '⚡ Solicitar ZAS');
 }
 
 function mostrarViajeActivo(v) {
@@ -792,16 +820,13 @@ function iniciarPolling() {
 
 // ── POST VIAJE ──
 function mostrarPostViaje(v) {
-  if (metodoPago !== 'efectivo' && pagoId && datosZas) {
-    mostrarComprobante(v);
-  } else {
-    mostrarCalificacion(v);
-  }
+  mostrarCalificacion(v);
 }
 
 // ── COMPROBANTE ──
-function mostrarComprobante(v) {
-  const m = formatearMultimoneda(Number(v.precio || precioCalculado));
+function mostrarComprobante() {
+  pagoId = null;
+  const m = formatearMultimoneda(precioCalculado);
   document.getElementById('comp-precio').textContent = m.cop;
   document.getElementById('comp-precio-sec').textContent = m.bs + ' · ' + m.usd;
   const contenido = document.getElementById('datos-pago-contenido');
@@ -815,6 +840,10 @@ function mostrarComprobante(v) {
   document.getElementById('comp-foto-preview').style.display = 'none';
   document.getElementById('comp-referencia').value = '';
   showScreen('comprobante');
+}
+
+function volverDeComprobante() {
+  showScreen('confirmar');
 }
 
 function onComprobanteSeleccionado(input) {
@@ -832,34 +861,22 @@ function onComprobanteSeleccionado(input) {
 
 async function subirComprobante() {
   if (!compFotoBase64) { mostrarToast('Selecciona una foto del comprobante', '#ff1744'); return; }
-  if (!pagoId) { mostrarToast('Error: ID de pago no encontrado', '#ff1744'); return; }
   setLoading('btn-subir-comp', true, 'Enviando...');
   try {
-    // Subir imagen a storage
     const resStorage = await fetch(`${API}/api/storage/subir-foto`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base64: compFotoBase64, nombre: `comprobante_${pagoId}`, carpeta: 'comprobantes' })
+      body: JSON.stringify({ base64: compFotoBase64, nombre: `comprobante_${Date.now()}`, carpeta: 'comprobantes' })
     });
     const dataStorage = await resStorage.json();
     const urlComprobante = dataStorage.ok ? dataStorage.url : compFotoBase64;
     const referencia = document.getElementById('comp-referencia').value.trim();
-    const res = await fetch(`${API}/api/pagos/subir-comprobante/${pagoId}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comprobante_url: urlComprobante, referencia: referencia || null })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      mostrarToast('✅ Comprobante enviado. ZAS lo revisará pronto.');
-      setTimeout(() => mostrarCalificacion(viajeActivo), 1500);
-    } else {
-      mostrarToast(data.error || 'No se pudo enviar', '#ff1744');
-    }
+    await crearViajeYPago({ url: urlComprobante, referencia: referencia || null });
   } catch { mostrarToast('Error de conexión', '#ff1744'); }
   setLoading('btn-subir-comp', false, 'Enviar comprobante');
 }
 
 function saltarComprobante() {
-  mostrarCalificacion(viajeActivo);
+  crearViajeYPago(null);
 }
 
 // ── CALIFICACIÓN ──
