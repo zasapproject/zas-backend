@@ -153,6 +153,10 @@ router.post('/subir-comprobante/:pagoId', async (req, res) => {
   const { pagoId } = req.params;
   const { comprobante_url, referencia } = req.body;
 
+  if (!comprobante_url) {
+    return res.status(400).json({ error: 'comprobante_url es obligatorio' });
+  }
+
   const { data, error } = await supabase
     .from('pagos_suscripcion')
     .update({ comprobante_url, referencia: referencia || null, estado: 'en_revision' })
