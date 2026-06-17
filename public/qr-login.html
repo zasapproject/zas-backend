@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZAS — Escanea para solicitar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #1a1a2e; --surface: #16213e; --surface2: #0f3460;
+    --gold: #2ED9C3; --brand-grad: linear-gradient(135deg,#2E9DF7 0%,#2ED9C3 50%,#B6F23B 100%);
+    --text: #ffffff; --muted: #888888;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--surface2); border-radius: 24px;
+    padding: 36px 32px; text-align: center; max-width: 360px; width: 100%;
+  }
+  .brand-logo { height: 56px; margin: 0 auto 6px; display: block; }
+  .tagline {
+    font-size: 13px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .qr-wrap {
+    background: #ffffff; border-radius: 16px; padding: 16px;
+    display: inline-block; margin-bottom: 24px;
+  }
+  #qrcode canvas, #qrcode img { display: block; }
+  .instruction {
+    font-size: 14px; color: var(--muted); margin-bottom: 22px; line-height: 1.6;
+  }
+  .instruction span { color: var(--text); font-weight: 700; }
+  .btn-abrir {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--brand-grad); color: #08111f; border: none; border-radius: 12px;
+    padding: 14px 24px; font-size: 15px; font-weight: 700; cursor: pointer;
+    width: 100%; text-decoration: none; transition: opacity 0.2s;
+  }
+  .btn-abrir:hover { opacity: 0.85; }
+  .footer {
+    margin-top: 20px; font-size: 11px; color: var(--muted); letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img src="zas-logo.png" alt="ZAS" class="brand-logo" />
+    <div class="tagline">Tu mototaxi al instante</div>
+    <div class="qr-wrap">
+      <div id="qrcode"></div>
+    </div>
+    <p class="instruction"><span>Escanea el código</span> con la cámara de tu celular para solicitar tu ZAS</p>
+    <a class="btn-abrir" href="https://zasapps.com/login" target="_blank">⚡ Abrir ZAS</a>
+    <div class="footer">VENEZUELA · MUNICIPIO AYACUCHO · TÁCHIRA</div>
+  </div>
+
+<script>
+new QRCode(document.getElementById('qrcode'), {
+  text: 'https://zasapps.com/login',
+  width: 220,
+  height: 220,
+  colorDark: '#000000',
+  colorLight: '#ffffff',
+  correctLevel: QRCode.CorrectLevel.H
+});
+</script>
+</body>
+</html>
