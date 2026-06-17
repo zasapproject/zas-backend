@@ -210,6 +210,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
     <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
     <div class="nav-item" onclick="showPage('conductores',this)"><span class="nav-icon">🏍️</span> Conductores</div>
     <div class="nav-item" onclick="showPage('usuarios',this)"><span class="nav-icon">👤</span> Usuarios</div>
+    <div class="nav-item" onclick="showPage('pagos',this)"><span class="nav-icon">💳</span> Pagos</div>
     <div class="nav-item" onclick="showPage('viajes',this)"><span class="nav-icon">🗺️</span> Viajes</div>
     <div class="nav-item" onclick="showPage('retiros',this)"><span class="nav-icon">💸</span> Retiros</div>
     <div class="nav-item" onclick="showPage('tarifas',this)"><span class="nav-icon">💲</span> Tarifas</div>
@@ -299,6 +300,45 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
     <div class="stat-card blue"><div class="stat-label">Pagos digitales pendientes</div><div class="stat-value" id="u-pagos">—</div></div>
   </div>
   <div id="usuarios-lista"><div class="loading"><div class="spinner"></div>Cargando usuarios...</div></div>
+</div>
+
+<!-- ═══ PAGOS ═══ -->
+<div class="page" id="page-pagos">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Pa<span>gos</span></div>
+      <div class="page-sub">Cola de verificación unificada + historial permanente</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="exportarHistorialCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-outline" onclick="cargarPagos()">↻ Actualizar</button>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card gold"><div class="stat-label">Pendientes</div><div class="stat-value" id="p-pendientes">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Confirmados hoy</div><div class="stat-value" id="p-confirmados">—</div></div>
+    <div class="stat-card blue"><div class="stat-label">Monto del mes</div><div class="stat-value" id="p-monto-mes">—</div></div>
+    <div class="stat-card red"><div class="stat-label">Rechazados (7d)</div><div class="stat-value" id="p-rechazados">—</div></div>
+  </div>
+  <div class="filter-btns">
+    <button class="filter-btn active" onclick="filtrarPagos('todos',this)">Todos</button>
+    <button class="filter-btn" onclick="filtrarPagos('viaje',this)">Viajes</button>
+    <button class="filter-btn" onclick="filtrarPagos('suscripcion',this)">Suscripciones</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Cola de verificación</div></div>
+    <div id="pagos-cola"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Historial de pagos</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" class="form-input" id="hist-desde" style="width:140px" onchange="cargarHistorialPagos()"/>
+        <input type="date" class="form-input" id="hist-hasta" style="width:140px" onchange="cargarHistorialPagos()"/>
+      </div>
+    </div>
+    <div id="pagos-historial"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+  </div>
 </div>
 
 <!-- ═══ VIAJES ═══ -->
@@ -544,7 +584,7 @@ function showPage(page, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   if(el) el.classList.add('active');
-  const loaders = {dashboard:cargarDashboard,conductores:cargarConductores,usuarios:cargarUsuarios,viajes:cargarViajes,retiros:cargarRetiros,tarifas:cargarTarifas,monitor:cargarMonitor,soporte:cargarSoporte};
+  const loaders = {dashboard:cargarDashboard,conductores:cargarConductores,usuarios:cargarUsuarios,pagos:cargarPagos,viajes:cargarViajes,retiros:cargarRetiros,tarifas:cargarTarifas,monitor:cargarMonitor,soporte:cargarSoporte};
   if(loaders[page]) loaders[page]();
 }
 
@@ -935,6 +975,134 @@ async function resetPasswordUsuario(id, nombre){
   const data = await res.json();
   if(data.ok) mostrarToast('✅ Contraseña actualizada');
   else mostrarToast('❌ Error: '+data.error,'red');
+}
+
+// ═══ PAGOS ═══
+let pagosColaData = [];
+let pagosFiltro = 'todos';
+
+async function cargarPagos(){
+  document.getElementById('pagos-cola').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/historial-pagos/pendientes`,{headers:authH()});
+    const data = await res.json();
+    pagosColaData = data.pendientes || [];
+    document.getElementById('p-pendientes').textContent = pagosColaData.length;
+    renderColaPagos();
+    actualizarTimestamp();
+  } catch { document.getElementById('pagos-cola').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
+  cargarHistorialPagos();
+}
+
+function filtrarPagos(filtro, btn){
+  pagosFiltro = filtro;
+  document.querySelectorAll('#page-pagos .filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderColaPagos();
+}
+
+function renderColaPagos(){
+  const datos = pagosFiltro==='todos' ? pagosColaData : pagosColaData.filter(p=>p.tipo_pago===pagosFiltro);
+  if(!datos.length){ document.getElementById('pagos-cola').innerHTML = `<div class="empty" style="padding:32px"><div class="empty-icon">✅</div><div class="empty-text">Sin pagos pendientes</div></div>`; return; }
+  document.getElementById('pagos-cola').innerHTML = datos.map(p=>`
+    <div class="alert-row">
+      <div style="display:flex;gap:10px;align-items:center">
+        ${p.comprobante_url?`<img src="${p.comprobante_url}" onclick="abrirLightbox('${p.comprobante_url}')" style="width:50px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer">`:''}
+        <div>
+          <div style="font-weight:700;font-size:13px">${p.nombre_persona} <span class="badge ${p.tipo_pago==='viaje'?'revision':'pendiente'}">${p.tipo_pago}</span></div>
+          <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${p.metodo} · $${Number(p.monto).toLocaleString()}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="form-input" id="admin-sel-${p.id}" style="width:120px;padding:6px 10px">
+          <option value="Jhonatan">Jhonatan</option>
+          <option value="Rosmaire">Rosmaire</option>
+        </select>
+        <button class="btn btn-green btn-sm" onclick="confirmarPagoUnificado('${p.tipo_pago}','${p.id}')">✅ Confirmar</button>
+        <button class="btn btn-red btn-sm" onclick="rechazarPagoUnificado('${p.tipo_pago}','${p.id}')">❌ Rechazar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function confirmarPagoUnificado(tipo, id){
+  const adminNombre = document.getElementById(`admin-sel-${id}`)?.value || 'Jhonatan';
+  if(!confirm('¿Confirmar este pago?')) return;
+  let res;
+  if(tipo==='viaje'){
+    res = await fetch(`${API}/api/pagos/confirmar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({admin_nombre:adminNombre})});
+  } else {
+    const pago = pagosColaData.find(p=>p.id===id);
+    res = await fetch(`${API}/api/suscripciones/activar`,{method:'POST',headers:jsonH(),body:JSON.stringify({conductor_id:pago.conductor_id, metodo_pago:'digital', monto:pago.monto, admin_nombre:adminNombre})});
+  }
+  const data = await res.json();
+  if(data.ok || data.success){ mostrarToast('✅ Pago confirmado'); cargarPagos(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
+}
+
+async function rechazarPagoUnificado(tipo, id){
+  const adminNombre = document.getElementById(`admin-sel-${id}`)?.value || 'Jhonatan';
+  const motivo = prompt('Motivo del rechazo:')||'Comprobante no válido';
+  let res;
+  if(tipo==='viaje'){
+    res = await fetch(`${API}/api/pagos/rechazar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({motivo, admin_nombre:adminNombre})});
+  } else {
+    res = await fetch(`${API}/api/suscripciones/rechazar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({motivo, admin_nombre:adminNombre})});
+  }
+  const data = await res.json();
+  if(data.ok){ mostrarToast('❌ Pago rechazado'); cargarPagos(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
+}
+
+async function cargarHistorialPagos(){
+  document.getElementById('pagos-historial').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const desde = document.getElementById('hist-desde')?.value;
+    const hasta = document.getElementById('hist-hasta')?.value;
+    let url = `${API}/api/historial-pagos?limit=30`;
+    if(desde) url += `&desde=${desde}`;
+    if(hasta) url += `&hasta=${hasta}`;
+    const res = await fetch(url,{headers:authH()});
+    const data = await res.json();
+    const historial = data.historial || [];
+
+    const hoy = new Date().toDateString();
+    document.getElementById('p-confirmados').textContent = historial.filter(h=>h.accion==='confirmado' && new Date(h.created_at).toDateString()===hoy).length;
+    const mesActual = new Date().getMonth();
+    document.getElementById('p-monto-mes').textContent = '$'+historial.filter(h=>h.accion==='confirmado' && new Date(h.created_at).getMonth()===mesActual).reduce((s,h)=>s+Number(h.monto_usd||h.monto||0),0).toFixed(2);
+    const hace7d = new Date(); hace7d.setDate(hace7d.getDate()-7);
+    document.getElementById('p-rechazados').textContent = historial.filter(h=>h.accion==='rechazado' && new Date(h.created_at)>=hace7d).length;
+
+    if(!historial.length){ document.getElementById('pagos-historial').innerHTML = `<div class="empty" style="padding:32px"><div class="empty-icon">🧾</div><div class="empty-text">Sin registros en este rango</div></div>`; return; }
+
+    document.getElementById('pagos-historial').innerHTML = `<div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Persona</th><th>Monto</th><th>Estado</th><th>Admin</th></tr></thead>
+      <tbody>${historial.map(h=>`<tr>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(h.created_at).toLocaleString('es-VE')}</td>
+        <td style="font-size:12px">${h.tipo_pago}</td>
+        <td style="font-size:12px">${h.nombre_persona||'—'}</td>
+        <td style="font-weight:700;color:var(--gold)">$${Number(h.monto).toLocaleString()}</td>
+        <td><span class="badge ${h.estado_resultante==='completado'||h.estado_resultante==='activa'?'activo':h.estado_resultante==='rechazado'?'vencido':'pendiente'}">${h.estado_resultante}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${h.admin_nombre}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch { document.getElementById('pagos-historial').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
+}
+
+async function exportarHistorialCSV(){
+  const desde = document.getElementById('hist-desde')?.value;
+  const hasta = document.getElementById('hist-hasta')?.value;
+  let url = `${API}/api/historial-pagos/exportar?`;
+  if(desde) url += `desde=${desde}&`;
+  if(hasta) url += `hasta=${hasta}&`;
+  try {
+    const res = await fetch(url, {headers:authH()});
+    if(!res.ok){ mostrarToast('❌ Error al exportar','red'); return; }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `historial_pagos_zas_${Date.now()}.csv`;
+    a.click();
+  } catch { mostrarToast('❌ Error al exportar','red'); }
 }
 
 // ═══ VIAJES ═══

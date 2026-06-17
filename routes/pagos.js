@@ -3,6 +3,7 @@ const router = express.Router();
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
 const { notificarPagoAprobado, notificarPagoRechazado } = require('../notificaciones');
+const { registrarHistorial } = require('../utils/historialPagos');
 
 // ─────────────────────────────────────────────
 // MÉTODOS DE PAGO VÁLIDOS
@@ -251,6 +252,19 @@ router.post('/subir-comprobante/:id', async (req, res) => {
 
     if (error) throw error;
 
+    await registrarHistorial({
+      tipo_pago: 'viaje',
+      referencia_id: data.id,
+      conductor_id: pago.viajes?.conductor_id,
+      usuario_id: pago.viajes?.usuario_id,
+      monto: pago.monto,
+      metodo: pago.metodo,
+      accion: 'comprobante_subido',
+      estado_resultante: 'en_revision',
+      comprobante_url,
+      admin_nombre: 'sistema',
+    });
+
     // Notificar a ZAS automáticamente
     await notificarZAS({
       pago: { ...data, metodo: pago.metodo, monto: pago.monto },
@@ -274,10 +288,11 @@ router.post('/subir-comprobante/:id', async (req, res) => {
 // Acredita saldo al conductor automáticamente
 // ─────────────────────────────────────────────
 router.patch('/confirmar/:id', authAdmin, async (req, res) => {
+  const { admin_nombre } = req.body;
   try {
     const { data: pago, error: pagoError } = await supabase
       .from('pagos')
-      .select('*, viajes(conductor_id, usuario_id)')
+      .select('*, viajes(conductor_id, usuario_id, usuarios(nombre, telefono))')
       .eq('id', req.params.id)
       .single();
 
@@ -335,6 +350,21 @@ router.patch('/confirmar/:id', authAdmin, async (req, res) => {
       }
     }
 
+    await registrarHistorial({
+      tipo_pago: 'viaje',
+      referencia_id: pago.id,
+      conductor_id: pago.viajes?.conductor_id,
+      usuario_id: pago.viajes?.usuario_id,
+      nombre_persona: pago.viajes?.usuarios?.nombre,
+      telefono_persona: pago.viajes?.usuarios?.telefono,
+      monto: pago.monto,
+      metodo: pago.metodo,
+      accion: 'confirmado',
+      estado_resultante: 'completado',
+      comprobante_url: pago.comprobante_url,
+      admin_nombre: admin_nombre || 'sistema',
+    });
+
     // Notificar al usuario
     if (pago.viajes?.usuario_id) {
       await notificarPagoAprobado(pago.viajes.usuario_id, pago.monto);
@@ -350,7 +380,7 @@ router.patch('/confirmar/:id', authAdmin, async (req, res) => {
 // Admin rechaza un comprobante inválido
 // ─────────────────────────────────────────────
 router.patch('/rechazar/:id', authAdmin, async (req, res) => {
-  const { motivo } = req.body;
+  const { motivo, admin_nombre } = req.body;
   try {
     const { data, error } = await supabase
       .from('pagos')
@@ -368,12 +398,29 @@ router.patch('/rechazar/:id', authAdmin, async (req, res) => {
     // Notificar al usuario del rechazo
     const { data: pagoCompleto } = await supabase
       .from('pagos')
-      .select('*, viajes(usuario_id)')
+      .select('*, viajes(usuario_id, conductor_id, usuarios(nombre, telefono))')
       .eq('id', req.params.id)
       .single();
     if (pagoCompleto?.viajes?.usuario_id) {
       await notificarPagoRechazado(pagoCompleto.viajes.usuario_id, pagoCompleto.monto, motivo);
     }
+
+    await registrarHistorial({
+      tipo_pago: 'viaje',
+      referencia_id: pagoCompleto?.id || req.params.id,
+      conductor_id: pagoCompleto?.viajes?.conductor_id,
+      usuario_id: pagoCompleto?.viajes?.usuario_id,
+      nombre_persona: pagoCompleto?.viajes?.usuarios?.nombre,
+      telefono_persona: pagoCompleto?.viajes?.usuarios?.telefono,
+      monto: pagoCompleto?.monto,
+      metodo: pagoCompleto?.metodo,
+      accion: 'rechazado',
+      estado_resultante: 'rechazado',
+      motivo_rechazo: motivo || 'Comprobante no válido',
+      comprobante_url: pagoCompleto?.comprobante_url,
+      admin_nombre: admin_nombre || 'sistema',
+    });
+
     res.json({ ok: true, pago: data });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });

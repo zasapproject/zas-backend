@@ -75,6 +75,8 @@ app.use('/api/soporte', soporteRouter);
 app.use('/api/tarifas', tarifasRouter);
 app.use('/api/tasas', tasasRouter);
 app.use('/api/admin', adminRouter);
+const historialPagosRouter = require('./routes/historial-pagos');
+app.use('/api/historial-pagos', historialPagosRouter);
 const verificacionRouter = require('./routes/verificacion');
 app.use('/api/verificacion', verificacionRouter);
 

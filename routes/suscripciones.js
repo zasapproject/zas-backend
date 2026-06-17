@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
+const { registrarHistorial } = require('../utils/historialPagos');
 
 
 // GET /suscripciones/estado/:conductorId
@@ -33,7 +34,7 @@ router.get('/estado/:conductorId', async (req, res) => {
 
 // POST /suscripciones/activar
 router.post('/activar', authAdmin, async (req, res) => {
-  const { conductor_id, metodo_pago, monto } = req.body;
+  const { conductor_id, metodo_pago, monto, admin_nombre } = req.body;
 
   if (!conductor_id) {
     return res.status(400).json({ error: 'conductor_id requerido' });
@@ -41,7 +42,7 @@ router.post('/activar', authAdmin, async (req, res) => {
 
   const { data: conductor } = await supabase
     .from('conductores')
-    .select('suscripcion_hasta, nombre')
+    .select('suscripcion_hasta, nombre, telefono')
     .eq('id', conductor_id)
     .single();
 
@@ -62,22 +63,44 @@ router.post('/activar', authAdmin, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Si el pago viene de comprobante digital, actualizar estado a activa
+  let pagoSuscripcionId = null;
+  let comprobanteUrl = null;
+
   if (metodo_pago !== 'efectivo') {
-    await supabase
+    const { data: pagosActualizados } = await supabase
       .from('pagos_suscripcion')
       .update({ estado: 'activa', suscripcion_hasta: nueva_fecha.toISOString() })
       .eq('conductor_id', conductor_id)
-      .eq('estado', 'en_revision');
+      .eq('estado', 'en_revision')
+      .select();
+    if (pagosActualizados && pagosActualizados[0]) {
+      pagoSuscripcionId = pagosActualizados[0].id;
+      comprobanteUrl = pagosActualizados[0].comprobante_url;
+    }
   } else {
-    await supabase.from('pagos_suscripcion').insert({
+    const { data: nuevoPago } = await supabase.from('pagos_suscripcion').insert({
       conductor_id,
       monto: monto || 15000,
       moneda: 'COP',
       metodo_pago: metodo_pago || 'efectivo',
       suscripcion_hasta: nueva_fecha.toISOString()
-    });
+    }).select().single();
+    pagoSuscripcionId = nuevoPago?.id;
   }
+
+  await registrarHistorial({
+    tipo_pago: 'suscripcion',
+    referencia_id: pagoSuscripcionId,
+    conductor_id,
+    nombre_persona: conductor?.nombre,
+    telefono_persona: conductor?.telefono,
+    monto: monto || 15000,
+    metodo: metodo_pago || 'efectivo',
+    accion: 'confirmado',
+    estado_resultante: 'activa',
+    comprobante_url: comprobanteUrl,
+    admin_nombre: admin_nombre || 'sistema',
+  });
 
   res.json({
     success: true,
@@ -130,12 +153,29 @@ router.post('/subir-comprobante/:pagoId', async (req, res) => {
   const { pagoId } = req.params;
   const { comprobante_url, referencia } = req.body;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('pagos_suscripcion')
     .update({ comprobante_url, referencia: referencia || null, estado: 'en_revision' })
-    .eq('id', pagoId);
+    .eq('id', pagoId)
+    .select('*, conductores(nombre, telefono)')
+    .single();
 
   if (error) return res.status(500).json({ error: error.message });
+
+  await registrarHistorial({
+    tipo_pago: 'suscripcion',
+    referencia_id: pagoId,
+    conductor_id: data.conductor_id,
+    nombre_persona: data.conductores?.nombre,
+    telefono_persona: data.conductores?.telefono,
+    monto: data.monto,
+    metodo: data.metodo_pago,
+    accion: 'comprobante_subido',
+    estado_resultante: 'en_revision',
+    comprobante_url,
+    admin_nombre: 'sistema',
+  });
+
   res.json({ ok: true });
 });
 
@@ -153,4 +193,48 @@ router.get('/historial', async (req, res) => {
   }));
   res.json({ ok: true, pagos, total: pagos.length });
 });
+// PATCH /suscripciones/rechazar/:pagoId
+router.patch('/rechazar/:pagoId', authAdmin, async (req, res) => {
+  const { motivo, admin_nombre } = req.body;
+  try {
+    const { data: pago, error: pagoError } = await supabase
+      .from('pagos_suscripcion')
+      .select('*, conductores(nombre, telefono)')
+      .eq('id', req.params.pagoId)
+      .single();
+
+    if (pagoError || !pago) {
+      return res.status(404).json({ ok: false, error: 'Pago de suscripcion no encontrado' });
+    }
+
+    const { data, error } = await supabase
+      .from('pagos_suscripcion')
+      .update({ estado: 'rechazado', motivo_rechazo: motivo || 'Comprobante no valido' })
+      .eq('id', req.params.pagoId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await registrarHistorial({
+      tipo_pago: 'suscripcion',
+      referencia_id: pago.id,
+      conductor_id: pago.conductor_id,
+      nombre_persona: pago.conductores?.nombre,
+      telefono_persona: pago.conductores?.telefono,
+      monto: pago.monto,
+      metodo: pago.metodo_pago,
+      accion: 'rechazado',
+      estado_resultante: 'rechazado',
+      motivo_rechazo: motivo || 'Comprobante no valido',
+      comprobante_url: pago.comprobante_url,
+      admin_nombre: admin_nombre || 'sistema',
+    });
+
+    res.json({ ok: true, pago: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 module.exports = router;
