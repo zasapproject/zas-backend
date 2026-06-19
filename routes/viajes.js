@@ -53,6 +53,13 @@ router.post('/nuevo', async (req, res) => {
     const distanciaReal = rutaData?.distancia_km || 0;
     const esInterurbano = distanciaReal > 6;
 
+    // Determinar si es horario nocturno (9:01pm - 5:59am hora Venezuela)
+    const ahoraVE = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+    const horaVE = ahoraVE.getHours();
+    const esHorarioNocturno = horaVE >= 21 || horaVE < 6;
+
+    const esNegociable = esInterurbano || esHorarioNocturno;
+
     const { data, error } = await supabase
       .from('viajes')
       .insert([{
@@ -65,8 +72,8 @@ router.post('/nuevo', async (req, res) => {
         // precio_usuario: lo que el usuario está dispuesto a pagar (puede ser diferente al calculado)
         precio_usuario: precio_usuario || precio || null,
         estado: 'buscando',
-        // estado_negociacion: solo aplica a interurbanos
-        estado_negociacion: esInterurbano ? 'propuesto' : null,
+        // estado_negociacion: aplica a interurbanos y a urbanos en horario nocturno
+        estado_negociacion: esNegociable ? 'propuesto' : null,
         polyline: rutaData?.polyline || null,
         distancia_km: rutaData?.distancia_km || null,
         duracion_minutos: rutaData?.duracion_minutos || null,
@@ -78,7 +85,7 @@ router.post('/nuevo', async (req, res) => {
     if (error) throw error;
 
     const viaje = data[0];
-    console.log(`✅ Viaje ${viaje.id} creado — ${esInterurbano ? 'interurbano (negociable)' : 'urbano (precio fijo)'}`);
+    console.log(`✅ Viaje ${viaje.id} creado — ${esNegociable ? (esInterurbano ? 'interurbano (negociable)' : 'urbano nocturno (negociable)') : 'urbano diurno (precio fijo)'}`);
 
     // Auto-cancelar si pasan 10 minutos sin conductor
     setTimeout(async () => {
@@ -92,7 +99,7 @@ router.post('/nuevo', async (req, res) => {
       } catch (e) { console.error('Error auto-cancelando:', e.message); }
     }, 10 * 60 * 1000);
 
-    res.json({ ok: true, viaje, negociable: esInterurbano });
+    res.json({ ok: true, viaje, negociable: esNegociable });
 
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
