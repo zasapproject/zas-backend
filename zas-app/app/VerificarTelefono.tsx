@@ -48,8 +48,7 @@ export default function VerificarTelefono() {
         const dataRegistro = await resRegistro.json();
         if (!dataRegistro.ok) throw new Error(dataRegistro.error || 'Error al registrar conductor');
         usuarioId = dataRegistro.conductor.id;
-        await AsyncStorage.setItem('conductor_sesion', JSON.stringify({ ...dataRegistro.conductor, telefono_verificado: false }));
-        await AsyncStorage.setItem('session_token', dataRegistro.conductor.session_token || '');
+        // No se guarda sesion - el conductor debe iniciar sesion el mismo despues de ser aprobado
       }
 
       await AsyncStorage.setItem('telefono_verificado', 'false');
@@ -58,7 +57,13 @@ export default function VerificarTelefono() {
         : `Bienvenido a ZAS ${nombre}`;
       Alert.alert('Registro exitoso', mensaje, [{
         text: 'Continuar',
-        onPress: () => router.replace(tipo === 'conductor' ? '/conductor' : '/home'),
+        onPress: () => {
+          if (tipo === 'conductor') {
+            router.replace('/conductor');
+          } else {
+            router.replace('/home');
+          }
+        },
       }]);
     } catch (error: any) {
       Alert.alert('Error', 'No pudimos completar el registro. Intenta de nuevo.');

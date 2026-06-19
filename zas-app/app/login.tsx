@@ -305,10 +305,10 @@ export default function LoginScreen() {
         {pantalla === "inicio" && (
           <View style={styles.formulario}>
             <TouchableOpacity style={styles.boton} onPress={() => setPantalla("login")}>
-              <Text style={styles.botonTexto}>Iniciar sesion</Text>
+              <Text style={styles.botonTexto}>Iniciar sesion Usuario</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.botonOutline} onPress={() => setPantalla("registro")}>
-              <Text style={styles.botonOutlineTexto}>Crear cuenta</Text>
+              <Text style={styles.botonOutlineTexto}>Crear cuenta Usuario</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.botonConductor} onPress={() => router.push("/conductor")}>
               <Text style={styles.botonConductorTexto}>Soy conductor</Text>
@@ -318,7 +318,7 @@ export default function LoginScreen() {
 
         {pantalla === "login" && (
           <View style={styles.formulario}>
-            <Text style={styles.formTitulo}>Iniciar sesion</Text>
+            <Text style={styles.formTitulo}>Iniciar sesion Usuario</Text>
             <Text style={styles.label}>Telefono</Text>
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
@@ -356,7 +356,7 @@ export default function LoginScreen() {
 
         {pantalla === "registro" && (
           <View style={styles.formulario}>
-            <Text style={styles.formTitulo}>Crear cuenta</Text>
+            <Text style={styles.formTitulo}>Crear cuenta Usuario</Text>
             <View style={styles.fotoContainer}>
               {foto ? <Image source={{ uri: foto }} style={styles.fotoPreview} /> : <View style={styles.fotoPlaceholder}><Text style={styles.fotoPlaceholderTexto}>Sin foto</Text></View>}
               <View style={styles.fotoBotones}>

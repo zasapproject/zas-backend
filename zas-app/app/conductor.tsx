@@ -723,7 +723,12 @@ export default function ConductorScreen() {
               }}>
                 <Text style={styles.botonTexto}>Siguiente</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setPantalla('reg1')}>
+              <TouchableOpacity onPress={() => {
+                Alert.alert('¿Salir del registro?', 'Perderás los datos que has ingresado hasta ahora.', [
+                  { text: 'Seguir registrando', style: 'cancel' },
+                  { text: 'Salir', style: 'destructive', onPress: () => setPantalla('login') },
+                ]);
+              }}>
                 <Text style={styles.linkTexto}>Volver</Text>
               </TouchableOpacity>
             </>
@@ -755,7 +760,12 @@ export default function ConductorScreen() {
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
                 {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar solicitud</Text>}
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setPantalla('reg2')}>
+              <TouchableOpacity onPress={() => {
+                Alert.alert('¿Salir del registro?', 'Perderás los datos y documentos que has subido hasta ahora.', [
+                  { text: 'Seguir registrando', style: 'cancel' },
+                  { text: 'Salir', style: 'destructive', onPress: () => setPantalla('login') },
+                ]);
+              }}>
                 <Text style={styles.linkTexto}>Volver</Text>
               </TouchableOpacity>
             </>
