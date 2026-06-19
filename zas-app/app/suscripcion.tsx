@@ -46,6 +46,7 @@ const METODOS = [
 
 // Tasas fijas
 const TASAS = { usd_cop: 4000, usd_bs: 87.12 };
+const MONTO_SUSCRIPCION_COP = 15000;
 
 type Pantalla = 'inicio' | 'metodos' | 'comprobante';
 
@@ -89,12 +90,12 @@ export default function SuscripcionScreen() {
         await fetch(`${API_URL}/api/suscripciones/registrar-solicitud`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conductor_id: conductorId, metodo_pago: 'efectivo', monto: 20000 }),
+          body: JSON.stringify({ conductor_id: conductorId, metodo_pago: 'efectivo', monto: MONTO_SUSCRIPCION_COP }),
         });
       } catch {}
       Alert.alert(
         '📋 Solicitud registrada',
-        'Acércate a las oficinas ZAS con tu pago de $20.000 COP. El administrador activará tu suscripción.',
+        `Acércate a las oficinas ZAS con tu pago de $${MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP. El administrador activará tu suscripción.`,
         [{ text: 'OK', onPress: () => setPantalla('inicio') }],
       );
       return;
@@ -105,7 +106,7 @@ export default function SuscripcionScreen() {
       const res  = await fetch(`${API_URL}/api/suscripciones/registrar-solicitud`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conductor_id: conductorId, metodo_pago: key, monto: 20000 }),
+        body: JSON.stringify({ conductor_id: conductorId, metodo_pago: key, monto: MONTO_SUSCRIPCION_COP }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error();
@@ -192,7 +193,7 @@ export default function SuscripcionScreen() {
         <View style={styles.header}>
           <Text style={styles.logo}>⚡ ZAS</Text>
           <Text style={styles.titulo}>Selecciona cómo pagar</Text>
-          <Text style={styles.subtitulo}>$20.000 COP · 7 días</Text>
+          <Text style={styles.subtitulo}>${MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP · 7 días</Text>
         </View>
         {METODOS.map(m => (
           <TouchableOpacity key={m.key} style={styles.metodoCard} onPress={() => seleccionarMetodo(m.key)}>
@@ -213,8 +214,8 @@ export default function SuscripcionScreen() {
   // PANTALLA: subir comprobante
   if (pantalla === 'comprobante') {
     const datos = DATOS_ZAS[metodoPago] || {};
-    const montoUsd = (20000 / TASAS.usd_cop).toFixed(2);
-    const montoBs  = (20000 / TASAS.usd_cop * TASAS.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const montoUsd = (MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2);
+    const montoBs  = (MONTO_SUSCRIPCION_COP / TASAS.usd_cop * TASAS.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
 
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -225,7 +226,7 @@ export default function SuscripcionScreen() {
           {/* monto */}
           <View style={styles.montoBox}>
             <Text style={styles.montoLabel}>Monto a pagar</Text>
-            <Text style={styles.monto}>20.000 COP</Text>
+            <Text style={styles.monto}>{MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP</Text>
             <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>
               <Text style={styles.montoSecundario}>Bs {montoBs}</Text>
               <Text style={styles.montoSecundario}>$ {montoUsd}</Text>
@@ -313,8 +314,11 @@ export default function SuscripcionScreen() {
 
       <View style={styles.precioCard}>
         <Text style={styles.precioTitulo}>Plan Semanal</Text>
-        <Text style={styles.precio}>$20.000 COP</Text>
-        <Text style={styles.precioUsd}>≈ $5 USD</Text>
+        <Text style={styles.precio}>{MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP</Text>
+        <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
+          <Text style={styles.precioUsd}>Bs {(MONTO_SUSCRIPCION_COP / TASAS.usd_cop * TASAS.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}</Text>
+          <Text style={styles.precioUsd}>$ {(MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2)}</Text>
+        </View>
         <View style={styles.beneficios}>
           <Text style={styles.beneficio}>✔ Acceso ilimitado a viajes</Text>
           <Text style={styles.beneficio}>✔ 7 días de cobertura</Text>
