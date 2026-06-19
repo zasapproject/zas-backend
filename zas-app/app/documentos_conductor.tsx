@@ -16,14 +16,14 @@ export default function DocumentosConductor() {
   const seleccionarFoto = async (setFoto: any) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galeria'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.1, base64: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [16, 10], quality: 0.5, base64: true });
     if (!result.canceled) setFoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
   const tomarFoto = async (setFoto: any) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso requerido', 'Necesitamos acceso a tu camara'); return; }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.1, base64: true });
+    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [16, 10], quality: 0.5, base64: true });
     if (!result.canceled) setFoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 

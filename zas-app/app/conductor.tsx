@@ -252,6 +252,24 @@ export default function ConductorScreen() {
     ]);
   };
 
+  const tomarOSeleccionarDocumento = async (setter: (v: string) => void) => {
+    Alert.alert('Foto', '¿Como quieres agregar la foto?', [
+      { text: 'Camara', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [16,10], quality: 0.5, base64: true });
+        if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Galeria', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [16,10], quality: 0.5, base64: true });
+        if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
+
   const cambiarPasswordTemporal = async () => {
     if (nuevaPassword.length < 4) { Alert.alert('Error', 'La contrasena debe tener minimo 4 caracteres'); return; }
     if (nuevaPassword !== confirmarPassword) { Alert.alert('Error', 'Las contrasenas no coinciden'); return; }
@@ -715,23 +733,23 @@ export default function ConductorScreen() {
               <Text style={styles.titulo}>Registro Paso 3/3</Text>
               <Text style={styles.pasoTexto}>Documentos</Text>
               <Text style={styles.label}>Foto Cedula</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoCedula)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoCedula)}>
                 {regFotoCedula ? <Image source={{ uri: regFotoCedula }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir cedula</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Foto Licencia</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoLicencia)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoLicencia)}>
                 {regFotoLicencia ? <Image source={{ uri: regFotoLicencia }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir licencia</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Foto Registro de Moto</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRegistro)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoRegistro)}>
                 {regFotoRegistro ? <Image source={{ uri: regFotoRegistro }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir registro</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>RCV (Seguro de la moto)</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoRcv)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoRcv)}>
                 {regFotoRcv ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir RCV</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Antecedentes Penales</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarFoto(setRegFotoAntecedentes)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoAntecedentes)}>
                 {regFotoAntecedentes ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir antecedentes</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
