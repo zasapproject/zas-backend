@@ -396,6 +396,7 @@ body{display:flex;flex-direction:column}
     <div class="filter-row">
       <button class="filter-btn active" onclick="switchMas('tarifas',this)">💲 Tarifas</button>
       <button class="filter-btn" onclick="switchMas('usuarios',this)">👤 Usuarios</button>
+      <button class="filter-btn" onclick="switchMas('pagos',this)">💳 Pagos</button>
       <button class="filter-btn" onclick="switchMas('soporte',this)">🆘 Soporte</button>
     </div>
 
@@ -424,6 +425,30 @@ body{display:flex;flex-direction:column}
       </div>
     </div>
 
+    <div id="sub-pagos" style="display:none">
+      <div class="stats-2" style="margin-bottom:10px">
+        <div class="stat-card gold"><div class="stat-label">Pendientes</div><div class="stat-val" id="pg-pend">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Confirmados hoy</div><div class="stat-val" id="pg-conf">—</div></div>
+      </div>
+      <div class="stats-2" style="margin-bottom:12px">
+        <div class="stat-card blue"><div class="stat-label">Monto del mes</div><div class="stat-val" id="pg-monto" style="font-size:18px">—</div></div>
+        <div class="stat-card red"><div class="stat-label">Rechazados 7d</div><div class="stat-val" id="pg-rech">—</div></div>
+      </div>
+      <div class="filter-row" style="margin-bottom:10px">
+        <button class="filter-btn active" onclick="filtrarPagosMovil('todos',this)">Todos</button>
+        <button class="filter-btn" onclick="filtrarPagosMovil('viaje',this)">Viajes</button>
+        <button class="filter-btn" onclick="filtrarPagosMovil('suscripcion',this)">Suscripciones</button>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-ttl">Cola de verificación</span></div>
+        <div id="pagos-cola-movil"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr"><span class="card-ttl">Historial reciente</span></div>
+        <div id="pagos-historial-movil"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+    </div>
+
     <div id="sub-soporte" style="display:none">
       <div id="soporte-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
     </div>
@@ -449,6 +474,7 @@ body{display:flex;flex-direction:column}
   </button>
   <button class="nav-btn" onclick="goPage('mas',this)" id="nav-mas">
     <div class="nav-ico">⚙️</div>Más
+    <div class="badge-dot" id="dot-mas"></div>
   </button>
 </nav>
 
@@ -513,6 +539,7 @@ body{display:flex;flex-direction:column}
 const API = 'https://zasapps.com';
 let conductoresData = [], usuariosData = [], viajesData = [], viajesFiltro = 'todos';
 let conductorSelId = null, masSub = 'tarifas';
+let pagosColaMovilData = [], pagosFiltroMovil = 'todos';
 
 // ── HELPERS ──
 function getToken(){ return sessionStorage.getItem('zas_token')||''; }
@@ -984,17 +1011,19 @@ async function rechazarRetiro(id){
 // ── MÁS ──
 function switchMas(sub, btn){
   masSub = sub;
-  ['tarifas','usuarios','soporte'].forEach(s=>document.getElementById('sub-'+s).style.display=s===sub?'block':'none');
+  ['tarifas','usuarios','pagos','soporte'].forEach(s=>document.getElementById('sub-'+s).style.display=s===sub?'block':'none');
   document.querySelectorAll('#p-mas .filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const loaders = {tarifas:loadTarifas, usuarios:loadUsuarios, soporte:loadSoporte};
+  const loaders = {tarifas:loadTarifas, usuarios:loadUsuarios, pagos:loadPagosMovil, soporte:loadSoporte};
   if(loaders[sub]) loaders[sub]();
 }
 
 function loadMas(){
   if(masSub==='tarifas') loadTarifas();
   else if(masSub==='usuarios') loadUsuarios();
+  else if(masSub==='pagos') loadPagosMovil();
   else loadSoporte();
+  checkPendientesGlobal();
 }
 
 // ── TARIFAS ──
@@ -1193,6 +1222,113 @@ async function resetPassUser(id, nombre){
   else toast('❌ '+data.error,'red');
 }
 
+// ── PAGOS ──
+async function loadPagosMovil(){
+  document.getElementById('pagos-cola-movil').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/historial-pagos/pendientes`,{headers:aH()});
+    const data = await res.json();
+    pagosColaMovilData = data.pendientes||[];
+    document.getElementById('pg-pend').textContent = pagosColaMovilData.length;
+    document.getElementById('dot-mas').classList.toggle('show', pagosColaMovilData.length>0);
+    renderColaPagosMovil();
+  } catch { document.getElementById('pagos-cola-movil').innerHTML=`<div class="loading">Error al cargar</div>`; }
+  loadHistorialPagosMovil();
+}
+
+function filtrarPagosMovil(f, btn){
+  pagosFiltroMovil = f;
+  document.querySelectorAll('#sub-pagos .filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderColaPagosMovil();
+}
+
+function renderColaPagosMovil(){
+  const lista = pagosFiltroMovil==='todos'?pagosColaMovilData:pagosColaMovilData.filter(p=>p.tipo_pago===pagosFiltroMovil);
+  const el = document.getElementById('pagos-cola-movil');
+  if(!lista.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">✅</div>Sin pagos pendientes</div>`;return;}
+  el.innerHTML = lista.map(p=>`
+    <div class="alert-item" style="flex-wrap:wrap">
+      ${avatar(p.nombre_persona)}
+      <div class="item-info">
+        <div class="item-name">${p.nombre_persona} <span class="badge ${p.tipo_pago==='viaje'?'blue':'gold'}">${p.tipo_pago}</span></div>
+        <div class="item-meta">${p.metodo} · $${Number(p.monto||0).toLocaleString()}</div>
+      </div>
+      <select class="form-input" id="admin-mov-${p.id}" style="width:100%;padding:8px;margin:6px 0;font-size:12px">
+        <option value="Jhonatan">Jhonatan</option>
+        <option value="Rosmaire">Rosmaire</option>
+      </select>
+      <div class="action-row" style="width:100%;margin-top:0">
+        <button class="btn btn-green" style="flex:1" onclick="confirmarPagoMovil('${p.tipo_pago}','${p.id}')">✅ Confirmar</button>
+        <button class="btn btn-red" onclick="rechazarPagoMovil('${p.tipo_pago}','${p.id}')">❌</button>
+      </div>
+      ${p.comprobante_url?`<img src="${p.comprobante_url}" onclick="lb('${p.comprobante_url}')" style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-top:8px">`:''}
+    </div>`).join('');
+}
+
+async function confirmarPagoMovil(tipo, id){
+  const adminNombre = document.getElementById(`admin-mov-${id}`)?.value || 'Jhonatan';
+  if(!confirm('¿Confirmar este pago?')) return;
+  let res;
+  if(tipo==='viaje'){
+    res = await fetch(`${API}/api/pagos/confirmar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({admin_nombre:adminNombre})});
+  } else {
+    const pago = pagosColaMovilData.find(p=>p.id===id);
+    res = await fetch(`${API}/api/suscripciones/activar`,{method:'POST',headers:jH(),body:JSON.stringify({conductor_id:pago.conductor_id, metodo_pago:'digital', monto:pago.monto, admin_nombre:adminNombre})});
+  }
+  const data = await res.json();
+  if(data.ok || data.success){ toast('✅ Pago confirmado'); loadPagosMovil(); }
+  else toast('❌ '+(data.error||'Error'),'red');
+}
+
+async function rechazarPagoMovil(tipo, id){
+  const adminNombre = document.getElementById(`admin-mov-${id}`)?.value || 'Jhonatan';
+  const motivo = prompt('Motivo del rechazo:')||'Comprobante no válido';
+  let res;
+  if(tipo==='viaje'){
+    res = await fetch(`${API}/api/pagos/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo, admin_nombre:adminNombre})});
+  } else {
+    res = await fetch(`${API}/api/suscripciones/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo, admin_nombre:adminNombre})});
+  }
+  const data = await res.json();
+  if(data.ok){ toast('❌ Pago rechazado'); loadPagosMovil(); }
+  else toast('❌ '+(data.error||'Error'),'red');
+}
+
+async function loadHistorialPagosMovil(){
+  document.getElementById('pagos-historial-movil').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  try {
+    const res = await fetch(`${API}/api/historial-pagos?limit=15`,{headers:aH()});
+    const data = await res.json();
+    const hist = data.historial||[];
+    const hoy = new Date().toDateString();
+    document.getElementById('pg-conf').textContent = hist.filter(h=>h.accion==='confirmado'&&new Date(h.created_at).toDateString()===hoy).length;
+    const mesActual = new Date().getMonth();
+    document.getElementById('pg-monto').textContent = '$'+hist.filter(h=>h.accion==='confirmado'&&new Date(h.created_at).getMonth()===mesActual).reduce((s,h)=>s+Number(h.monto_usd||h.monto||0),0).toFixed(2);
+    const hace7d = new Date(); hace7d.setDate(hace7d.getDate()-7);
+    document.getElementById('pg-rech').textContent = hist.filter(h=>h.accion==='rechazado'&&new Date(h.created_at)>=hace7d).length;
+
+    const el = document.getElementById('pagos-historial-movil');
+    if(!hist.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🧾</div>Sin registros</div>`;return;}
+    el.innerHTML = hist.map(h=>`
+      <div class="alert-item">
+        ${avatar(h.nombre_persona)}
+        <div class="item-info">
+          <div class="item-name">${h.nombre_persona||'—'} <span class="badge ${h.estado_resultante==='completado'||h.estado_resultante==='activa'?'green':h.estado_resultante==='rechazado'?'red':'gold'}">${h.estado_resultante}</span></div>
+          <div class="item-meta">$${Number(h.monto||0).toLocaleString()} · ${h.admin_nombre} · ${new Date(h.created_at).toLocaleDateString('es-VE')}</div>
+        </div>
+      </div>`).join('');
+  } catch { document.getElementById('pagos-historial-movil').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+async function checkPendientesGlobal(){
+  try {
+    const res = await fetch(`${API}/api/historial-pagos/pendientes`,{headers:aH()});
+    const data = await res.json();
+    document.getElementById('dot-mas').classList.toggle('show', (data.pendientes||[]).length>0);
+  } catch {}
+}
+
 // ── SOPORTE ──
 async function loadSoporte(){
   document.getElementById('soporte-list').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
@@ -1236,6 +1372,8 @@ setInterval(()=>{
     else if(currentPage==='conductores') loadConductores();
     else if(currentPage==='viajes') loadViajes();
     else if(currentPage==='retiros') loadRetiros();
+    else if(currentPage==='mas'&&masSub==='pagos') loadPagosMovil();
+    checkPendientesGlobal();
   }
 },1000);
 </script>
