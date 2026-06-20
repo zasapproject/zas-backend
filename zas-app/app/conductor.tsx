@@ -36,6 +36,7 @@ export default function ConductorScreen() {
   const [mostrarBilletera, setMostrarBilletera] = useState(false);
   const [mostrarDatosBancarios, setMostrarDatosBancarios] = useState(false);
   const viajesRechazados = useRef<{ [id: string]: number }>({});
+  const ofertaEnviadaIdRef = useRef<string | null>(null);
   const [conductorLat, setConductorLat] = useState<number>(0);
   const [conductorLng, setConductorLng] = useState<number>(0);
   const conductorLatRef = useRef<number>(0);
@@ -137,36 +138,33 @@ export default function ConductorScreen() {
       const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
     
 
-      // Polling contraoferta aceptada — detecta cuando usuario acepto el precio del conductor
+      // Polling contraoferta aceptada — pregunta especificamente por el viaje que se ofertó
       const intervaloContraoferta = setInterval(async () => {
+        if (!ofertaEnviadaIdRef.current) return;
         try {
-          const res = await fetch(`${API_URL}/api/viajes/conductor/${sesion.id}?estado=aceptado&limit=1`);
+          const res = await fetch(`${API_URL}/api/viajes/${ofertaEnviadaIdRef.current}`);
           const data = await res.json();
-          if (data.ok && data.viajes && data.viajes.length > 0) {
-            const viajeAceptado = data.viajes[0];
-            // Solo navegar si el viaje fue aceptado en los ultimos 2 minutos (reciente)
-           const hace5min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-              if (viajeAceptado.updated_at > hace5min) {
-              clearInterval(intervaloContraoferta);
-              enviarNotificacion('Contraoferta aceptada', 'El usuario acepto tu precio. Ve a recogerlo.');
-              router.push({
-                pathname: '/mapa_viaje',
-                params: {
-                  viaje_id: viajeAceptado.id,
-                  rol: 'conductor',
-                  conductor_id: sesion.id,
-                  usuario_nombre: viajeAceptado.usuario_nombre || '',
-                  usuario_telefono: viajeAceptado.usuario_telefono || '',
-                  usuario_foto: viajeAceptado.usuario_foto || '',
-                  origen: viajeAceptado.origen,
-                  destino: viajeAceptado.destino,
-                  origen_lat: viajeAceptado.origen_lat || '',
-                  origen_lng: viajeAceptado.origen_lng || '',
-                  destino_lat: viajeAceptado.destino_lat || '',
-                  destino_lng: viajeAceptado.destino_lng || '',
-                }
-              });
-            }
+          if (data.ok && data.viaje && data.viaje.estado === 'aceptado' && data.viaje.conductor_id === sesion.id) {
+            const viajeAceptado = data.viaje;
+            ofertaEnviadaIdRef.current = null;
+            enviarNotificacion('Contraoferta aceptada', 'El usuario acepto tu precio. Ve a recogerlo.');
+            router.push({
+              pathname: '/mapa_viaje',
+              params: {
+                viaje_id: viajeAceptado.id,
+                rol: 'conductor',
+                conductor_id: sesion.id,
+                usuario_nombre: viajeAceptado.usuario_nombre || '',
+                usuario_telefono: viajeAceptado.usuario_telefono || '',
+                usuario_foto: viajeAceptado.usuario_foto || '',
+                origen: viajeAceptado.origen,
+                destino: viajeAceptado.destino,
+                origen_lat: viajeAceptado.origen_lat || '',
+                origen_lng: viajeAceptado.origen_lng || '',
+                destino_lat: viajeAceptado.destino_lat || '',
+                destino_lng: viajeAceptado.destino_lng || '',
+              }
+            });
           }
         } catch {}
       }, 4000);
@@ -606,6 +604,7 @@ export default function ConductorScreen() {
       });
       const data = await res.json();
       if (data.ok) {
+        ofertaEnviadaIdRef.current = viajeNegociando.id;
         setModalContraoferta(false);
         setViajeNegociando(null);
         setPrecioContraoferta('');
