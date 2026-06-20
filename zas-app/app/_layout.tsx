@@ -3,14 +3,32 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import * as Updates from 'expo-updates';
+import { useEffect } from 'react';
 
 export const unstable_settings = {
   initialRouteName: 'login',
 };
 
+async function checkForUpdates() {
+  if (__DEV__) return;
+  try {
+    const update = await Updates.checkForUpdateAsync();
+    if (update.isAvailable) {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    }
+  } catch (e) {
+    console.log('Error verificando actualización:', e);
+  }
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

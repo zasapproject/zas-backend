@@ -49,7 +49,16 @@ app.get('/privacidad', (req, res) => {
 app.get('/login', (req, res) => {
   res.sendFile(__dirname + '/public/solicitar.html');
 });
-
+app.get('/api/keepalive', async (req, res) => {
+  try {
+    await supabase.from('usuarios').select('id').limit(1);
+    console.log(`✅ Keepalive ejecutado: ${new Date().toLocaleString('es-VE')}`);
+    res.json({ ok: true, timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error('❌ Keepalive falló:', e.message);
+    res.status(500).json({ ok: false });
+  }
+});
 // Health check
 app.get('/api/health', async (req, res) => {
   try {
