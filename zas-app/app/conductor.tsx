@@ -691,7 +691,7 @@ export default function ConductorScreen() {
               <TextInput style={styles.input} placeholder="tu@email.com" placeholderTextColor="#888" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" value={regEmail} onChangeText={setRegEmail} />
               <Text style={styles.label}>Contrasena</Text>
               <View style={styles.inputContenedor}>
-                <TextInput style={styles.inputFlex} placeholder="Minimo 5 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
+                <TextInput style={styles.inputFlex} placeholder="Minimo 8 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={regPassword} onChangeText={setRegPassword} />
                 <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
                   <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
                 </TouchableOpacity>
@@ -699,7 +699,7 @@ export default function ConductorScreen() {
               <TouchableOpacity style={styles.boton} onPress={() => {
                 if (!regNombre || !regTelefono || !regPassword || !regEmail) { Alert.alert('Error', 'Todos los campos son obligatorios incluyendo el correo'); return; }
                 if (!regFoto) { Alert.alert('Error', 'La foto de perfil es obligatoria'); return; }
-                if (regPassword.length < 5) { Alert.alert('Error', 'La contrasena debe tener minimo 5 caracteres'); return; }
+                if (regPassword.length < 8) { Alert.alert('Error', 'La contrasena debe tener minimo 8 caracteres'); return; }
                 setPantalla('reg2');
               }}>
                 <Text style={styles.botonTexto}>Siguiente</Text>

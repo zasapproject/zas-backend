@@ -258,7 +258,7 @@ export default function LoginScreen() {
     if (!nombre || !telefono || !password || !email) { Alert.alert("Error", "Nombre, teléfono, contraseña y correo son obligatorios"); return; }
     if (!foto) { Alert.alert("Error", "La foto de perfil es obligatoria"); return; }
     if (!fotoCedula) { Alert.alert("Error", "Debes subir la foto de tu cédula"); return; }
-    if (password.length < 5) { Alert.alert("Error", "La contrasena debe tener minimo 5 caracteres"); return; }
+    if (password.length < 8) { Alert.alert("Error", "La contrasena debe tener minimo 8 caracteres"); return; }
     setCargando(true);
     try {
       let fotoUrl = foto;
@@ -370,7 +370,7 @@ export default function LoginScreen() {
             <TextInput style={styles.input} placeholder="04121234567" placeholderTextColor="#888" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} maxLength={11} />
             <Text style={styles.label}>Contrasena</Text>
             <View style={styles.inputContenedor}>
-              <TextInput style={styles.inputFlex} placeholder="Minimo 5 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
+              <TextInput style={styles.inputFlex} placeholder="Minimo 8 caracteres" placeholderTextColor="#888" secureTextEntry={!verPasswordReg} value={password} onChangeText={setPassword} />
               <TouchableOpacity onPress={() => setVerPasswordReg(!verPasswordReg)}>
                 <Text style={styles.ojo}>{verPasswordReg ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>

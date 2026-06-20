@@ -66,7 +66,8 @@ export default function VerificarTelefono() {
         },
       }]);
     } catch (error: any) {
-      Alert.alert('Error', 'No pudimos completar el registro. Intenta de nuevo.');
+      console.log('🔴 Error en registro:', error.message);
+      Alert.alert('Error', `No pudimos completar el registro: ${error.message || 'desconocido'}`);
     }
   };
 
