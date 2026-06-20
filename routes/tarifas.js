@@ -8,22 +8,30 @@ const authAdmin = require('../middleware/authAdmin');
 // Urbano  (≤ 5 km): 4.000 COP fijo
 // Interurbano (> 5 km): 4.000 + (km × 1.000) + (min × 100)
 // ─────────────────────────────────────────────
-const TARIFA_BASE      = 4000;
-const TARIFA_URBANA    = 4000;
-const PRECIO_POR_KM    = 1000;
-const PRECIO_POR_MIN   = 100;
-const LIMITE_URBANO_KM = 6;
+const TARIFA_BASE          = 4000;
+const TARIFA_URBANA        = 4000;
+const TARIFA_URBANA_NOCTURNA = 5000;
+const PRECIO_POR_KM        = 1000;
+const PRECIO_POR_MIN       = 100;
+const LIMITE_URBANO_KM     = 6;
 
-function calcularTarifaZAS(distancia_km, duracion_minutos) {
+function esHorarioNocturnoVE() {
+  const ahoraVE = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+  const horaVE = ahoraVE.getHours();
+  return horaVE >= 21 || horaVE < 6;
+}
+
+function calcularTarifaZAS(distancia_km, duracion_minutos, esNocturno = false) {
   const km  = parseFloat(distancia_km)  || 1;
   const min = parseFloat(duracion_minutos) || Math.ceil((km / 25) * 60);
 
   if (km <= LIMITE_URBANO_KM) {
+    const precioUrbano = esNocturno ? TARIFA_URBANA_NOCTURNA : TARIFA_URBANA;
     return {
-      precio: TARIFA_URBANA,
-      tipo: 'urbana',
-      negociable: false,
-      desglose: { base: TARIFA_URBANA, km_cobrado: 0, min_cobrado: 0 },
+      precio: precioUrbano,
+      tipo: esNocturno ? 'urbana_nocturna' : 'urbana',
+      negociable: esNocturno,
+      desglose: { base: precioUrbano, km_cobrado: 0, min_cobrado: 0 },
     };
   }
 
@@ -101,8 +109,10 @@ router.get('/calcular', async (req, res) => {
     if (!min) min = Math.ceil((km / 25) * 60);
     // ──────────────────────────────────────────────────────────
 
-    // ── PASO 2: municipio con tarifa fija — solo aplica si es viaje urbano (≤ 5 km) ──
-    if (km <= LIMITE_URBANO_KM) {
+    const esNocturno = esHorarioNocturnoVE();
+
+    // ── PASO 2: municipio con tarifa fija — solo aplica si es viaje urbano de DIA (≤ 5 km) ──
+    if (km <= LIMITE_URBANO_KM && !esNocturno) {
       const { data, error } = await supabase.from('tarifas_municipios').select('*').eq('activo', true);
       if (!error && data && data.length > 0) {
         for (const m of data) {
@@ -124,7 +134,7 @@ router.get('/calcular', async (req, res) => {
     // ──────────────────────────────────────────────────────────
 
     // ── PASO 3: fórmula ZAS según distancia real ──────────────
-    const resultado = calcularTarifaZAS(km, min);
+    const resultado = calcularTarifaZAS(km, min, esNocturno);
     return res.json({
       ok: true,
       ...resultado,
@@ -148,7 +158,7 @@ router.get('/calcular', async (req, res) => {
 router.get('/preview', (req, res) => {
   const { distancia_km, duracion_minutos } = req.query;
   if (!distancia_km) return res.status(400).json({ ok: false, error: 'distancia_km es obligatorio' });
-  const resultado = calcularTarifaZAS(distancia_km, duracion_minutos);
+  const resultado = calcularTarifaZAS(distancia_km, duracion_minutos, esHorarioNocturnoVE());
   res.json({
     ok: true, ...resultado,
     formula: resultado.tipo === 'urbana'
