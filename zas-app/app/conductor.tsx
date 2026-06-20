@@ -270,6 +270,24 @@ export default function ConductorScreen() {
     ]);
   };
 
+  const tomarOSeleccionarAntecedentes = async (setter: (v: string) => void) => {
+    Alert.alert('Foto', '¿Como quieres agregar la foto?', [
+      { text: 'Camara', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [3,4], quality: 0.5, base64: true });
+        if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Galeria', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') return;
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [3,4], quality: 0.5, base64: true });
+        if (!result.canceled) setter('data:image/jpeg;base64,' + result.assets[0].base64);
+      }},
+      { text: 'Cancelar', style: 'cancel' }
+    ]);
+  };
+
   const cambiarPasswordTemporal = async () => {
     if (nuevaPassword.length < 4) { Alert.alert('Error', 'La contrasena debe tener minimo 4 caracteres'); return; }
     if (nuevaPassword !== confirmarPassword) { Alert.alert('Error', 'Las contrasenas no coinciden'); return; }
@@ -754,7 +772,7 @@ export default function ConductorScreen() {
                 {regFotoRcv ? <Image source={{ uri: regFotoRcv }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir RCV</Text>}
               </TouchableOpacity>
               <Text style={styles.label}>Antecedentes Penales</Text>
-              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarDocumento(setRegFotoAntecedentes)}>
+              <TouchableOpacity style={styles.docBoton} onPress={() => tomarOSeleccionarAntecedentes(setRegFotoAntecedentes)}>
                 {regFotoAntecedentes ? <Image source={{ uri: regFotoAntecedentes }} style={styles.docImg} /> : <Text style={styles.docBotonTexto}>Subir antecedentes</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.boton} onPress={registrarConductor} disabled={cargando}>
