@@ -14,7 +14,7 @@ import SubirComprobante from './SubirComprobante';
 import Svg, { Ellipse, Line, Rect } from 'react-native-svg';
 
 const API_URL = 'https://zasapps.com';
-const GOOGLE_KEY = 'AIzaSyBypfJWtZn_XRZBIl_bc18nncTMor2988Q';
+// GOOGLE_KEY eliminada — Places y Geocoding ahora van por el backend (/api/maps)
 
 type Coord = { latitude: number; longitude: number };
 
@@ -28,24 +28,23 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 
 async function geocodificarInverso(lat: number, lng: number): Promise<string> {
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_KEY}&language=es`);
+    const res = await fetch(`${API_URL}/api/maps/geocode?lat=${lat}&lng=${lng}`);
     const data = await res.json();
-    if (data.results && data.results.length > 0) return data.results[0].formatted_address;
+    if (data.ok && data.direccion) return data.direccion;
   } catch (e) {}
   return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
 async function buscarDireccion(texto: string): Promise<{ description: string; lat: number; lng: number }[]> {
   try {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(texto)}&key=${GOOGLE_KEY}&language=es&components=country:ve|country:co`);
+    const res = await fetch(`${API_URL}/api/maps/autocomplete?input=${encodeURIComponent(texto)}`);
     const data = await res.json();
     const resultados = await Promise.all(
       (data.predictions || []).slice(0, 4).map(async (p: any) => {
         try {
-          const det = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=geometry&key=${GOOGLE_KEY}`);
+          const det = await fetch(`${API_URL}/api/maps/place-details?place_id=${p.place_id}`);
           const detData = await det.json();
-          const loc = detData.result?.geometry?.location;
-          return { description: p.description, lat: loc?.lat || 0, lng: loc?.lng || 0 };
+          return { description: p.description, lat: detData.lat || 0, lng: detData.lng || 0 };
         } catch { return null; }
       })
     );
@@ -104,6 +103,7 @@ export default function HomeScreen() {
   const [cargando, setCargando] = useState(true);
   const [viaje, setViaje] = useState<any>(null);
   const [navegandoAlMapa, setNavegandoAlMapa] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
 
   const [paso, setPaso] = useState<'origen' | 'destino' | 'confirmar' | 'pagar'>('origen');
   const [region, setRegion] = useState({ latitude: 7.7633, longitude: -72.2249, latitudeDelta: 0.01, longitudeDelta: 0.01 });
@@ -264,6 +264,7 @@ export default function HomeScreen() {
               setViaje(null);
               setNavegandoAlMapa(false);
               setPaso('origen');
+              setMapKey(k => k + 1);
               setCoordOrigen(null);
               setCoordDestino(null);
               setNombreOrigen('');
@@ -475,38 +476,41 @@ export default function HomeScreen() {
         setViaje(data.viaje);
         setEsNegociableViaje(data.negociable || esNegociable);
         await AsyncStorage.setItem('viaje_activo', JSON.stringify(data.viaje));
-        try {
-          metodoPagoRef.current = metodoPago;
-          const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioFinal, metodo: metodoPago })
-          });
-          const dataPago = await resPago.json();
-          if (dataPago.ok) {
-            setPagoId(dataPago.pago.id);
-            pagoIdRef.current = dataPago.pago.id;
-            if (dataPago.datos_pago_zas) {
-              setDatosZas(dataPago.datos_pago_zas);
-              datosZasRef.current = dataPago.datos_pago_zas;
+        metodoPagoRef.current = metodoPago;
+        // Si es negociable, el pago digital se gestiona despues de elegir conductor (ver ListaOfertas)
+        if (!esNegociable) {
+          try {
+            const resPago = await fetch(`${API_URL}/api/pagos/nuevo`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioFinal, metodo: metodoPago })
+            });
+            const dataPago = await resPago.json();
+            if (dataPago.ok) {
+              setPagoId(dataPago.pago.id);
+              pagoIdRef.current = dataPago.pago.id;
+              if (dataPago.datos_pago_zas) {
+                setDatosZas(dataPago.datos_pago_zas);
+                datosZasRef.current = dataPago.datos_pago_zas;
+              }
+              if (urlComprobantePrevio) {
+                try {
+                  await fetch(`${API_URL}/api/pagos/subir-comprobante/${dataPago.pago.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comprobante_url: urlComprobantePrevio, referencia: null })
+                  });
+                } catch {}
+              }
             }
-            // Si había comprobante previo, vincularlo al pago recién creado
-            if (urlComprobantePrevio) {
-              try {
-                await fetch(`${API_URL}/api/pagos/subir-comprobante/${dataPago.pago.id}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ comprobante_url: urlComprobantePrevio, referencia: null })
-                });
-              } catch {}
-            }
-          }
-        } catch {}
+          } catch {}
+        }
       } else Alert.alert('Error', data.error || 'No se pudo solicitar el viaje');
     } catch (e) { Alert.alert('Error', 'No se pudo conectar al servidor'); }
     finally { setCargando(false); }
   };
 
   const reiniciarFlujo = () => {
+    setMapKey(k => k + 1);
     setPaso('origen'); setCoordOrigen(null); setCoordDestino(null);
     setNombreOrigen(''); setNombreDestino(''); setTextoBusqueda(''); setSugerencias([]);
     setPrecioCalculado(0); precioCalculadoRef.current = 0;
@@ -651,6 +655,7 @@ export default function HomeScreen() {
             viaje={viaje}
             usuarioId={usuarioId}
             esNegociable={esNegociableViaje}
+            metodoPago={metodoPagoRef.current}
             conductoresCercanos={conductoresActivos.length}
             onConductorElegido={onConductorElegidoCb}
             onCancelar={cancelarViaje}
@@ -931,7 +936,7 @@ export default function HomeScreen() {
           )}
 
           {/* BOTÓN PRINCIPAL */}
-          {metodoPago === 'efectivo' || comprobanteEnviado ? (
+          {metodoPago === 'efectivo' || comprobanteEnviado || esNegociable ? (
             // Efectivo o comprobante ya enviado → solicitar directo
             <TouchableOpacity
               style={[styles.boton, (calculandoPrecio || !precioCalculado || cargando) && { opacity: 0.5 }]}
@@ -980,7 +985,7 @@ export default function HomeScreen() {
   // ── MAPA PRINCIPAL ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container} onTouchStart={resetearTimer}>
-      <MapView ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
+      <MapView key={mapKey} ref={mapRef} style={styles.mapa} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={onRegionChangeComplete} showsUserLocation={true} showsMyLocationButton={false}>
         {paso === 'destino' && coordOrigen && (
   <Marker coordinate={coordOrigen} anchor={{ x: 0.5, y: 1 }}>
     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#00c853', borderWidth: 2, borderColor: '#fff', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>

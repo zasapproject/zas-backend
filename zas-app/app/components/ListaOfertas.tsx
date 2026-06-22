@@ -8,8 +8,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Image, ActivityIndicator, Alert, Animated
+  ScrollView, Image, ActivityIndicator, Alert
 } from 'react-native';
+import SubirComprobante from '../SubirComprobante';
 
 const API_URL = 'https://zasapps.com';
 
@@ -29,13 +30,13 @@ interface Props {
   viaje: any;
   usuarioId: string;
   esNegociable: boolean;
-  conductoresCercanos?: number;
+  metodoPago: string;
   onConductorElegido: (viaje: any, conductor: any) => void;
   onCancelar: () => void;
 }
 
 export default function ListaOfertas({
-  viaje, usuarioId, esNegociable, conductoresCercanos = 0, onConductorElegido, onCancelar
+  viaje, usuarioId, esNegociable, metodoPago, onConductorElegido, onCancelar
 }: Props) {
   const [segundos, setSegundos] = useState(0);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
@@ -43,18 +44,12 @@ export default function ListaOfertas({
   const [eligiendo, setEligiendo] = useState<string | null>(null);
   const intervaloTimer = useRef<any>(null);
   const intervaloOfertas = useRef<any>(null);
-  const intervaloEstado = useRef<any>(null);
-  const yaNavegoRef = useRef(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
+  const [pagoPendienteNegociacion, setPagoPendienteNegociacion] = useState<{
+    viaje: any; conductor: any; ofertaPrecio: number;
+  } | null>(null);
+  const [datosZasNegociacion, setDatosZasNegociacion] = useState<any>(null);
+  const [pagoIdNegociacion, setPagoIdNegociacion] = useState<string | null>(null);
+  const [cargandoPagoNegociacion, setCargandoPagoNegociacion] = useState(false);
 
   // Temporizador de espera
   useEffect(() => {
@@ -63,37 +58,6 @@ export default function ListaOfertas({
     }, 1000);
     return () => clearInterval(intervaloTimer.current);
   }, []);
-
-  // Polling de estado — para viajes URBANOS detectar cuando conductor acepta
-  useEffect(() => {
-    if (esNegociable) return;
-    const verificarEstado = async () => {
-      if (yaNavegoRef.current) return;
-      try {
-        const res = await fetch(`${API_URL}/api/viajes/${viaje.id}`);
-        const data = await res.json();
-        const v = data.viaje || data;
-        if (v && (v.estado === 'aceptado' || v.estado === 'en_curso')) {
-          if (yaNavegoRef.current) return;
-          yaNavegoRef.current = true;
-          clearInterval(intervaloEstado.current);
-          clearInterval(intervaloTimer.current);
-          const cond = v.conductores || {};
-          onConductorElegido(v, {
-            id: v.conductor_id,
-            nombre: cond.nombre || '',
-            telefono: cond.telefono || '',
-            foto_url: cond.foto_url || '',
-            placa_moto: cond.placa_moto || '',
-            modelo_moto: cond.modelo_moto || '',
-          });
-        }
-      } catch {}
-    };
-    verificarEstado();
-    intervaloEstado.current = setInterval(verificarEstado, 3000);
-    return () => clearInterval(intervaloEstado.current);
-  }, [viaje.id, esNegociable]);
 
   // Polling de ofertas — solo para interurbanos
   useEffect(() => {
@@ -110,6 +74,39 @@ export default function ListaOfertas({
     return () => clearInterval(intervaloOfertas.current);
   }, [viaje.id, esNegociable]);
 
+  // Polling de respaldo — viajes NO negociables (aceptacion directa del conductor)
+  // Sin esto, el usuario depende solo de push notification y puede quedar
+  // congelado en "buscando" aunque el conductor ya haya aceptado.
+  const intervaloEstadoDirecto = useRef<any>(null);
+  useEffect(() => {
+    if (esNegociable) return;
+    const revisarEstado = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
+        const data = await res.json();
+        if (data.ok && data.viajes.length > 0) {
+          const viajeActual = data.viajes.find((v: any) => v.id === viaje.id);
+          if (viajeActual && (viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso')) {
+            clearInterval(intervaloEstadoDirecto.current);
+            clearInterval(intervaloTimer.current);
+            const conductorObj = {
+              id: viajeActual.conductor_id,
+              nombre: viajeActual.conductor_nombre,
+              telefono: viajeActual.conductor_telefono,
+              foto_url: viajeActual.conductor_foto,
+              placa_moto: viajeActual.conductor_placa,
+              modelo_moto: viajeActual.conductor_modelo,
+            };
+            onConductorElegido(viajeActual, conductorObj);
+          }
+        }
+      } catch {}
+    };
+    revisarEstado();
+    intervaloEstadoDirecto.current = setInterval(revisarEstado, 4000);
+    return () => clearInterval(intervaloEstadoDirecto.current);
+  }, [viaje.id, esNegociable, usuarioId]);
+
   const formatearTiempo = (s: number) => {
     const min = Math.floor(s / 60);
     const seg = s % 60;
@@ -122,13 +119,46 @@ export default function ListaOfertas({
       const res = await fetch(`${API_URL}/api/viajes/${viaje.id}/elegir-conductor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oferta_id: oferta.id, usuario_id: usuarioId }),
+        body: JSON.stringify({ oferta_id: oferta.id, usuario_id: usuarioId, metodo_pago: metodoPago }),
       });
       const data = await res.json();
       if (data.ok) {
         clearInterval(intervaloOfertas.current);
         clearInterval(intervaloTimer.current);
-        onConductorElegido(data.viaje, data.conductor);
+
+        if (metodoPago && metodoPago !== 'efectivo') {
+          // Pago digital — mostrar pantalla de comprobante por el precio final
+          setCargandoPagoNegociacion(true);
+          try {
+            const [resDatos, resPago] = await Promise.all([
+              fetch(`${API_URL}/api/pagos/datos-pago/${metodoPago}`),
+              fetch(`${API_URL}/api/pagos/nuevo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  viaje_id: viaje.id,
+                  monto: oferta.precio_oferta,
+                  metodo: metodoPago,
+                }),
+              }),
+            ]);
+            const dataDatos = await resDatos.json();
+            const dataPago = await resPago.json();
+            setDatosZasNegociacion(dataDatos.ok ? dataDatos.datos : null);
+            setPagoIdNegociacion(dataPago.ok ? dataPago.pago.id : null);
+            setPagoPendienteNegociacion({
+              viaje: data.viaje,
+              conductor: data.conductor,
+              ofertaPrecio: oferta.precio_oferta,
+            });
+          } catch {
+            Alert.alert('Error', 'No se pudo iniciar el pago. Intenta de nuevo.');
+          }
+          setCargandoPagoNegociacion(false);
+        } else {
+          // Efectivo — flujo normal, directo al mapa
+          onConductorElegido(data.viaje, data.conductor);
+        }
       } else {
         Alert.alert('Error', data.error || 'No se pudo elegir el conductor');
       }
@@ -139,171 +169,201 @@ export default function ListaOfertas({
     }
   };
 
+  const confirmarPagoYContinuar = async () => {
+    if (!pagoPendienteNegociacion) return;
+    try {
+      await fetch(`${API_URL}/api/viajes/${pagoPendienteNegociacion.viaje.id}/confirmar-pago-negociacion`, {
+        method: 'PATCH',
+      });
+    } catch {}
+    onConductorElegido(pagoPendienteNegociacion.viaje, pagoPendienteNegociacion.conductor);
+  };
+
   const estrellas = (cal: number) => {
     const n = Math.round(cal || 5);
     return '★'.repeat(n) + '☆'.repeat(5 - n);
   };
 
+  if (pagoPendienteNegociacion) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
+        <SubirComprobante
+          pagoId={pagoIdNegociacion || 'previo'}
+          metodo={metodoPago}
+          monto={pagoPendienteNegociacion.ofertaPrecio}
+          datosZas={datosZasNegociacion}
+          onComprobanteEnviado={confirmarPagoYContinuar}
+        />
+      </View>
+    );
+  }
+
+  if (cargandoPagoNegociacion) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#FFD700" size="large" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.sheet}>
-      {/* HANDLE */}
-      <View style={styles.handle} />
-
-      {/* FILA SUPERIOR: estado + timer + conductores cercanos */}
-      <View style={styles.topRow}>
-        <View style={styles.topLeft}>
-          <Animated.View style={[styles.pulseDot, { transform: [{ scale: pulseAnim }] }]} />
-          <Text style={styles.buscandoTexto}>Buscando conductor...</Text>
-        </View>
-        <View style={styles.topRight}>
+    <View style={styles.container}>
+      {/* HEADER CON TEMPORIZADOR */}
+      <View style={styles.header}>
+        <View style={styles.timerContainer}>
+          <Text style={styles.timerLabel}>Buscando conductor</Text>
           <Text style={styles.timerValor}>{formatearTiempo(segundos)}</Text>
-          {conductoresCercanos > 0 && (
-            <Text style={styles.cercanosBadge}>
-              🏍 {conductoresCercanos} cerca
+        </View>
+        <View style={styles.rutas}>
+          <View style={styles.rutaFila}>
+            <View style={[styles.rutaDot, { backgroundColor: '#00c853' }]} />
+            <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.origen_texto || viaje.origen}</Text>
+          </View>
+          <View style={[styles.rutaLinea]} />
+          <View style={styles.rutaFila}>
+            <View style={[styles.rutaDot, { backgroundColor: '#ff1744' }]} />
+            <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.destino_texto || viaje.destino}</Text>
+          </View>
+        </View>
+        <View style={styles.precioFila}>
+          <Text style={styles.precioLabel}>Tu oferta:</Text>
+          <Text style={styles.precioValor}>
+            {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
+          </Text>
+        </View>
+      </View>
+
+      {/* CUERPO */}
+      <ScrollView contentContainerStyle={styles.body}>
+        {esNegociable ? (
+          <>
+            {/* INTERURBANO — lista de ofertas */}
+            <Text style={styles.seccionTitulo}>
+              {ofertas.length === 0
+                ? 'Esperando ofertas de conductores...'
+                : `${ofertas.length} conductor${ofertas.length > 1 ? 'es' : ''} ofertaron`}
             </Text>
-          )}
-        </View>
-      </View>
 
-      {/* RUTA */}
-      <View style={styles.rutaContainer}>
-        <View style={styles.rutaFila}>
-          <View style={[styles.rutaDot, { backgroundColor: '#00c853' }]} />
-          <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.origen_texto || viaje.origen}</Text>
-        </View>
-        <View style={styles.rutaLinea} />
-        <View style={styles.rutaFila}>
-          <View style={[styles.rutaDot, { backgroundColor: '#ff1744' }]} />
-          <Text style={styles.rutaTexto} numberOfLines={1}>{viaje.destino_texto || viaje.destino}</Text>
-        </View>
-      </View>
-
-      {/* PRECIO + ALERTA 1 MIN */}
-      <View style={styles.precioFila}>
-        <Text style={styles.precioLabel}>{esNegociable ? 'Tu oferta' : 'Precio fijo'}</Text>
-        <Text style={styles.precioValor}>
-          {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
-        </Text>
-      </View>
-      {(viaje.distancia || viaje.duracion) && (
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-          {viaje.distancia && (
-            <View style={styles.metaDato}>
-              <Text style={styles.metaDatoIcono}>📏</Text>
-              <Text style={styles.metaDatoTexto}>{viaje.distancia}</Text>
-            </View>
-          )}
-          {viaje.duracion && (
-            <View style={styles.metaDato}>
-              <Text style={styles.metaDatoIcono}>⏱</Text>
-              <Text style={styles.metaDatoTexto}>{viaje.duracion}</Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {segundos > 60 && (
-        <View style={styles.alertaTiempo}>
-          <Text style={styles.alertaTiempoTexto}>
-            ⏳ Más de 1 min esperando — puede que no haya conductores disponibles ahora.
-          </Text>
-        </View>
-      )}
-
-      {/* OFERTAS — solo interurbano */}
-      {esNegociable && ofertas.length > 0 && (
-        <ScrollView style={styles.ofertasScroll} showsVerticalScrollIndicator={false}>
-          <Text style={styles.seccionTitulo}>
-            {ofertas.length} conductor{ofertas.length > 1 ? 'es' : ''} ofertaron
-          </Text>
-          {ofertas.map(oferta => (
-            <View key={oferta.id} style={styles.ofertaCard}>
-              <View style={styles.ofertaHeader}>
-                {oferta.conductor_foto
-                  ? <Image source={{ uri: oferta.conductor_foto }} style={styles.conductorFoto} />
-                  : <View style={[styles.conductorFoto, styles.conductorFotoPlaceholder]}>
-                      <Text style={styles.conductorLetra}>{oferta.conductor_nombre?.[0]?.toUpperCase() || '?'}</Text>
-                    </View>
-                }
-                <View style={styles.conductorInfo}>
-                  <Text style={styles.conductorNombre}>{oferta.conductor_nombre}</Text>
-                  <Text style={styles.conductorEstrellas}>
-                    {estrellas(oferta.conductor_calificacion)}
-                    <Text style={styles.conductorCalNum}> {(oferta.conductor_calificacion || 5).toFixed(1)}</Text>
-                  </Text>
-                  <Text style={styles.conductorMoto}>{oferta.conductor_modelo} · {oferta.conductor_placa}</Text>
-                </View>
-                <View style={styles.ofertaPrecioContainer}>
-                  <Text style={styles.ofertaPrecio}>{Number(oferta.precio_oferta).toLocaleString('es-CO')}</Text>
-                  <Text style={styles.ofertaPrecioLabel}>COP</Text>
-                  {oferta.precio_oferta <= Number(viaje.precio_usuario || viaje.precio) && (
-                    <View style={styles.badgeOk}><Text style={styles.badgeOkTexto}>Tu precio</Text></View>
-                  )}
-                </View>
+            {ofertas.length === 0 ? (
+              <View style={styles.esperandoContainer}>
+                <ActivityIndicator color="#FFD700" size="large" />
+                <Text style={styles.esperandoTexto}>
+                  Los conductores cercanos están revisando tu solicitud.{'\n'}
+                  Puedes esperar o cancelar y ajustar tu precio.
+                </Text>
               </View>
-              <TouchableOpacity style={styles.botonElegir} onPress={() => elegirConductor(oferta)} disabled={eligiendo === oferta.id}>
-                {eligiendo === oferta.id
-                  ? <ActivityIndicator color="#1a1a2e" />
-                  : <Text style={styles.botonElegirTexto}>Elegir este conductor</Text>
-                }
-              </TouchableOpacity>
+            ) : (
+              ofertas.map(oferta => (
+                <View key={oferta.id} style={styles.ofertaCard}>
+                  <View style={styles.ofertaHeader}>
+                    {oferta.conductor_foto
+                      ? <Image source={{ uri: oferta.conductor_foto }} style={styles.conductorFoto} />
+                      : <View style={[styles.conductorFoto, styles.conductorFotoPlaceholder]}>
+                          <Text style={styles.conductorLetra}>
+                            {oferta.conductor_nombre?.[0]?.toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                    }
+                    <View style={styles.conductorInfo}>
+                      <Text style={styles.conductorNombre}>{oferta.conductor_nombre}</Text>
+                      <Text style={styles.conductorEstrellas}>
+                        {estrellas(oferta.conductor_calificacion)}
+                        <Text style={styles.conductorCalNum}> {(oferta.conductor_calificacion || 5).toFixed(1)}</Text>
+                      </Text>
+                      <Text style={styles.conductorMoto}>
+                        {oferta.conductor_modelo} · {oferta.conductor_placa}
+                      </Text>
+                    </View>
+                    <View style={styles.ofertaPrecioContainer}>
+                      <Text style={styles.ofertaPrecio}>
+                        {Number(oferta.precio_oferta).toLocaleString('es-CO')}
+                      </Text>
+                      <Text style={styles.ofertaPrecioLabel}>COP</Text>
+                      {oferta.precio_oferta <= Number(viaje.precio_usuario || viaje.precio) && (
+                        <View style={styles.badgeOk}>
+                          <Text style={styles.badgeOkTexto}>Tu precio</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.botonElegir}
+                    onPress={() => elegirConductor(oferta)}
+                    disabled={eligiendo === oferta.id}
+                  >
+                    {eligiendo === oferta.id
+                      ? <ActivityIndicator color="#1a1a2e" />
+                      : <Text style={styles.botonElegirTexto}>Elegir este conductor</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+
+            {ofertas.length > 0 && (
+              <Text style={styles.tipTexto}>
+                Los precios están ordenados de menor a mayor.{'\n'}
+                Elige al conductor que más te convenga.
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            {/* URBANO — solo spinner y mensaje */}
+            <View style={styles.esperandoContainer}>
+              <ActivityIndicator color="#FFD700" size="large" />
+              <Text style={styles.esperandoTexto}>
+                Enviando solicitud a conductores cercanos.{'\n'}
+                El primero disponible tomará tu viaje.
+              </Text>
             </View>
-          ))}
-        </ScrollView>
-      )}
+            {segundos > 60 && (
+              <View style={styles.alertaTiempo}>
+                <Text style={styles.alertaTiempoTexto}>
+                  Llevamos más de 1 minuto buscando.{'\n'}
+                  Si no aparece un conductor pronto, puede que no haya disponibles en este momento.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
 
       {/* BOTÓN CANCELAR */}
-      <TouchableOpacity style={styles.botonCancelar} onPress={onCancelar}>
-        <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
-      </TouchableOpacity>
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.botonCancelar} onPress={onCancelar}>
+          <Text style={styles.botonCancelarTexto}>Cancelar viaje</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Bottom sheet
-  sheet: {
-    backgroundColor: '#1a1a2e',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 16,
-    paddingBottom: 28,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
-  handle: { width: 40, height: 4, backgroundColor: '#444', borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
 
-  // Fila superior
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pulseDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFD700' },
-  buscandoTexto: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  topRight: { alignItems: 'flex-end', gap: 4 },
-  timerValor: { color: '#FFD700', fontSize: 20, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
-  cercanosBadge: { color: '#00c853', fontSize: 12, fontWeight: '600' },
-
-  // Ruta
-  rutaContainer: { backgroundColor: '#16213e', borderRadius: 12, padding: 12, marginBottom: 10 },
-  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 3 },
-  rutaDot: { width: 9, height: 9, borderRadius: 5 },
-  rutaLinea: { width: 2, height: 6, backgroundColor: '#333', marginLeft: 3 },
-  rutaTexto: { color: '#ccc', fontSize: 13, flex: 1 },
-
-  // Precio
-  precioFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f3460', borderRadius: 10, padding: 10, marginBottom: 10 },
+  // Header
+  header: { backgroundColor: '#16213e', padding: 20, paddingTop: 50, borderBottomWidth: 1, borderBottomColor: '#0f3460' },
+  timerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  timerLabel: { color: '#aaa', fontSize: 14, fontWeight: '600' },
+  timerValor: { color: '#FFD700', fontSize: 28, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  rutas: { marginBottom: 12 },
+  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  rutaDot: { width: 10, height: 10, borderRadius: 5 },
+  rutaLinea: { width: 2, height: 8, backgroundColor: '#333', marginLeft: 4 },
+  rutaTexto: { color: '#fff', fontSize: 13, flex: 1 },
+  precioFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f3460', borderRadius: 10, padding: 12, marginTop: 4 },
   precioLabel: { color: '#aaa', fontSize: 13 },
-  precioValor: { color: '#FFD700', fontSize: 17, fontWeight: 'bold' },
+  precioValor: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
 
-  // Alerta tiempo
-  alertaTiempo: { backgroundColor: '#3a2a00', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FFD700', marginBottom: 10 },
-  alertaTiempoTexto: { color: '#FFD700', fontSize: 12, textAlign: 'center' },
+  // Body
+  body: { padding: 16, paddingBottom: 100 },
+  seccionTitulo: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
 
-  // Ofertas
-  ofertasScroll: { maxHeight: 220, marginBottom: 10 },
-  seccionTitulo: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  // Esperando
+  esperandoContainer: { alignItems: 'center', paddingVertical: 40, gap: 20 },
+  esperandoTexto: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  alertaTiempo: { backgroundColor: '#3a2a00', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#FFD700', marginTop: 16 },
   alertaTiempoTexto: { color: '#FFD700', fontSize: 13, textAlign: 'center', lineHeight: 20 },
 
   // Oferta card
@@ -323,11 +383,11 @@ const styles = StyleSheet.create({
   badgeOk: { backgroundColor: '#00c853', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   badgeOkTexto: { color: '#fff', fontSize: 10, fontWeight: '700' },
   botonElegir: { backgroundColor: '#FFD700', borderRadius: 10, padding: 12, alignItems: 'center' },
-  botonElegirTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 14 },
+  botonElegirTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 15 },
+  tipTexto: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 18 },
 
-  botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 13, alignItems: 'center', marginTop: 6 },
+  // Footer
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#1a1a2e', borderTopWidth: 1, borderTopColor: '#0f3460' },
+  botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 14, alignItems: 'center' },
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
-  metaDato: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#0f3460', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  metaDatoIcono: { fontSize: 12 },
-  metaDatoTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });

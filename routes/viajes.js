@@ -614,11 +614,13 @@ router.get('/:id/ofertas', async (req, res) => {
 // Usuario elige una oferta específica de conductor
 // ─────────────────────────────────────────────
 router.post('/:id/elegir-conductor', async (req, res) => {
-  const { oferta_id, usuario_id } = req.body;
+  const { oferta_id, usuario_id, metodo_pago } = req.body;
 
   if (!oferta_id || !usuario_id) {
     return res.status(400).json({ ok: false, error: 'oferta_id y usuario_id son obligatorios' });
   }
+
+  const requierePagoDigital = metodo_pago && metodo_pago !== 'efectivo';
 
   try {
     // Verificar que la oferta existe y está pendiente
@@ -646,7 +648,7 @@ router.post('/:id/elegir-conductor', async (req, res) => {
     const { data: viajeActualizado, error: viajeError } = await supabase
       .from('viajes')
       .update({
-        estado: 'aceptado',
+        estado: requierePagoDigital ? 'esperando_pago' : 'aceptado',
         conductor_id: oferta.conductor_id,
         precio: oferta.precio_oferta,
         precio_conductor: oferta.precio_oferta,
@@ -675,7 +677,9 @@ router.post('/:id/elegir-conductor', async (req, res) => {
     notificarConductor(
       oferta.conductor_id,
       '✅ Usuario eligio tu oferta',
-      'El pasajero acepto tu precio. Ve a recogerlo.'
+      requierePagoDigital
+        ? 'El pasajero acepto tu precio. Esperando confirmacion de pago digital.'
+        : 'El pasajero acepto tu precio. Ve a recogerlo.'
     );
 
     console.log(`✅ Usuario eligio conductor ${oferta.conductor_id} para viaje ${req.params.id} — precio: ${oferta.precio_oferta} COP`);
@@ -743,6 +747,45 @@ router.get('/:id/ruta', async (req, res) => {
     res.json({ ok: false, error: 'No se pudo calcular la ruta' });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// PATCH /api/viajes/:id/confirmar-pago-negociacion
+// Se llama cuando el usuario sube el comprobante DESPUÉS de elegir conductor
+// Pasa el viaje de 'esperando_pago' a 'aceptado' y recién ahí notifica al conductor
+// ─────────────────────────────────────────────
+router.patch('/:id/confirmar-pago-negociacion', async (req, res) => {
+  try {
+    const { data: viaje, error: viajeError } = await supabase
+      .from('viajes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('estado', 'esperando_pago')
+      .single();
+
+    if (viajeError || !viaje) {
+      return res.status(404).json({ ok: false, error: 'Viaje no encontrado o no esta esperando pago' });
+    }
+
+    const { data: viajeActualizado, error: updateError } = await supabase
+      .from('viajes')
+      .update({ estado: 'aceptado' })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    notificarConductor(
+      viaje.conductor_id,
+      '✅ Pago confirmado',
+      'El pasajero confirmo el pago. Ve a recogerlo.'
+    );
+
+    res.json({ ok: true, viaje: viajeActualizado });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
   }
 });
 
