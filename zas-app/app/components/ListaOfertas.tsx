@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Image, ActivityIndicator, Alert
+  ScrollView, Image, ActivityIndicator, Alert, Platform
 } from 'react-native';
 import SubirComprobante from '../SubirComprobante';
 
@@ -64,15 +64,36 @@ export default function ListaOfertas({
     if (!esNegociable) return;
     const buscarOfertas = async () => {
       try {
+        // 1. Buscar ofertas de conductores
         const res = await fetch(`${API_URL}/api/viajes/${viaje.id}/ofertas`);
         const data = await res.json();
         if (data.ok) setOfertas(data.ofertas || []);
+
+        // 2. Verificar si el conductor aceptó directo (sin contraofertar)
+        const resViaje = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
+        const dataViaje = await resViaje.json();
+        if (dataViaje.ok && dataViaje.viajes.length > 0) {
+          const viajeActual = dataViaje.viajes.find((v: any) => v.id === viaje.id);
+          if (viajeActual && (viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso')) {
+            clearInterval(intervaloOfertas.current);
+            clearInterval(intervaloTimer.current);
+            const conductorObj = {
+              id: viajeActual.conductor_id,
+              nombre: viajeActual.conductor_nombre,
+              telefono: viajeActual.conductor_telefono,
+              foto_url: viajeActual.conductor_foto,
+              placa_moto: viajeActual.conductor_placa,
+              modelo_moto: viajeActual.conductor_modelo,
+            };
+            onConductorElegido(viajeActual, conductorObj);
+          }
+        }
       } catch {}
     };
     buscarOfertas();
     intervaloOfertas.current = setInterval(buscarOfertas, 4000);
     return () => clearInterval(intervaloOfertas.current);
-  }, [viaje.id, esNegociable]);
+  }, [viaje.id, esNegociable, usuarioId]);
 
   // Polling de respaldo — viajes NO negociables (aceptacion directa del conductor)
   // Sin esto, el usuario depende solo de push notification y puede quedar
@@ -387,7 +408,7 @@ const styles = StyleSheet.create({
   tipTexto: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 18 },
 
   // Footer
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#1a1a2e', borderTopWidth: 1, borderTopColor: '#0f3460' },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: Platform.OS === 'ios' ? 16 : 48, backgroundColor: '#1a1a2e', borderTopWidth: 1, borderTopColor: '#0f3460' },
   botonCancelar: { backgroundColor: '#3a1a1a', borderRadius: 12, padding: 14, alignItems: 'center' },
   botonCancelarTexto: { color: '#ff6b6b', fontWeight: 'bold', fontSize: 15 },
 });

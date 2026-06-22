@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
   origenConfirmado: { backgroundColor: 'rgba(0,200,83,0.1)', borderRadius: 8, padding: 8, marginTop: 8, borderWidth: 1, borderColor: '#00c853' },
   origenConfirmadoLabel: { color: '#00c853', fontSize: 11, fontWeight: '700' },
   origenConfirmadoValor: { color: '#fff', fontSize: 13, marginTop: 2 },
-  botonConfirmarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, backgroundColor: 'rgba(26,26,46,0.97)', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  botonConfirmarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 48, backgroundColor: 'rgba(26,26,46,0.97)', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   botonConfirmar: { backgroundColor: '#FFD700', borderRadius: 14, padding: 16, alignItems: 'center' },
   botonConfirmarTexto: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
   header: { padding: 24, paddingTop: Platform.OS === 'ios' ? 54 : 40, backgroundColor: '#1a1a2e' },
