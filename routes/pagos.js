@@ -381,12 +381,31 @@ router.patch('/confirmar/:id', authAdmin, async (req, res) => {
 // ─────────────────────────────────────────────
 router.patch('/rechazar/:id', authAdmin, async (req, res) => {
   const { motivo, admin_nombre } = req.body;
+  if (!motivo || motivo.trim() === '') {
+    return res.status(400).json({ ok: false, error: 'El motivo del rechazo es obligatorio' });
+  }
   try {
+    // Obtener pago completo con datos del viaje y usuario
+    const { data: pagoCompleto, error: pagoError } = await supabase
+      .from('pagos')
+      .select('*, viajes(usuario_id, conductor_id, usuarios(nombre, telefono))')
+      .eq('id', req.params.id)
+      .single();
+
+    if (pagoError || !pagoCompleto) {
+      return res.status(404).json({ ok: false, error: 'Pago no encontrado' });
+    }
+
+    const intentoActual = pagoCompleto.intento || 1;
+
+    // Actualizar pago — limpiar comprobante para permitir reintento
     const { data, error } = await supabase
       .from('pagos')
       .update({
         estado: 'rechazado',
-        motivo_rechazo: motivo || 'Comprobante no válido',
+        motivo_rechazo: motivo.trim(),
+        comprobante_url: null,
+        comprobante_en: null,
       })
       .eq('id', req.params.id)
       .select()
@@ -395,33 +414,112 @@ router.patch('/rechazar/:id', authAdmin, async (req, res) => {
     if (error) throw error;
     if (!data) return res.status(404).json({ ok: false, error: 'Pago no encontrado' });
 
-    // Notificar al usuario del rechazo
-    const { data: pagoCompleto } = await supabase
-      .from('pagos')
-      .select('*, viajes(usuario_id, conductor_id, usuarios(nombre, telefono))')
-      .eq('id', req.params.id)
-      .single();
-    if (pagoCompleto?.viajes?.usuario_id) {
-      await notificarPagoRechazado(pagoCompleto.viajes.usuario_id, pagoCompleto.monto, motivo);
+    // Si agotó 3 intentos → crear ticket de soporte automático
+    if (intentoActual >= 3 && pagoCompleto.viajes?.usuario_id) {
+      await supabase.from('soporte').insert({
+        usuario_id: pagoCompleto.viajes.usuario_id,
+        mensaje: `Pago rechazado 3 veces. Último motivo: ${motivo.trim()}. Pago ID: ${pagoCompleto.id}`,
+        estado: 'pendiente',
+      });
     }
 
+    // Notificar al usuario (función existente)
+    if (pagoCompleto.viajes?.usuario_id) {
+      const mensajePush = intentoActual >= 3
+        ? 'Tu comprobante fue rechazado 3 veces. Contacta a soporte ZAS.'
+        : `Comprobante rechazado: ${motivo.trim()}. Puedes subir uno nuevo en tu historial.`;
+      await notificarPagoRechazado(
+        pagoCompleto.viajes.usuario_id,
+        pagoCompleto.monto,
+        mensajePush
+      );
+    }
+
+    // Registrar en historial (función existente)
     await registrarHistorial({
       tipo_pago: 'viaje',
-      referencia_id: pagoCompleto?.id || req.params.id,
-      conductor_id: pagoCompleto?.viajes?.conductor_id,
-      usuario_id: pagoCompleto?.viajes?.usuario_id,
-      nombre_persona: pagoCompleto?.viajes?.usuarios?.nombre,
-      telefono_persona: pagoCompleto?.viajes?.usuarios?.telefono,
-      monto: pagoCompleto?.monto,
-      metodo: pagoCompleto?.metodo,
+      referencia_id: pagoCompleto.id,
+      viaje_id: pagoCompleto.viaje_id,
+      conductor_id: pagoCompleto.viajes?.conductor_id || null,
+      usuario_id: pagoCompleto.viajes?.usuario_id || null,
+      nombre_persona: pagoCompleto.viajes?.usuarios?.nombre || null,
+      monto: pagoCompleto.monto,
+      metodo: pagoCompleto.metodo,
       accion: 'rechazado',
       estado_resultante: 'rechazado',
-      motivo_rechazo: motivo || 'Comprobante no válido',
-      comprobante_url: pagoCompleto?.comprobante_url,
-      admin_nombre: admin_nombre || 'sistema',
+      admin_nombre: admin_nombre || 'Admin',
+      notas: motivo.trim(),
     });
 
-    res.json({ ok: true, pago: data });
+    res.json({
+      ok: true,
+      pago: data,
+      intentos_usados: intentoActual,
+      puede_reintentar: intentoActual < 3,
+      mensaje: intentoActual >= 3
+        ? 'Comprobante rechazado. Se creó ticket de soporte automáticamente.'
+        : `Comprobante rechazado. El usuario puede reintentar (${intentoActual}/3 intentos usados).`,
+    });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/pagos/reintentar/:id
+// Usuario solicita nuevo intento tras rechazo — máximo 3
+// ─────────────────────────────────────────────
+router.post('/reintentar/:id', async (req, res) => {
+  try {
+    const { data: pagoOriginal, error: pagoError } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (pagoError || !pagoOriginal) {
+      return res.status(404).json({ ok: false, error: 'Pago no encontrado' });
+    }
+
+    if (pagoOriginal.estado !== 'rechazado') {
+      return res.status(400).json({ ok: false, error: 'Solo se puede reintentar un pago rechazado' });
+    }
+
+    const intentoActual = pagoOriginal.intento || 1;
+
+    if (intentoActual >= 3) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Has agotado los 3 intentos permitidos. Contacta a soporte ZAS.',
+        agotar_intentos: true,
+      });
+    }
+
+    // Crear nuevo pago con intento + 1
+    const { data: nuevoPago, error: nuevoError } = await supabase
+      .from('pagos')
+      .insert({
+        viaje_id: pagoOriginal.viaje_id,
+        monto: pagoOriginal.monto,
+        metodo: pagoOriginal.metodo,
+        estado: 'pendiente',
+        es_digital: pagoOriginal.es_digital,
+        intento: intentoActual + 1,
+        pago_original_id: pagoOriginal.pago_original_id || pagoOriginal.id,
+      })
+      .select()
+      .single();
+
+    if (nuevoError) throw nuevoError;
+
+    res.json({
+      ok: true,
+      pago: nuevoPago,
+      datos_pago_zas: DATOS_PAGO_ZAS[pagoOriginal.metodo] || null,
+      intento: intentoActual + 1,
+      intentos_restantes: 3 - (intentoActual + 1),
+      mensaje: `Intento ${intentoActual + 1} de 3. Sube el nuevo comprobante.`,
+    });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }

@@ -103,7 +103,7 @@ async function notificarPagoRechazado(usuarioId, monto, motivo) {
     await enviarPush(
       usuario.push_token,
       '❌ Pago rechazado',
-      `Tu comprobante de $${monto} fue rechazado. Contáctanos para resolverlo.`
+      motivo || `Tu comprobante de $${monto} fue rechazado. Contáctanos para resolverlo.`
     );
 
     await enviarEmail(
@@ -116,6 +116,11 @@ async function notificarPagoRechazado(usuarioId, monto, motivo) {
         <p>Tu comprobante de pago de <strong>$${monto}</strong> fue rechazado.</p>
         <div style="background:#fff3f3;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #e53935;">
           <p style="margin:0;color:#e53935;font-weight:bold;">Motivo: ${motivo || 'Comprobante no válido'}</p>
+        </div>
+        <p>Puedes subir un nuevo comprobante desde el historial de viajes en la app ZAS.</p>
+        <div style="background:#f0fff4;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #00c853;">
+          <p style="margin:0;color:#00c853;font-weight:bold;">¿Qué hacer ahora?</p>
+          <p style="margin:8px 0 0;font-size:14px">Abre la app ZAS → Historial → selecciona el viaje → toca "Reintentar pago"</p>
         </div>
         <p>Por favor contáctanos para resolver esta situación:</p>
         <ul>
