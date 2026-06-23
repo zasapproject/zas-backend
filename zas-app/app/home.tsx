@@ -682,6 +682,7 @@ export default function HomeScreen() {
             conductoresCercanos={conductoresActivos.length}
             onConductorElegido={onConductorElegidoCb}
             onCancelar={cancelarViaje}
+            tasas={tasas}
           />
         </View>
       </View>
