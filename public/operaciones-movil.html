@@ -312,12 +312,12 @@ body{display:flex;flex-direction:column}
     </div>
 
     <div class="stats-2">
-      <div class="stat-card green"><div class="stat-label">Conductores activos</div><div class="stat-val" id="d-activos">—</div></div>
-      <div class="stat-card red"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
+      <div class="stat-card green" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Conductores activos</div><div class="stat-val" id="d-activos">—</div></div>
+      <div class="stat-card red" onclick="goPage('mas',document.getElementById('nav-mas'));switchMas('pagos',document.querySelector('#p-mas .filter-btn:nth-child(3)'))" style="cursor:pointer"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
     </div>
     <div class="stats-2">
-      <div class="stat-card gold"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
-      <div class="stat-card blue"><div class="stat-label">Viajes hoy</div><div class="stat-val" id="d-viajes">—</div></div>
+      <div class="stat-card gold" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
+      <div class="stat-card blue" onclick="goPage('viajes',document.getElementById('nav-viajes'))" style="cursor:pointer"><div class="stat-label">Viajes hoy</div><div class="stat-val" id="d-viajes">—</div></div>
     </div>
 
     <div class="card">
