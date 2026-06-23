@@ -242,7 +242,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
   </div>
   <div class="stats-grid">
     <div class="stat-card green" onclick="showPage('conductores',document.querySelector('[onclick*=conductores]'))" style="cursor:pointer"><div class="stat-label">Conductores activos</div><div class="stat-value" id="d-activos">—</div></div>
-    <div class="stat-card red" onclick="showPage('pagos',document.querySelector('.nav-item:nth-child(4)'))" style="cursor:pointer"><div class="stat-label">Comprobantes pendientes</div><div class="stat-value" id="d-comprobantes">—</div></div>
+    <div class="stat-card red" onclick="showPage('pagos',Array.from(document.querySelectorAll('.nav-item')).find(e=>e.getAttribute('onclick')?.includes(\"'pagos'\")))" style="cursor:pointer"><div class="stat-label">Comprobantes pendientes</div><div class="stat-value" id="d-comprobantes">—</div></div>
     <div class="stat-card gold" onclick="showPage('conductores',document.querySelector('[onclick*=conductores]'))" style="cursor:pointer"><div class="stat-label">Suscripciones vencidas</div><div class="stat-value" id="d-vencidas">—</div></div>
     <div class="stat-card blue" onclick="showPage('viajes',document.querySelector('[onclick*=viajes]'))" style="cursor:pointer"><div class="stat-label">Viajes <span id="d-periodo-label">hoy</span></div><div class="stat-value" id="d-viajes">—</div></div>
   </div>
