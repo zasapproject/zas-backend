@@ -210,7 +210,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
     <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
     <div class="nav-item" onclick="showPage('conductores',this)"><span class="nav-icon">🏍️</span> Conductores</div>
     <div class="nav-item" onclick="showPage('usuarios',this)"><span class="nav-icon">👤</span> Usuarios</div>
-    <div class="nav-item" onclick="showPage('pagos',this)"><span class="nav-icon">💳</span> Pagos</div>
+    <div class="nav-item" id="nav-pagos" onclick="showPage('pagos',this)"><span class="nav-icon">💳</span> Pagos</div>
     <div class="nav-item" onclick="showPage('viajes',this)"><span class="nav-icon">🗺️</span> Viajes</div>
     <div class="nav-item" onclick="showPage('retiros',this)"><span class="nav-icon">💸</span> Retiros</div>
     <div class="nav-item" onclick="showPage('tarifas',this)"><span class="nav-icon">💲</span> Tarifas</div>
@@ -242,7 +242,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
   </div>
   <div class="stats-grid">
     <div class="stat-card green" onclick="showPage('conductores',document.querySelector('[onclick*=conductores]'))" style="cursor:pointer"><div class="stat-label">Conductores activos</div><div class="stat-value" id="d-activos">—</div></div>
-    <div class="stat-card red" onclick="showPage('pagos',Array.from(document.querySelectorAll('.nav-item')).find(e=>e.getAttribute('onclick')?.includes(\"'pagos'\")))" style="cursor:pointer"><div class="stat-label">Comprobantes pendientes</div><div class="stat-value" id="d-comprobantes">—</div></div>
+    <div class="stat-card red" onclick="showPage('pagos',document.getElementById('nav-pagos'))" style="cursor:pointer"><div class="stat-label">Comprobantes pendientes</div><div class="stat-value" id="d-comprobantes">—</div></div>
     <div class="stat-card gold" onclick="showPage('conductores',document.querySelector('[onclick*=conductores]'))" style="cursor:pointer"><div class="stat-label">Suscripciones vencidas</div><div class="stat-value" id="d-vencidas">—</div></div>
     <div class="stat-card blue" onclick="showPage('viajes',document.querySelector('[onclick*=viajes]'))" style="cursor:pointer"><div class="stat-label">Viajes <span id="d-periodo-label">hoy</span></div><div class="stat-value" id="d-viajes">—</div></div>
   </div>
