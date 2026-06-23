@@ -86,7 +86,41 @@ export default function ListaOfertas({
               placa_moto: viajeActual.conductor_placa,
               modelo_moto: viajeActual.conductor_modelo,
             };
-            onConductorElegido(viajeActual, conductorObj);
+            if (metodoPago && metodoPago !== 'efectivo') {
+              // Pago digital — crear pago y mostrar comprobante antes de navegar
+              setCargandoPagoNegociacion(true);
+              try {
+                const [resDatos, resPago] = await Promise.all([
+                  fetch(`${API_URL}/api/pagos/datos-pago/${metodoPago}`),
+                  fetch(`${API_URL}/api/pagos/nuevo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      viaje_id: viajeActual.id,
+                      monto: viajeActual.precio,
+                      metodo: metodoPago,
+                    }),
+                  }),
+                ]);
+                const dataDatos = await resDatos.json();
+                const dataPago = await resPago.json();
+                setDatosZasNegociacion(dataDatos.ok ? dataDatos.datos : null);
+                setPagoIdNegociacion(dataPago.ok ? dataPago.pago.id : null);
+                setPagoPendienteNegociacion({
+                  viaje: viajeActual,
+                  conductor: conductorObj,
+                  ofertaPrecio: viajeActual.precio,
+                });
+              } catch {
+                Alert.alert('Error', 'No se pudo iniciar el pago. Intenta de nuevo.');
+                onConductorElegido(viajeActual, conductorObj);
+              } finally {
+                setCargandoPagoNegociacion(false);
+              }
+            } else {
+              // Efectivo — directo al mapa
+              onConductorElegido(viajeActual, conductorObj);
+            }
           }
         }
       } catch {}
