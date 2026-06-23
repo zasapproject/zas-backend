@@ -870,6 +870,36 @@ export default function HomeScreen() {
 
     // Si ya se eligió método digital y se pide mostrar el comprobante
     if (mostrarComprobantePrevio && esDigital && datosZasPrevio) {
+      // Si el viaje ya fue aceptado mientras estaba en pantalla de comprobante → ir al mapa
+      if (viaje && (viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && !navegandoAlMapa) {
+        setNavegandoAlMapa(true);
+        setMostrarComprobantePrevio(false);
+        router.push({
+          pathname: '/mapa_viaje',
+          params: {
+            viaje_id: viaje.id,
+            rol: 'usuario',
+            conductor_id: viaje.conductor_id || '',
+            conductor_nombre: viaje.conductor_nombre || '',
+            conductor_telefono: viaje.conductor_telefono || '',
+            conductor_foto: viaje.conductor_foto || '',
+            conductor_placa: viaje.conductor_placa || '',
+            conductor_modelo: viaje.conductor_modelo || '',
+            origen: viaje.origen,
+            destino: viaje.destino,
+            origen_lat: viaje.origen_lat || '',
+            origen_lng: viaje.origen_lng || '',
+            destino_lat: viaje.destino_lat || '',
+            destino_lng: viaje.destino_lng || '',
+            pago_id: pagoIdRef.current || '',
+            metodo_pago: metodoPagoRef.current || 'efectivo',
+            monto_viaje: String(precioCalculadoRef.current || viaje.precio || 0),
+            datos_zas: datosZasRef.current ? JSON.stringify(datosZasRef.current) : '',
+          },
+        });
+        return null;
+      }
+
       return (
         <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
           <SubirComprobante
