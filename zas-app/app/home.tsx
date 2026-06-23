@@ -853,7 +853,7 @@ export default function HomeScreen() {
             metodo={metodoPago}
             monto={esNegociable ? precioUsuario : precioCalculado}
             datosZas={datosZasPrevio}
-            tasas={{ usd_cop: tasas.cop_bs * (1 / tasas.usd_bs), usd_bs: tasas.usd_bs }}
+            tasas={{ usd_cop: tasas.cop_bs * tasas.usd_bs, usd_bs: tasas.usd_bs }}
             onComprobanteEnviado={(url) => {
               setComprobanteEnviado(true);
               setMostrarComprobantePrevio(false);
