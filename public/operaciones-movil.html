@@ -313,7 +313,7 @@ body{display:flex;flex-direction:column}
 
     <div class="stats-2">
       <div class="stat-card green" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Conductores activos</div><div class="stat-val" id="d-activos">—</div></div>
-      <div class="stat-card red" onclick="goPage('mas',document.getElementById('nav-mas'));switchMas('pagos',document.querySelector('#p-mas .filter-btn:nth-child(3)'))" style="cursor:pointer"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
+      <div class="stat-card red" onclick="goPage('mas',document.getElementById('nav-mas'));setTimeout(()=>switchMas('pagos',document.querySelector('#p-mas .filter-btn:nth-child(3)')),100)" style="cursor:pointer"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
     </div>
     <div class="stats-2">
       <div class="stat-card gold" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
