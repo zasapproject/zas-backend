@@ -1283,7 +1283,11 @@ async function confirmarPagoMovil(tipo, id){
 
 async function rechazarPagoMovil(tipo, id){
   const adminNombre = document.getElementById(`admin-mov-${id}`)?.value || 'Jhonatan';
-  const motivo = prompt('Motivo del rechazo:')||'Comprobante no válido';
+  const motivo = prompt('Motivo del rechazo (obligatorio):');
+  if (!motivo || motivo.trim() === '') {
+    alert('Debes escribir un motivo para rechazar el comprobante.');
+    return;
+  }
   let res;
   if(tipo==='viaje'){
     res = await fetch(`${API}/api/pagos/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo, admin_nombre:adminNombre})});

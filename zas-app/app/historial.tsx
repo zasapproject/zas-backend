@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
-const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const API_URL = 'https://zasapps.com';
 
 export default function HistorialScreen() {
   const router = useRouter();
@@ -11,6 +11,9 @@ export default function HistorialScreen() {
   const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tipoSesion, setTipoSesion] = useState<'usuario' | 'conductor'>('usuario');
+  const [usuarioId, setUsuarioId] = useState('');
+  const [pagosViajes, setPagosViajes] = useState<{ [viajeId: string]: any }>({});
+  const [reintentando, setReintentando] = useState<string | null>(null);
 
   useEffect(() => { cargarHistorial(); }, []);
 
@@ -36,11 +39,34 @@ export default function HistorialScreen() {
       }
 
       setTipoSesion(tipo);
-
+      if (tipo === 'usuario') setUsuarioId(id);
       const res = await fetch(`${API_URL}/api/viajes/${tipo}/${id}`);
       const data = await res.json();
       if (data.ok) {
         setViajes(data.viajes || []);
+        // Cargar pagos solo para usuarios
+        if (tipo === 'usuario') {
+          const viajesCompletados = (data.viajes || []).filter((v: any) =>
+            v.estado === 'completado' || v.estado === 'en_curso' || v.estado === 'aceptado'
+          );
+          const pagosMap: { [key: string]: any } = {};
+          await Promise.all(
+            viajesCompletados.map(async (v: any) => {
+              try {
+                const rPago = await fetch(`${API_URL}/api/pagos/viaje/${v.id}`);
+                const dPago = await rPago.json();
+                if (dPago.ok && dPago.pagos?.length > 0) {
+                  // Tomar el pago más reciente
+                  const pagoReciente = dPago.pagos[0];
+                  if (pagoReciente.estado === 'rechazado') {
+                    pagosMap[v.id] = pagoReciente;
+                  }
+                }
+              } catch {}
+            })
+          );
+          setPagosViajes(pagosMap);
+        }
       }
     } catch {
       Alert.alert('Error', 'No se pudo cargar el historial.');
@@ -61,6 +87,42 @@ export default function HistorialScreen() {
     if (estado === 'completado') return '#00c853';
     if (estado === 'cancelado') return '#ff1744';
     return '#FFD700';
+  };
+
+  const reintentarPago = async (pagoId: string, viajeId: string) => {
+    setReintentando(viajeId);
+    try {
+      const res = await fetch(`${API_URL}/api/pagos/reintentar/${pagoId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.ok) {
+        router.push({
+          pathname: '/reintento_pago',
+          params: {
+            pagoId: data.pago.id,
+            metodo: data.pago.metodo,
+            monto: String(data.pago.monto),
+            datosZas: data.datos_pago_zas ? JSON.stringify(data.datos_pago_zas) : '',
+            intento: String(data.intento),
+            intentosRestantes: String(data.intentos_restantes),
+          },
+        });
+      } else if (data.agotar_intentos) {
+        Alert.alert(
+          '❌ Intentos agotados',
+          'Has usado los 3 intentos permitidos. Contacta a soporte ZAS por WhatsApp.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo procesar el reintento');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar al servidor');
+    } finally {
+      setReintentando(null);
+    }
   };
 
   if (cargando) return (
@@ -113,6 +175,51 @@ export default function HistorialScreen() {
                 </View>
               </View>
 
+              {tipoSesion === 'usuario' && pagosViajes[viaje.id] && (
+                <View style={{
+                  backgroundColor: 'rgba(255,23,68,0.08)',
+                  borderRadius: 10,
+                  padding: 12,
+                  marginTop: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,23,68,0.3)',
+                }}>
+                  <Text style={{ color: '#ff1744', fontWeight: '700', fontSize: 13, marginBottom: 4 }}>
+                    ❌ Comprobante rechazado
+                  </Text>
+                  {pagosViajes[viaje.id].motivo_rechazo ? (
+                    <Text style={{ color: '#aaa', fontSize: 12, marginBottom: 8 }}>
+                      Motivo: {pagosViajes[viaje.id].motivo_rechazo}
+                    </Text>
+                  ) : null}
+                  <Text style={{ color: '#666', fontSize: 11, marginBottom: 10 }}>
+                    Intento {pagosViajes[viaje.id].intento || 1} de 3
+                  </Text>
+                  {(pagosViajes[viaje.id].intento || 1) < 3 ? (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#FFD700',
+                        borderRadius: 8,
+                        padding: 10,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => reintentarPago(pagosViajes[viaje.id].id, viaje.id)}
+                      disabled={reintentando === viaje.id}
+                    >
+                      {reintentando === viaje.id
+                        ? <ActivityIndicator color="#1a1a2e" size="small" />
+                        : <Text style={{ color: '#1a1a2e', fontWeight: '700', fontSize: 13 }}>
+                            🔄 Reintentar pago ({3 - (pagosViajes[viaje.id].intento || 1)} intentos restantes)
+                          </Text>
+                      }
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={{ color: '#ff9100', fontSize: 12, textAlign: 'center', fontWeight: '600' }}>
+                      ⚠️ Intentos agotados — Contacta a soporte ZAS
+                    </Text>
+                  )}
+                </View>
+              )}
               <View style={styles.cardFooter}>
                 {tipoSesion === 'usuario' && viaje.conductor_nombre ? (
                   <Text style={styles.persona}>🏍️ {viaje.conductor_nombre}</Text>
