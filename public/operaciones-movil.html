@@ -313,7 +313,7 @@ body{display:flex;flex-direction:column}
 
     <div class="stats-2">
       <div class="stat-card green" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Conductores activos</div><div class="stat-val" id="d-activos">—</div></div>
-      <div class="stat-card red" onclick="goPage('mas',document.getElementById('nav-mas'));setTimeout(()=>switchMas('pagos',Array.from(document.querySelectorAll('#p-mas .filter-btn')).find(e=>e.getAttribute('onclick')?.includes(\"'pagos'\"))),150)" style="cursor:pointer"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
+      <div class="stat-card red" onclick="goPage('mas',document.getElementById('nav-mas'));setTimeout(()=>switchMas('pagos',document.getElementById('filter-pagos')),150)" style="cursor:pointer"><div class="stat-label">Comprobantes</div><div class="stat-val" id="d-comp">—</div></div>
     </div>
     <div class="stats-2">
       <div class="stat-card gold" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
@@ -396,7 +396,7 @@ body{display:flex;flex-direction:column}
     <div class="filter-row">
       <button class="filter-btn active" onclick="switchMas('tarifas',this)">💲 Tarifas</button>
       <button class="filter-btn" onclick="switchMas('usuarios',this)">👤 Usuarios</button>
-      <button class="filter-btn" onclick="switchMas('pagos',this)">💳 Pagos</button>
+      <button class="filter-btn" id="filter-pagos" onclick="switchMas('pagos',this)">💳 Pagos</button>
       <button class="filter-btn" onclick="switchMas('soporte',this)">🆘 Soporte</button>
     </div>
 
