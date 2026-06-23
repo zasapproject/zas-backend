@@ -317,9 +317,32 @@ export default function HomeScreen() {
 
       const viajeGuardado = await AsyncStorage.getItem('viaje_activo');
       if (viajeGuardado) {
-        const v = JSON.parse(viajeGuardado);
-        if (v.estado !== 'completado' && v.estado !== 'cancelado') setViaje(v);
-        else {
+        const vCached = JSON.parse(viajeGuardado);
+        if (vCached.estado !== 'completado' && vCached.estado !== 'cancelado') {
+          // Usar caché inmediatamente para no mostrar pantalla en blanco
+          setViaje(vCached);
+          // Luego verificar estado real en el backend
+          try {
+            const resViaje = await fetch(`${API_URL}/api/viajes/usuario/${usuario.id}`);
+            const dataViaje = await resViaje.json();
+            if (dataViaje.ok && dataViaje.viajes && dataViaje.viajes.length > 0) {
+              const viajeActivo = dataViaje.viajes.find((vj: any) => vj.id === vCached.id)
+                || dataViaje.viajes.find((vj: any) => !['completado', 'cancelado'].includes(vj.estado));
+              if (viajeActivo && !['completado', 'cancelado'].includes(viajeActivo.estado)) {
+                setViaje(viajeActivo);
+                await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActivo));
+              } else {
+                // El viaje ya terminó mientras estaba fuera
+                await AsyncStorage.removeItem('viaje_activo');
+                setViaje(null);
+                setPaso('origen');
+                setMapKey(k => k + 1);
+              }
+            }
+          } catch {
+            // Sin conexión — mantener el caché
+          }
+        } else {
           await AsyncStorage.removeItem('viaje_activo');
           setPaso('origen');
           setMetodoPago('efectivo');
