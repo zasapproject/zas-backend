@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
-const API_URL = 'https://zas-backend-production-fb4e.up.railway.app';
+const API_URL = 'https://zasapps.com';
 
 export default function CalificacionScreen() {
   const router = useRouter();
@@ -12,8 +12,6 @@ export default function CalificacionScreen() {
 
   const enviarCalificacion = async () => {
     if (estrellas === 0) { Alert.alert('Error', 'Selecciona una calificación'); return; }
-    console.log('conductor_id:', conductor_id);
-    console.log('estrellas:', estrellas);
     setCargando(true);
     try {
       const res = await fetch(`${API_URL}/api/conductores/calificar/${conductor_id}`, {
@@ -22,16 +20,14 @@ export default function CalificacionScreen() {
         body: JSON.stringify({ calificacion: estrellas }),
       });
       const data = await res.json();
-      console.log('respuesta:', JSON.stringify(data));
       if (data.ok) {
         Alert.alert('¡Gracias!', 'Tu calificación fue enviada ⭐', [
-          { text: 'OK', onPress: () => router.push('/home') }
+          { text: 'OK', onPress: () => router.replace('/home') }
         ]);
       } else {
         Alert.alert('Error', data.error || 'No se pudo enviar la calificación');
       }
     } catch (e) {
-      console.log('error:', e);
       Alert.alert('Error', 'No se pudo conectar al servidor');
     } finally {
       setCargando(false);
@@ -67,7 +63,7 @@ export default function CalificacionScreen() {
         {cargando ? <ActivityIndicator color="#1a1a2e" /> : <Text style={styles.botonTexto}>Enviar calificación</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saltar} onPress={() => router.push('/home')}>
+      <TouchableOpacity style={styles.saltar} onPress={() => router.replace('/home')}>
         <Text style={styles.saltarTexto}>Saltar</Text>
       </TouchableOpacity>
     </View>
