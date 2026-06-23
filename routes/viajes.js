@@ -416,7 +416,21 @@ router.get('/:id', async (req, res) => {
       .eq('id', req.params.id)
       .single();
     if (error) throw error;
-    res.json({ ok: true, viaje: data });
+    // Aplanar datos de usuario y conductor igual que /cercanos
+    const viaje = {
+      ...data,
+      usuario_nombre: data.usuarios?.nombre || '',
+      usuario_telefono: data.usuarios?.telefono || '',
+      usuario_foto: data.usuarios?.foto_url || '',
+      conductor_nombre: data.conductores?.nombre || '',
+      conductor_telefono: data.conductores?.telefono || '',
+      conductor_foto: data.conductores?.foto_url || '',
+      conductor_placa: data.conductores?.placa_moto || '',
+      conductor_modelo: data.conductores?.modelo_moto || '',
+      usuarios: undefined,
+      conductores: undefined,
+    };
+    res.json({ ok: true, viaje });
   } catch (error) {
     res.status(404).json({ ok: false, error: 'Viaje no encontrado' });
   }
