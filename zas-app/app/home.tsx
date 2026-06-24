@@ -907,7 +907,7 @@ export default function HomeScreen() {
             metodo={metodoPago}
             monto={esNegociable ? precioUsuario : precioCalculado}
             datosZas={datosZasPrevio}
-            tasas={{ usd_cop: tasas.cop_bs * tasas.usd_bs, usd_bs: tasas.usd_bs }}
+            tasas={{ usd_cop: tasas.usd_cop, usd_bs: tasas.cop_bs }}
             onComprobanteEnviado={(url) => {
               setComprobanteEnviado(true);
               setMostrarComprobantePrevio(false);
@@ -921,6 +921,60 @@ export default function HomeScreen() {
           >
             <Text style={{ color: '#ff6b6b', fontWeight: 'bold' }}>← Cambiar método de pago</Text>
           </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // Si el viaje ya fue solicitado y está buscando conductor
+    // mostrar ListaOfertas para que su polling detecte la aceptación
+    if (viaje && viaje.estado === 'buscando' && comprobanteEnviado) {
+      const origenCoord = viaje.origen_lat
+        ? { latitude: Number(viaje.origen_lat), longitude: Number(viaje.origen_lng) }
+        : coordOrigen;
+      const destinoCoord = viaje.destino_lat
+        ? { latitude: Number(viaje.destino_lat), longitude: Number(viaje.destino_lng) }
+        : coordDestino;
+      const regionBuscando = origenCoord
+        ? { latitude: origenCoord.latitude, longitude: origenCoord.longitude, latitudeDelta: 0.03, longitudeDelta: 0.03 }
+        : region;
+      return (
+        <View style={{ flex: 1 }}>
+          <MapView
+            style={{ flex: 1 }}
+            provider={PROVIDER_GOOGLE}
+            region={regionBuscando}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            scrollEnabled={false}
+            zoomEnabled={false}
+          >
+            {origenCoord && (
+              <Marker coordinate={origenCoord} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#00c853', borderWidth: 2, borderColor: '#fff', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#fff' }}>A</Text>
+                </View>
+              </Marker>
+            )}
+            {destinoCoord && (
+              <Marker coordinate={destinoCoord} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={{ backgroundColor: 'transparent', elevation: 6, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 22 }}>🏁</Text>
+                </View>
+              </Marker>
+            )}
+          </MapView>
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <ListaOfertas
+              viaje={viaje}
+              usuarioId={usuarioId}
+              esNegociable={esNegociableViaje}
+              metodoPago={metodoPagoRef.current}
+              conductoresCercanos={conductoresActivos.length}
+              onConductorElegido={onConductorElegidoCb}
+              onCancelar={cancelarViaje}
+              tasas={tasas}
+            />
+          </View>
         </View>
       );
     }
