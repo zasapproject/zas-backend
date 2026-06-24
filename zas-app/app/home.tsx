@@ -683,6 +683,7 @@ export default function HomeScreen() {
             onConductorElegido={onConductorElegidoCb}
             onCancelar={cancelarViaje}
             tasas={tasas}
+            comprobanteYaEnviado={comprobanteEnviado}
           />
         </View>
       </View>
@@ -973,6 +974,7 @@ export default function HomeScreen() {
               onConductorElegido={onConductorElegidoCb}
               onCancelar={cancelarViaje}
               tasas={tasas}
+              comprobanteYaEnviado={comprobanteEnviado}
             />
           </View>
         </View>

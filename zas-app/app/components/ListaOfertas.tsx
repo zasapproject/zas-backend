@@ -34,10 +34,11 @@ interface Props {
   onConductorElegido: (viaje: any, conductor: any) => void;
   onCancelar: () => void;
   tasas?: { cop_bs: number; usd_bs: number };
+  comprobanteYaEnviado?: boolean;
 }
 
 export default function ListaOfertas({
-  viaje, usuarioId, esNegociable, metodoPago, onConductorElegido, onCancelar, tasas
+  viaje, usuarioId, esNegociable, metodoPago, onConductorElegido, onCancelar, tasas, comprobanteYaEnviado
 }: Props) {
   const [segundos, setSegundos] = useState(0);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
@@ -86,8 +87,8 @@ export default function ListaOfertas({
               placa_moto: viajeActual.conductor_placa,
               modelo_moto: viajeActual.conductor_modelo,
             };
-            if (metodoPago && metodoPago !== 'efectivo') {
-              // Pago digital — crear pago y mostrar comprobante antes de navegar
+            if (metodoPago && metodoPago !== 'efectivo' && !comprobanteYaEnviado) {
+              // Pago digital sin comprobante previo — crear pago y mostrar comprobante
               setCargandoPagoNegociacion(true);
               try {
                 const [resDatos, resPago] = await Promise.all([
@@ -118,7 +119,7 @@ export default function ListaOfertas({
                 setCargandoPagoNegociacion(false);
               }
             } else {
-              // Efectivo — directo al mapa
+              // Efectivo O comprobante ya enviado previamente → directo al mapa
               onConductorElegido(viajeActual, conductorObj);
             }
           }
@@ -153,8 +154,8 @@ export default function ListaOfertas({
               placa_moto: viajeActual.conductor_placa,
               modelo_moto: viajeActual.conductor_modelo,
             };
-            if (metodoPago && metodoPago !== 'efectivo') {
-              // Pago digital — crear pago y mostrar comprobante antes de navegar
+            if (metodoPago && metodoPago !== 'efectivo' && !comprobanteYaEnviado) {
+              // Pago digital sin comprobante previo — crear pago y mostrar comprobante
               setCargandoPagoNegociacion(true);
               try {
                 const [resDatos, resPago] = await Promise.all([
@@ -185,7 +186,7 @@ export default function ListaOfertas({
                 setCargandoPagoNegociacion(false);
               }
             } else {
-              // Efectivo — directo al mapa
+              // Efectivo O comprobante ya enviado previamente → directo al mapa
               onConductorElegido(viajeActual, conductorObj);
             }
           }
