@@ -282,7 +282,7 @@ export default function ListaOfertas({
           metodo={metodoPago}
           monto={pagoPendienteNegociacion.ofertaPrecio}
           datosZas={datosZasNegociacion}
-          tasas={{ usd_cop: (tasas?.cop_bs ?? 5.5) * (tasas?.usd_bs ?? 655.38), usd_bs: tasas?.usd_bs ?? 655.38 }}
+          tasas={{ usd_cop: tasas?.usd_cop ?? 3600, usd_bs: tasas?.cop_bs ?? 4.3 }}
           onComprobanteEnviado={confirmarPagoYContinuar}
         />
       </View>
