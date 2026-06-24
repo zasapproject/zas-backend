@@ -45,7 +45,7 @@ const METODOS = [
 ];
 
 // Tasas fijas
-const TASAS = { usd_cop: 4000, usd_bs: 87.12 };
+const TASAS = { usd_cop: 3600, cop_bs: 4.3 };
 const MONTO_SUSCRIPCION_COP = 15000;
 
 type Pantalla = 'inicio' | 'metodos' | 'comprobante';
@@ -215,7 +215,7 @@ export default function SuscripcionScreen() {
   if (pantalla === 'comprobante') {
     const datos = DATOS_ZAS[metodoPago] || {};
     const montoUsd = (MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2);
-    const montoBs  = (MONTO_SUSCRIPCION_COP / TASAS.usd_cop * TASAS.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const montoBs  = (MONTO_SUSCRIPCION_COP / TASAS.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
 
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -316,7 +316,7 @@ export default function SuscripcionScreen() {
         <Text style={styles.precioTitulo}>Plan Semanal</Text>
         <Text style={styles.precio}>{MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP</Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
-          <Text style={styles.precioUsd}>Bs {(MONTO_SUSCRIPCION_COP / TASAS.usd_cop * TASAS.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}</Text>
+          <Text style={styles.precioUsd}>Bs {(MONTO_SUSCRIPCION_COP / TASAS.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}</Text>
           <Text style={styles.precioUsd}>$ {(MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2)}</Text>
         </View>
         <View style={styles.beneficios}>
