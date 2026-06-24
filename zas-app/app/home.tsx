@@ -136,7 +136,7 @@ export default function HomeScreen() {
   const datosZasRef = useRef<any>(null);
   const cerrandoSesionRef = useRef(false);
   const [datosZas, setDatosZas] = useState<any>(null);
-  const [tasas, setTasas] = useState({ cop_bs: 5.5, usd_bs: 36 });
+  const [tasas, setTasas] = useState({ cop_bs: 4.3, usd_cop: 3600 });
   const [conductoresActivos, setConductoresActivos] = useState<any[]>([]);
   const [mostrarComprobantePrevio, setMostrarComprobantePrevio] = useState(false);
   const [datosZasPrevio, setDatosZasPrevio] = useState<any>(null);
@@ -577,8 +577,8 @@ export default function HomeScreen() {
 
   const formatearPrecio = (precio: number) => {
     const cop = precio.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-    const bs = (precio / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
-    const usd = (precio / tasas.cop_bs / tasas.usd_bs).toFixed(2);
+    const bs  = (precio / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const usd = (precio / tasas.usd_cop).toFixed(2);
     return { cop, usd, bs };
   };
 

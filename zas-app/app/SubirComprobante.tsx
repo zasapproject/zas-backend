@@ -12,7 +12,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
   onComprobanteEnviado: (comprobanteUrl?: string) => void;
   tasas?: { usd_cop: number; usd_bs: number };
 }) {
-  const tasasDefault = tasas || { usd_cop: 4000, usd_bs: 487.12 };
+  const tasasDefault = tasas || { usd_cop: 3600, usd_bs: 4.3 };
   const [referencia, setReferencia] = useState('');
   const [fotoComprobante, setFotoComprobante] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -95,7 +95,7 @@ export default function SubirComprobante({ pagoId, metodo, monto, datosZas, onCo
         </Text>
         <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>
           <Text style={styles.montoSecundario}>
-            Bs {(Number(monto) / tasasDefault.usd_cop * tasasDefault.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}
+            Bs {(Number(monto) / tasasDefault.usd_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}
           </Text>
           <Text style={styles.montoSecundario}>
             $ {(Number(monto) / tasasDefault.usd_cop).toFixed(2)}
