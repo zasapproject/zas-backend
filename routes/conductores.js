@@ -1,4 +1,6 @@
 ﻿const express = require('express');
+const gpsCache = new Map();
+const INTERVALO_DB = 10000;
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -284,12 +286,29 @@ router.patch('/ubicacion/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 router.post('/ubicacion', async (req, res) => {
   const { conductor_id, latitud, longitud } = req.body;
-  const { error } = await supabase
-    .from('conductores')
-    .update({ latitud, longitud, ubicacion_actualizada: new Date() })
-    .eq('id', conductor_id);
-
-  if (error) return res.status(500).json({ error: error.message });
+  if (!conductor_id || latitud === undefined || longitud === undefined) {
+    return res.status(400).json({ ok: false, error: 'Datos incompletos' });
+  }
+  const ahora = Date.now();
+  const actual = gpsCache.get(conductor_id) || {};
+  gpsCache.set(conductor_id, {
+    latitud, longitud,
+    ts: ahora,
+    ultimaPersistencia: actual.ultimaPersistencia || 0,
+  });
+  if (ahora - (actual.ultimaPersistencia || 0) >= INTERVALO_DB) {
+    gpsCache.set(conductor_id, {
+      ...gpsCache.get(conductor_id),
+      ultimaPersistencia: ahora,
+    });
+    supabase
+      .from('conductores')
+      .update({ latitud, longitud, ubicacion_actualizada: new Date().toISOString() })
+      .eq('id', conductor_id)
+      .then(({ error }) => {
+        if (error) console.error('[GPS] Error DB:', error.message);
+      });
+  }
   res.json({ ok: true });
 });
 
@@ -297,12 +316,15 @@ router.post('/ubicacion', async (req, res) => {
 // Obtener ubicación conductor
 // ─────────────────────────────────────────────
 router.get('/ubicacion/:id', async (req, res) => {
+  const cached = gpsCache.get(req.params.id);
+  if (cached && Date.now() - cached.ts < 15000) {
+    return res.json({ latitud: cached.latitud, longitud: cached.longitud });
+  }
   const { data, error } = await supabase
     .from('conductores')
     .select('latitud, longitud')
     .eq('id', req.params.id)
     .single();
-
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
