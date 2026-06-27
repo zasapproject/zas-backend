@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import SubirComprobante from './SubirComprobante';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, Platform, Animated, Image, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -49,11 +50,6 @@ async function obtenerRuta(origen, destino, viajeId) {
   return [];
 }
 
-async function actualizarUbicacionConductor(conductorId, coords) {
-  try {
-    await fetch(`${BACKEND_URL}/api/conductores/ubicacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conductor_id: conductorId, latitud: coords.latitude, longitud: coords.longitude }) });
-  } catch (e) {}
-}
 
 async function obtenerUbicacionConductor(conductorId) {
   try {
@@ -76,6 +72,25 @@ async function obtenerEstadoViaje(viajeId) {
 export default function MapaViaje() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const flushUbicaciones = useCallback(async (pendientes) => {
+    if (!conductorIdRef.current) return;
+    const ultima = pendientes[pendientes.length - 1];
+    try {
+      await fetch(`${BACKEND_URL}/api/conductores/ubicacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conductor_id: conductorIdRef.current,
+          latitud: ultima.latitud,
+          longitud: ultima.longitud,
+        }),
+      });
+    } catch {}
+  }, []);
+
+  const { isOnline, pendingCount, enqueue, connectionLabel, connectionColor } =
+    useOfflineQueue(flushUbicaciones);
+
   const mapRef = useRef(null);
   const pollingRef = useRef(null);
   const locationSub = useRef(null);
@@ -187,7 +202,7 @@ export default function MapaViaje() {
           const c = { latitude: newLoc.coords.latitude, longitude: newLoc.coords.longitude };
           setMiUbicacion(c);
           miUbicacionRef.current = c;
-          actualizarUbicacionConductor(conductorIdRef.current, c);
+          enqueue(c.latitude, c.longitude);
         }
       );
     }
@@ -495,6 +510,38 @@ export default function MapaViaje() {
         {coordDestino && <Marker coordinate={coordDestino} title="Destino" pinColor="#E53935" />}
         {ruta.length > 1 && <Polyline coordinates={ruta} strokeColor="#000000" strokeWidth={5} />}
       </MapView>
+
+      {esCondutor && (
+        <View style={{
+          position: 'absolute',
+          top: 50,
+          left: 16,
+          right: 16,
+          backgroundColor: connectionColor,
+          borderRadius: 10,
+          paddingVertical: 8,
+          paddingHorizontal: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          display: (!isOnline || pendingCount > 0) ? 'flex' : 'none',
+          zIndex: 999,
+        }}>
+          <View style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#fff',
+          }} />
+          <Text style={{
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 'bold',
+          }}>
+            {connectionLabel}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.bannerEstado}>
         <Text style={styles.bannerTexto}>{etiquetaEstado()}</Text>
