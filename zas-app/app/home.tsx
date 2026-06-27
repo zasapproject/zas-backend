@@ -74,7 +74,11 @@ async function calcularPrecio(origen: Coord, destino: Coord): Promise<{ precio: 
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [isOnline, setIsOnline] = useState(true);
+  const ultimaUbicacionConductorRef = useRef<any>(null);
+  const [conductorSinSenal, setConductorSinSenal] = useState(false);
+  const ultimaActualizacionRef = useRef<number>(Date.now());
+  const timerSenalRef = useRef<any>(null);
+  const UMBRAL_SIN_SENAL_MS = 20000;
   const mapRef = useRef<MapView>(null);
   const busquedaTimeout = useRef<any>(null);
   const inactividadTimer = useRef<any>(null);
@@ -232,6 +236,10 @@ export default function HomeScreen() {
             data.viajes.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           if (viajeActual) {
             setViaje(viajeActual);
+            if (viajeActual.conductor_id) {
+              ultimaActualizacionRef.current = Date.now();
+              setConductorSinSenal(false);
+            }
             await AsyncStorage.setItem('viaje_activo', JSON.stringify(viajeActual));
             if ((viajeActual.estado === 'aceptado' || viajeActual.estado === 'en_curso') && !navegandoAlMapa) {
               setNavegandoAlMapa(true);
@@ -289,7 +297,20 @@ export default function HomeScreen() {
         }
       } catch (e) {}
     }, 5000);
-    return () => clearInterval(interval);
+    timerSenalRef.current = setInterval(() => {
+      if (viaje && (viaje.estado === 'aceptado' || viaje.estado === 'en_curso')) {
+        const segundosSin = Date.now() - ultimaActualizacionRef.current;
+        if (segundosSin >= UMBRAL_SIN_SENAL_MS) {
+          setConductorSinSenal(true);
+        } else {
+          setConductorSinSenal(false);
+        }
+      }
+    }, 5000);
+    return () => {
+      clearInterval(interval);
+      if (timerSenalRef.current) clearInterval(timerSenalRef.current);
+    };
   }, [viaje, usuarioId, navegandoAlMapa]);
 
   const cargarSesion = async () => {
@@ -1119,6 +1140,47 @@ export default function HomeScreen() {
           ) : null
         ))}
       </MapView>
+
+      {conductorSinSenal && viaje &&
+       (viaje.estado === 'aceptado' || viaje.estado === 'en_curso') && (
+        <View style={{
+          position: 'absolute',
+          bottom: 120,
+          left: 16,
+          right: 16,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          borderRadius: 12,
+          padding: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          zIndex: 999,
+        }}>
+          <View style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: '#F59E0B',
+          }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: 13,
+            }}>
+              Señal débil del conductor
+            </Text>
+            <Text style={{
+              color: '#ccc',
+              fontSize: 12,
+              marginTop: 2,
+            }}>
+              Mostrando última posición conocida.
+              El conductor sigue en camino.
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.pinContainer} pointerEvents="none">
         <Text style={styles.pinEmoji}>📍</Text>
