@@ -1329,7 +1329,7 @@ async function cargarMonitor(){
     document.getElementById('m-activos').textContent=activos.length;
     document.getElementById('m-pagos').textContent=pagos.length;
     document.getElementById('m-total').textContent=hoyViajes.length;
-    document.getElementById('monitor-update').textContent='Actualizado '+new Date().toLocaleTimeString('es-VE');
+    document.getElementById('monitor-update').textContent='Actualizado '+new Date().toLocaleDateString('es-VE')+' · '+new Date().toLocaleTimeString('es-VE');
     renderMonitor();
     actualizarTimestamp();
   } catch { document.getElementById('monitor-tabla').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>`; }
@@ -1360,6 +1360,7 @@ function renderMonitor(){
       return `<tr>
         <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sem==='verde'?'var(--green)':sem==='amarillo'?'var(--orange)':'var(--red)'}"></span></td>
         <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleDateString('es-VE')}</td>
+    
         <td style="font-size:12px">${v.usuario_nombre||'—'}</td>
         <td style="font-size:12px">${v.conductor_nombre||`<span style="color:var(--red)">Sin asignar</span>`}</td>
         <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.origen_texto||v.origen||'—'}</td>
