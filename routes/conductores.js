@@ -414,7 +414,24 @@ router.patch('/verificar/:id', authAdmin, async (req, res) => {
     res.status(400).json({ ok: false, error: error.message });
   }
 });
+// ─────────────────────────────────────────────
+// Verificar antecedentes penales del conductor
+// ─────────────────────────────────────────────
+router.patch('/antecedentes/:id', authAdmin, async (req, res) => {
+  const { antecedentes_verificados } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ antecedentes_verificados })
+      .eq('id', req.params.id)
+      .select('id, nombre, antecedentes_verificados');
 
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 // ─────────────────────────────────────────────
 // Guardar push token del conductor
 // ─────────────────────────────────────────────
