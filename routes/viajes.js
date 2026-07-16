@@ -448,20 +448,27 @@ router.get('/', async (req, res) => {
   try {
     const { data, error, count } = await supabase
       .from('viajes')
-      .select('*, usuarios(nombre, telefono), conductores(nombre, telefono)', { count: 'exact' })
+      .select('*, usuarios(nombre, telefono), conductores(nombre, telefono), pagos(metodo, estado, created_at)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
 
     if (error) throw error;
-    const viajes = data.map(v => ({
-      ...v,
-      usuario_nombre: v.usuarios?.nombre || '',
-      usuario_telefono: v.usuarios?.telefono || '',
-      conductor_nombre: v.conductores?.nombre || '',
-      conductor_telefono: v.conductores?.telefono || '',
-      usuarios: undefined,
-      conductores: undefined,
-    }));
+    const viajes = data.map(v => {
+      const pagosOrdenados = (v.pagos || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const ultimoPago = pagosOrdenados[0];
+      return {
+        ...v,
+        usuario_nombre: v.usuarios?.nombre || '',
+        usuario_telefono: v.usuarios?.telefono || '',
+        conductor_nombre: v.conductores?.nombre || '',
+        conductor_telefono: v.conductores?.telefono || '',
+        metodo_pago: ultimoPago?.metodo || null,
+        estado_pago: ultimoPago?.estado || null,
+        usuarios: undefined,
+        conductores: undefined,
+        pagos: undefined,
+      };
+    });
     res.json({ ok: true, viajes, total: count, page, limit });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });

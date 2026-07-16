@@ -1347,7 +1347,7 @@ function renderMonitor(){
   if(!datos.length){document.getElementById('monitor-tabla').innerHTML=`<div class="empty" style="padding:32px"><div class="empty-icon">✅</div><div class="empty-text">Sin viajes en este estado</div></div>`;return;}
   const ahora=new Date();
   document.getElementById('monitor-tabla').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th></th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
+    <thead><tr><th></th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
     <tbody>${datos.slice(0,100).map(v=>{
       const min=Math.floor((ahora-new Date(v.created_at))/60000);
       let sem='verde',alerta='—';
@@ -1355,6 +1355,8 @@ function renderMonitor(){
       if(v.estado==='solicitado'&&min>10){sem='rojo';alerta=`⚠️ Sin conductor ${min}min`;}
       if(v.estado==='cancelado'){sem='rojo';alerta='Cancelado';}
       const eColor={solicitado:'var(--gold)',aceptado:'var(--gold)',en_camino:'var(--blue)',en_curso:'var(--green)',completado:'var(--muted)',cancelado:'var(--red)'}[v.estado]||'var(--muted)';
+      const metodosPago={efectivo:'💵 Efectivo',pago_movil:'📱 Pago Móvil',zelle:'💳 Zelle',bancolombia:'🏦 Bancolombia',nequi:'📲 Nequi',transferencia:'🏦 Transferencia',usdt:'₮ USDT'};
+      const labelPago = v.metodo_pago ? (metodosPago[v.metodo_pago] || v.metodo_pago) : '—';
       return `<tr>
         <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sem==='verde'?'var(--green)':sem==='amarillo'?'var(--orange)':'var(--red)'}"></span></td>
         <td style="font-size:12px">${v.usuario_nombre||'—'}</td>
@@ -1362,6 +1364,7 @@ function renderMonitor(){
         <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.origen_texto||v.origen||'—'}</td>
         <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.destino_texto||v.destino||'—'}</td>
         <td><span style="color:${eColor};font-weight:700;font-size:11px;font-family:'Space Mono',monospace">● ${v.estado?.toUpperCase()}</span></td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${labelPago}</td>
         <td style="color:var(--gold);font-weight:700;font-size:13px">$${Number(v.precio).toLocaleString()}</td>
         <td style="font-size:12px;color:${sem==='rojo'?'var(--red)':sem==='amarillo'?'var(--orange)':'var(--muted)'};font-weight:${sem!=='verde'?700:400}">${alerta}</td>
         <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${min}min</td>
