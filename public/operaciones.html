@@ -1347,7 +1347,7 @@ function renderMonitor(){
   if(!datos.length){document.getElementById('monitor-tabla').innerHTML=`<div class="empty" style="padding:32px"><div class="empty-icon">✅</div><div class="empty-text">Sin viajes en este estado</div></div>`;return;}
   const ahora=new Date();
   document.getElementById('monitor-tabla').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th></th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
+    <thead><tr><th></th><th>Fecha</th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
     <tbody>${datos.slice(0,100).map(v=>{
       const min=Math.floor((ahora-new Date(v.created_at))/60000);
       let sem='verde',alerta='—';
@@ -1359,6 +1359,7 @@ function renderMonitor(){
       const labelPago = v.metodo_pago ? (metodosPago[v.metodo_pago] || v.metodo_pago) : '—';
       return `<tr>
         <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sem==='verde'?'var(--green)':sem==='amarillo'?'var(--orange)':'var(--red)'}"></span></td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleDateString('es-VE')}</td>
         <td style="font-size:12px">${v.usuario_nombre||'—'}</td>
         <td style="font-size:12px">${v.conductor_nombre||`<span style="color:var(--red)">Sin asignar</span>`}</td>
         <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.origen_texto||v.origen||'—'}</td>
