@@ -766,7 +766,7 @@ function renderConductores(lista, pagos){
             </label>
             <div style="display:flex;gap:8px;margin-top:10px">
               <button class="btn btn-green btn-sm" onclick="verificarConductor('${c.id}',true)">✅ Aprobar docs</button>
-              <button class="btn btn-red btn-sm" onclick="verificarConductor('${c.id}',false)">❌ Rechazar</button>
+              <button class="btn btn-red btn-sm" onclick="rechazarConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">❌ Rechazar</button>
             </div>
           </div>
           <div>
@@ -825,6 +825,15 @@ async function verificarConductor(id, aprobado){
   const res = await fetch(`${API}/api/conductores/verificar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({documentos_verificados:aprobado})});
   const data = await res.json();
   if(data.ok){ mostrarToast(aprobado?'✅ Conductor aprobado':'❌ Documentos rechazados'); cargarConductores(); }
+  else mostrarToast('❌ Error: '+data.error,'red');
+}
+async function rechazarConductor(id, nombre){
+  const motivo = prompt(`Motivo del rechazo para ${nombre}:`, 'Fotos de documentos no legibles, favor volver a registrarse con imágenes más claras');
+  if(!motivo || motivo.trim()===''){ alert('Debes escribir un motivo.'); return; }
+  if(!confirm(`¿Rechazar y ELIMINAR a ${nombre}? Esta acción no se puede deshacer. El conductor deberá registrarse de nuevo.`)) return;
+  const res = await fetch(`${API}/api/conductores/rechazar/${id}`,{method:'DELETE',headers:jsonH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast('❌ Conductor rechazado y eliminado'); cargarConductores(); }
   else mostrarToast('❌ Error: '+data.error,'red');
 }
 

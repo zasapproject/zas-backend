@@ -35,6 +35,25 @@ async function emailConductorAprobado(nombre, email) {
     `,
   });
 }
+async function emailConductorRechazado(nombre, email, motivo) {
+  await enviarEmailBrevo({
+    para: email,
+    asunto: 'Tu registro en ZAS necesita ajustes',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+        <h2 style="color:#f5a623;">⚡ ZAS Mototaxi</h2>
+        <p>Hola <strong>${nombre}</strong>,</p>
+        <p>Revisamos tus documentos y no pudimos aprobarlos por el siguiente motivo:</p>
+        <div style="background:#f4f4f4;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0;color:#333;">${motivo}</p>
+        </div>
+        <p>No te preocupes — puedes registrarte de nuevo con fotos más claras de tus documentos y volveremos a revisarlos.</p>
+        <br>
+        <p>Equipo ZAS Mototaxi</p>
+      </div>
+    `,
+  });
+}
 
 async function enviarRecuperacionPassword(email, nombre, codigo) {
   await enviarEmailBrevo({
@@ -88,6 +107,7 @@ async function emailSoporte(nombre, emailUsuario, mensaje) {
 
 module.exports = { 
   emailConductorAprobado, 
+  emailConductorRechazado,
   emailRecuperarContrasena, 
   enviarRecuperacionPassword,
   emailSoporte 

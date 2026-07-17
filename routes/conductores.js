@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
 const authConductor = require('../middleware/authConductor');
-const { emailConductorAprobado } = require('../mailer');
+const { emailConductorAprobado, emailConductorRechazado } = require('../mailer');
 
 // ─────────────────────────────────────────────
 // Rate limiting
@@ -428,6 +428,51 @@ router.patch('/antecedentes/:id', authAdmin, async (req, res) => {
 
     if (error) throw error;
     res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+// ─────────────────────────────────────────────
+// Rechazar conductor — guarda auditoría, envía correo, borra la fila
+// ─────────────────────────────────────────────
+router.delete('/rechazar/:id', authAdmin, async (req, res) => {
+  const { motivo } = req.body;
+  if (!motivo || motivo.trim() === '') {
+    return res.status(400).json({ ok: false, error: 'El motivo del rechazo es obligatorio' });
+  }
+
+  try {
+    const { data: conductor, error: buscarError } = await supabase
+      .from('conductores')
+      .select('id, nombre, telefono, email')
+      .eq('id', req.params.id)
+      .single();
+
+    if (buscarError || !conductor) {
+      return res.status(404).json({ ok: false, error: 'Conductor no encontrado' });
+    }
+
+    await supabase.from('conductores_rechazados').insert({
+      nombre: conductor.nombre,
+      telefono: conductor.telefono,
+      email: conductor.email,
+      motivo,
+    });
+
+    if (conductor.email) {
+      emailConductorRechazado(conductor.nombre, conductor.email, motivo).catch((err) =>
+        console.error('Error email rechazo:', err.message)
+      );
+    }
+
+    const { error: borrarError } = await supabase
+      .from('conductores')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (borrarError) throw borrarError;
+
+    res.json({ ok: true, mensaje: 'Conductor rechazado, notificado y eliminado. Puede registrarse de nuevo.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
