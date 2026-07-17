@@ -796,7 +796,7 @@ function renderConductores(lista, pagos){
                   <button class="btn btn-red btn-sm" onclick="rechazarSuscripcion('${p.id}')">❌</button>
                 </div>`:''}
               </div>`).join('')
-            .select('id, nom:`<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Sin pagos registrados</div>`}
+            :`<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Sin pagos registrados</div>`}
           </div>
         </div>
         <div style="margin-top:16px">
@@ -807,7 +807,7 @@ function renderConductores(lista, pagos){
       </div>
     </div>`;
   }).join('');
-}bre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, antecedentes_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta, notas_admin')
+}
 
 function toggleConductor(id){
   const body = document.getElementById('cbody-'+id);
