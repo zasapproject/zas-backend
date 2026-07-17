@@ -794,6 +794,10 @@ function renderConductores(lista, pagos){
             ${docThumb(c.foto_rcv,'RCV')}
           </div>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--muted);cursor:pointer">
+          <input type="checkbox" ${c.antecedentes_verificados?'checked':''} onchange="toggleAntecedentes('${c.id}', this.checked)">
+          Antecedentes penales verificados
+        </label>
         ${enRev.length?`<div style="margin-top:10px">
           <div class="info-key" style="margin-bottom:6px">Comprobante pendiente</div>
           ${enRev.map(p=>`<div style="background:var(--s);border-radius:10px;padding:10px;margin-bottom:8px">
@@ -811,10 +815,15 @@ function renderConductores(lista, pagos){
         <div class="action-row">
           <button class="btn btn-gold" onclick="abrirSubs('${c.id}','${c.nombre.replace(/'/g,"\\'")}',${tieneAct})">${tieneAct?'Renovar +7d':'Activar subs'}</button>
           <button class="btn btn-green" onclick="verificarCond('${c.id}',true)">✅ Docs</button>
-          <button class="btn btn-red" onclick="verificarCond('${c.id}',false)">❌ Docs</button>
+          <button class="btn btn-red" onclick="rechazarConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">❌ Rechazar</button>
         </div>
         <div class="action-row">
           <button class="btn btn-outline" style="flex:1" onclick="resetPassCond('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">🔑 Reset contraseña</button>
+        </div>
+        <div style="margin-top:10px">
+          <div class="info-key" style="margin-bottom:6px">Nota interna</div>
+          <textarea id="nota-${c.id}" class="form-input" style="width:100%;min-height:60px;resize:vertical;font-family:'Syne',sans-serif" placeholder="Observaciones sobre este conductor...">${c.notas_admin||''}</textarea>
+          <button class="btn btn-outline" style="width:100%;margin-top:6px" onclick="guardarNotaConductor('${c.id}')">💾 Guardar nota</button>
         </div>
       </div>
     </div>`;
@@ -862,6 +871,35 @@ async function rechazarComp(id){
   if(!confirm('¿Rechazar comprobante?')) return;
   toast('Comprobante rechazado');
   loadConductores();
+}
+
+async function toggleAntecedentes(id, verificado){
+  const res = await fetch(`${API}/api/conductores/antecedentes/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({antecedentes_verificados:verificado})});
+  const data = await res.json();
+  if(data.ok){
+    toast(verificado?'✅ Antecedentes verificados':'Antecedentes desmarcados');
+    const c = conductoresData.find(x=>x.id===id); if(c) c.antecedentes_verificados = verificado;
+  } else { toast('❌ '+data.error,'red'); loadConductores(); }
+}
+
+async function guardarNotaConductor(id){
+  const texto = document.getElementById(`nota-${id}`).value;
+  const res = await fetch(`${API}/api/conductores/notas/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({notas_admin:texto})});
+  const data = await res.json();
+  if(data.ok){
+    toast('✅ Nota guardada');
+    const c = conductoresData.find(x=>x.id===id); if(c) c.notas_admin = texto;
+  } else { toast('❌ '+data.error,'red'); }
+}
+
+async function rechazarConductor(id, nombre){
+  const motivo = prompt(`Motivo del rechazo para ${nombre}:`, 'Fotos de documentos no legibles, favor volver a registrarse con imágenes más claras');
+  if(!motivo || motivo.trim()===''){ alert('Debes escribir un motivo.'); return; }
+  if(!confirm(`¿Rechazar y ELIMINAR a ${nombre}? Esta acción no se puede deshacer. El conductor deberá registrarse de nuevo.`)) return;
+  const res = await fetch(`${API}/api/conductores/rechazar/${id}`,{method:'DELETE',headers:jH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ toast('❌ Conductor rechazado y eliminado'); loadConductores(); }
+  else toast('❌ '+data.error,'red');
 }
 
 async function resetPassCond(id, nombre){
@@ -924,7 +962,7 @@ function renderViajes(){
       <div class="semaforo ${sem}"></div>
       <div class="viaje-data">
         <div class="viaje-ruta">${v.origen_texto||v.origen||'—'} → ${v.destino_texto||v.destino||'—'}</div>
-        <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}</div>
+        <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}${v.metodo_pago?' · '+v.metodo_pago:''}</div>
         <div class="viaje-sub">${new Date(v.created_at).toLocaleDateString('es-VE')} · ${min}min</div>
       </div>
       <div class="viaje-right">
