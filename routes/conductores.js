@@ -195,7 +195,7 @@ router.get('/todos', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta')
+      .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, antecedentes_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta, notas_admin')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -425,6 +425,24 @@ router.patch('/antecedentes/:id', authAdmin, async (req, res) => {
       .update({ antecedentes_verificados })
       .eq('id', req.params.id)
       .select('id, nombre, antecedentes_verificados');
+
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+// ─────────────────────────────────────────────
+// Guardar nota interna del admin sobre el conductor
+// ─────────────────────────────────────────────
+router.patch('/notas/:id', authAdmin, async (req, res) => {
+  const { notas_admin } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ notas_admin: notas_admin || null })
+      .eq('id', req.params.id)
+      .select('id, nombre, notas_admin');
 
     if (error) throw error;
     res.json({ ok: true, conductor: data[0] });

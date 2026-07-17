@@ -796,13 +796,18 @@ function renderConductores(lista, pagos){
                   <button class="btn btn-red btn-sm" onclick="rechazarSuscripcion('${p.id}')">❌</button>
                 </div>`:''}
               </div>`).join('')
-            :`<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Sin pagos registrados</div>`}
+            .select('id, nom:`<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Sin pagos registrados</div>`}
           </div>
+        </div>
+        <div style="margin-top:16px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;margin-bottom:8px">Nota interna</div>
+          <textarea id="nota-${c.id}" class="form-input" style="width:100%;min-height:70px;resize:vertical;font-family:'Syne',sans-serif" placeholder="Observaciones sobre este conductor...">${c.notas_admin||''}</textarea>
+          <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="guardarNotaConductor('${c.id}')">💾 Guardar nota</button>
         </div>
       </div>
     </div>`;
   }).join('');
-}
+}bre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, antecedentes_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta, notas_admin')
 
 function toggleConductor(id){
   const body = document.getElementById('cbody-'+id);
@@ -844,6 +849,15 @@ async function toggleAntecedentes(id, verificado){
     mostrarToast(verificado?'✅ Antecedentes verificados':'Antecedentes desmarcados');
     const c = conductoresData.find(x=>x.id===id); if(c) c.antecedentes_verificados = verificado;
   } else { mostrarToast('❌ Error: '+data.error,'red'); cargarConductores(); }
+}
+  async function guardarNotaConductor(id){
+  const texto = document.getElementById(`nota-${id}`).value;
+  const res = await fetch(`${API}/api/conductores/notas/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({notas_admin:texto})});
+  const data = await res.json();
+  if(data.ok){
+    mostrarToast('✅ Nota guardada');
+    const c = conductoresData.find(x=>x.id===id); if(c) c.notas_admin = texto;
+  } else { mostrarToast('❌ Error: '+data.error,'red'); }
 }
 async function aprobarSuscripcionConductor(pagoId, conductorId){
   if(!confirm('¿Aprobar comprobante y activar suscripción?')) return;
