@@ -1432,6 +1432,15 @@ async function resolverSoporte(id){
   if(data.ok){mostrarToast('✅ Marcado como resuelto');cargarSoporte();}
 }
 
+// Detecta si el admin está escribiendo una nota activamente
+let notaEnEdicion = false;
+document.addEventListener('focusin', e=>{
+  if(e.target.matches('textarea[id^="nota-"]')) notaEnEdicion = true;
+});
+document.addEventListener('focusout', e=>{
+  if(e.target.matches('textarea[id^="nota-"]')) notaEnEdicion = false;
+});
+
 // ═══ AUTO-REFRESH ═══
 let refreshCounter = 30;
 setInterval(()=>{
@@ -1442,7 +1451,7 @@ setInterval(()=>{
     refreshCounter=30;
     const activa=document.querySelector('.page.active')?.id;
     if(activa==='page-dashboard') cargarDashboard();
-    if(activa==='page-conductores') cargarConductores();
+    if(activa==='page-conductores' && !notaEnEdicion) cargarConductores();
     if(activa==='page-monitor') cargarMonitor();
     if(activa==='page-soporte') cargarSoporte();
     if(activa==='page-usuarios') cargarUsuarios();
