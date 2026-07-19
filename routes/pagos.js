@@ -14,30 +14,22 @@ const METODOS_VALIDOS = [
   'efectivo',
   'pago_movil',
   'zelle',
-  'transferencia',
   'usdt',
   'bancolombia',
   'nequi',
 ];
 
-const METODOS_DIGITALES = ['pago_movil', 'zelle', 'transferencia', 'usdt', 'bancolombia', 'nequi'];
+const METODOS_DIGITALES = ['zelle', 'usdt', 'bancolombia', 'nequi'];
 
 // ─────────────────────────────────────────────
 // Datos de ZAS para mostrar al usuario al pagar
 // (actualizar con los datos reales de ZAS)
 // ─────────────────────────────────────────────
 const DATOS_PAGO_ZAS = {
-  pago_movil: {
-    banco: 'Banco de Venezuela',
-    telefono: '0416-4466496',
-    cedula: 'V-17056204',
-    nombre: 'Jhonatan Rincon',
-  },
   zelle: {
     email: 'jrchinchilla82@gmail.com',
     nombre: 'Jhonatan Rincon',
   },
-
   usdt: {
     red: 'TRC20 (Tron)',
     wallet: 'TCQou8bEo2jwsvtaoRLFkA4FPWQrZXVsTt',
@@ -148,7 +140,7 @@ router.post('/nuevo', async (req, res) => {
     }
 
     // Si es efectivo → se marca directamente como completado (conductor cobra directo)
-    const estado_inicial = metodo === 'efectivo' ? 'completado' : 'pendiente';
+    const estado_inicial = (metodo === 'efectivo' || metodo === 'pago_movil') ? 'completado' : 'pendiente';
 
     const { data, error } = await supabase
       .from('pagos')
@@ -158,43 +150,14 @@ router.post('/nuevo', async (req, res) => {
         metodo,
         estado: estado_inicial,
         es_digital: METODOS_DIGITALES.includes(metodo),
-        completado_en: metodo === 'efectivo' ? new Date().toISOString() : null,
+        completado_en: (metodo === 'efectivo' || metodo === 'pago_movil') ? new Date().toISOString() : null,
       }])
       .select()
       .single();
 
     if (error) throw error;
 
-    // Si es efectivo → acreditar saldo al conductor directamente
-    if (metodo === 'efectivo' && viaje.conductor_id) {
-      const conductor_id = viaje.conductor_id;
-      const montoNum = parseFloat(monto);
-      const { data: saldoActual } = await supabase
-        .from('saldo_conductores')
-        .select('*')
-        .eq('conductor_id', conductor_id)
-        .single();
-      if (saldoActual) {
-        await supabase
-          .from('saldo_conductores')
-          .update({
-            saldo_disponible: parseFloat(saldoActual.saldo_disponible) + montoNum,
-            total_ganado: parseFloat(saldoActual.total_ganado) + montoNum,
-            ultima_actualizacion: new Date().toISOString(),
-          })
-          .eq('conductor_id', conductor_id);
-      } else {
-        await supabase
-          .from('saldo_conductores')
-          .insert({
-            conductor_id,
-            saldo_disponible: montoNum,
-            saldo_retenido: 0,
-            total_ganado: montoNum,
-            ultima_actualizacion: new Date().toISOString(),
-          });
-      }
-    }
+
 
     // Si es digital → devolver datos de pago de ZAS
     const respuesta = { ok: true, pago: data };

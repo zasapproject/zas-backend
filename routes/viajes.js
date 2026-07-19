@@ -641,7 +641,7 @@ router.post('/:id/elegir-conductor', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'oferta_id y usuario_id son obligatorios' });
   }
 
-  const requierePagoDigital = metodo_pago && metodo_pago !== 'efectivo';
+  const requierePagoDigital = metodo_pago && metodo_pago !== 'efectivo' && metodo_pago !== 'pago_movil';
 
   try {
     // Verificar que la oferta existe y está pendiente
