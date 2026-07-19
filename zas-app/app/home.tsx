@@ -344,7 +344,7 @@ export default function HomeScreen() {
           setViaje(vCached);
           // Luego verificar estado real en el backend
           try {
-            const resViaje = await fetch(`${API_URL}/api/viajes/usuario/${usuario.id}`);
+            const resViaje = await fetch(`${API_URL}/api/viajes/usuario/${usuarioId}`);
             const dataViaje = await resViaje.json();
             if (dataViaje.ok && dataViaje.viajes && dataViaje.viajes.length > 0) {
               const viajeActivo = dataViaje.viajes.find((vj: any) => vj.id === vCached.id)
@@ -888,7 +888,7 @@ export default function HomeScreen() {
   // ── PANTALLA PAGAR — selección de método + comprobante previo ───────────────
   if (paso === 'pagar') {
     const precios = formatearPrecio(esNegociable ? precioUsuario : precioCalculado);
-    const esDigital = metodoPago !== 'efectivo';
+    const esDigital = metodoPago !== 'efectivo' && metodoPago !== 'pago_movil';
 
     // Si ya se eligió método digital y se pide mostrar el comprobante
     if (mostrarComprobantePrevio && esDigital && datosZasPrevio) {
@@ -1067,7 +1067,7 @@ export default function HomeScreen() {
           )}
 
           {/* BOTÓN PRINCIPAL */}
-          {metodoPago === 'efectivo' || comprobanteEnviado || esNegociable ? (
+          {metodoPago === 'efectivo' || metodoPago === 'pago_movil' || comprobanteEnviado || esNegociable ? (
             // Efectivo o comprobante ya enviado → solicitar directo
             <TouchableOpacity
               style={[styles.boton, (calculandoPrecio || !precioCalculado || cargando) && { opacity: 0.5 }]}

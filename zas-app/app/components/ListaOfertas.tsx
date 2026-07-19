@@ -33,8 +33,9 @@ interface Props {
   metodoPago: string;
   onConductorElegido: (viaje: any, conductor: any) => void;
   onCancelar: () => void;
-  tasas?: { cop_bs: number; usd_bs: number };
+  tasas?: { cop_bs: number; usd_cop: number };
   comprobanteYaEnviado?: boolean;
+  conductoresCercanos?: number;
 }
 
 export default function ListaOfertas({
@@ -87,7 +88,7 @@ export default function ListaOfertas({
               placa_moto: viajeActual.conductor_placa,
               modelo_moto: viajeActual.conductor_modelo,
             };
-            if (metodoPago && metodoPago !== 'efectivo' && !comprobanteYaEnviado) {
+            if (metodoPago && metodoPago !== 'efectivo' && metodoPago !== 'pago_movil' && !comprobanteYaEnviado) {
               // Pago digital sin comprobante previo — crear pago y mostrar comprobante
               setCargandoPagoNegociacion(true);
               try {
@@ -119,7 +120,7 @@ export default function ListaOfertas({
                 setCargandoPagoNegociacion(false);
               }
             } else {
-              // Efectivo O comprobante ya enviado previamente → directo al mapa
+              // Efectivo, Pago Móvil o comprobante ya enviado → directo al mapa
               onConductorElegido(viajeActual, conductorObj);
             }
           }
@@ -154,7 +155,7 @@ export default function ListaOfertas({
               placa_moto: viajeActual.conductor_placa,
               modelo_moto: viajeActual.conductor_modelo,
             };
-            if (metodoPago && metodoPago !== 'efectivo' && !comprobanteYaEnviado) {
+            if (metodoPago && metodoPago !== 'efectivo' && metodoPago !== 'pago_movil' && !comprobanteYaEnviado) {
               // Pago digital sin comprobante previo — crear pago y mostrar comprobante
               setCargandoPagoNegociacion(true);
               try {
@@ -186,7 +187,7 @@ export default function ListaOfertas({
                 setCargandoPagoNegociacion(false);
               }
             } else {
-              // Efectivo O comprobante ya enviado previamente → directo al mapa
+              // Efectivo, Pago Móvil o comprobante ya enviado → directo al mapa
               onConductorElegido(viajeActual, conductorObj);
             }
           }
@@ -217,7 +218,7 @@ export default function ListaOfertas({
         clearInterval(intervaloOfertas.current);
         clearInterval(intervaloTimer.current);
 
-        if (metodoPago && metodoPago !== 'efectivo') {
+        if (metodoPago && metodoPago !== 'efectivo' && metodoPago !== 'pago_movil') {
           // Pago digital — mostrar pantalla de comprobante por el precio final
           setCargandoPagoNegociacion(true);
           try {
