@@ -491,7 +491,7 @@ router.delete('/rechazar/:id', authAdmin, async (req, res) => {
 
     const { error: borrarError } = await supabase
       .from('conductores')
-      .update({ rechazado: true, motivo_rechazo: motivo, activo: false, estado: 'inactivo' })
+      .update({ rechazado: true, motivo_rechazo: motivo, activo: false, estado: 'desconectado' })
       .eq('id', req.params.id);
 
     if (borrarError) throw borrarError;
@@ -607,7 +607,7 @@ router.post('/logout/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('conductores')
-      .update({ estado: 'inactivo', activo: false, session_token: null })
+      .update({ estado: 'desconectado', activo: false, session_token: null })
       .eq('id', req.params.id)
       .select('id, nombre, estado');
 
@@ -627,13 +627,13 @@ router.post('/logout/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 router.patch('/estado/:id', async (req, res) => {
   const { estado } = req.body;
-  const estadosValidos = ['disponible', 'ocupado', 'inactivo'];
+  const estadosValidos = ['disponible', 'ocupado', 'desconectado', 'en_viaje'];
   if (!estadosValidos.includes(estado)) {
     return res.status(400).json({ ok: false, error: 'Estado no válido' });
   }
   const { data, error } = await supabase
     .from('conductores')
-    .update({ estado, activo: estado !== 'inactivo' })
+    .update({ estado, activo: estado !== 'desconectado' })
     .eq('id', req.params.id)
     .select()
     .single();
