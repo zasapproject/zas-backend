@@ -868,9 +868,12 @@ async function aprobarSuscripcionConductor(pagoId, conductorId){
 }
 
 async function rechazarSuscripcion(pagoId){
-  if(!confirm('¿Rechazar este comprobante?')) return;
-  mostrarToast('❌ Comprobante rechazado');
-  cargarConductores();
+  const motivo = prompt('Motivo del rechazo (obligatorio):');
+  if(!motivo || motivo.trim()==='') { alert('Debes escribir un motivo.'); return; }
+  const res = await fetch(`${API}/api/suscripciones/rechazar/${pagoId}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast('❌ Comprobante rechazado'); cargarConductores(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
 }
 
 function abrirModalSubsConductor(id, nombre, renovar){

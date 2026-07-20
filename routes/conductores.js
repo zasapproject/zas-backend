@@ -50,6 +50,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
       .from('conductores')
       .select('id')
       .eq('telefono', telefono)
+      .eq('rechazado', false)
       .single();
 
     if (existe) {
@@ -60,6 +61,7 @@ router.post('/registro', registroLimiter, async (req, res) => {
       .from('conductores')
       .select('id')
       .eq('email', email)
+      .eq('rechazado', false)
       .single();
 
     if (existeEmail) {
@@ -196,6 +198,7 @@ router.get('/todos', authAdmin, async (req, res) => {
     const { data, error } = await supabase
       .from('conductores')
       .select('id, nombre, telefono, email, foto_url, placa_moto, modelo_moto, calificacion, activo, documentos_verificados, antecedentes_verificados, created_at, foto_cedula, foto_licencia, foto_registro_moto, foto_rcv, foto_antecedentes, suscripcion_hasta, notas_admin')
+      .eq('rechazado', false)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -213,6 +216,7 @@ router.get('/', async (req, res) => {
     const { data, error } = await supabase
       .from('conductores')
       .select('id, nombre, foto_url, placa_moto, modelo_moto, calificacion, lat, lng, latitud, longitud')
+      .eq('rechazado', false)
       .eq('activo', true);
 
     if (error) throw error;
@@ -232,6 +236,7 @@ router.get('/disponibles', async (req, res) => {
       .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
       .eq('estado', 'disponible')
       .eq('activo', true)
+      .eq('rechazado', false)
       .not('latitud', 'is', null)
       .not('longitud', 'is', null);
 
@@ -252,6 +257,7 @@ router.get('/ocupados', async (req, res) => {
       .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
       .eq('estado', 'ocupado')
       .eq('activo', true)
+      .eq('rechazado', false)
       .not('latitud', 'is', null)
       .not('longitud', 'is', null);
 
@@ -485,12 +491,12 @@ router.delete('/rechazar/:id', authAdmin, async (req, res) => {
 
     const { error: borrarError } = await supabase
       .from('conductores')
-      .delete()
+      .update({ rechazado: true, motivo_rechazo: motivo, activo: false, estado: 'inactivo' })
       .eq('id', req.params.id);
 
     if (borrarError) throw borrarError;
 
-    res.json({ ok: true, mensaje: 'Conductor rechazado, notificado y eliminado. Puede registrarse de nuevo.' });
+    res.json({ ok: true, mensaje: 'Conductor rechazado y notificado. Puede registrarse de nuevo con el mismo teléfono o correo.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
