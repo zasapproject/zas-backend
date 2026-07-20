@@ -460,9 +460,11 @@ export default function ConductorScreen() {
     const c = JSON.parse(data);
     setGuardando(true);
     try {
+      const tokenLocal = await AsyncStorage.getItem('conductor_session_token');
       const res = await fetch(`${API_URL}/api/conductores/perfil/${c.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono: editTelefono, placa_moto: editPlaca, modelo_moto: editModelo }),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': tokenLocal || '' },
+        body: JSON.stringify({ telefono: editTelefono, placa_moto: editPlaca, modelo_moto: editModelo, foto_url: editFoto }),
       });
       const resp = await res.json();
       if (resp.ok) {

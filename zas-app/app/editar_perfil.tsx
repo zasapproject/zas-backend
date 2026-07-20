@@ -67,8 +67,10 @@ export default function EditarPerfilScreen() {
   const guardar = async () => {
     setGuardando(true);
     try {
+      const sessionToken = await AsyncStorage.getItem('session_token');
       const res = await fetch(`${API_URL}/api/usuarios/perfil/${usuarioId}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': sessionToken || '' },
         body: JSON.stringify({ telefono, email: email || null, foto_url: foto })
       });
       const data = await res.json();
