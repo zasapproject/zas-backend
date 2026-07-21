@@ -3,6 +3,24 @@ const router = express.Router();
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
 
+router.get('/:conductor_id/pago-movil', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('datos_bancarios_conductor')
+      .select('banco, telefono_pago_movil, cedula')
+      .eq('conductor_id', req.params.conductor_id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ ok: false, error: 'Conductor no encontrado' });
+    }
+
+    res.json({ ok: true, datos: { banco: data.banco, telefono_pago_movil: data.telefono_pago_movil, cedula: data.cedula } });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 router.get('/:conductor_id', authAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase

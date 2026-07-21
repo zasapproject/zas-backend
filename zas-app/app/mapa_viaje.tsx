@@ -125,6 +125,9 @@ export default function MapaViaje() {
   const [montoViaje, setMontoViaje] = useState<number>(0);
   const [metodoViaje, setMetodoViaje] = useState<string>('efectivo');
   const [mostrarPagoEfectivo, setMostrarPagoEfectivo] = useState(false);
+  const [mostrarPagoMovil, setMostrarPagoMovil] = useState(false);
+  const [datosPagoMovilConductor, setDatosPagoMovilConductor] = useState<any>(null);
+  const [cargandoDatosPagoMovil, setCargandoDatosPagoMovil] = useState(false);
   const [mostrarCalificacion, setMostrarCalificacion] = useState(false);
   const [calificacionTitulo, setCalificacionTitulo] = useState('');
   const coordOrigenRef = useRef(null);
@@ -274,6 +277,17 @@ export default function MapaViaje() {
         if (esCondutorRef.current) {
           setCalificacionTitulo('¿Cómo fue el usuario?');
           setMostrarCalificacion(true);
+        } else if (metodoPagoRef.current === 'pago_movil') {
+          setCargandoDatosPagoMovil(true);
+          try {
+            const res = await fetch(`${BACKEND_URL}/api/datos-bancarios/${conductorIdRef.current}/pago-movil`);
+            const data = await res.json();
+            setDatosPagoMovilConductor(data.ok ? data.datos : null);
+          } catch {
+            setDatosPagoMovilConductor(null);
+          }
+          setCargandoDatosPagoMovil(false);
+          setMostrarPagoMovil(true);
         } else {
           setCalificacionTitulo('¿Cómo fue tu conductor?');
           setMostrarCalificacion(true);
@@ -442,6 +456,46 @@ export default function MapaViaje() {
         </View>
         <TouchableOpacity style={{ padding: 12 }} onPress={() => { setMostrarCalificacion(false); calificar(5); }}>
           <Text style={{ color: '#555', fontSize: 13 }}>Saltar calificación</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (mostrarPagoMovil) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1A1A2E', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 60, marginBottom: 20 }}>📱</Text>
+        <Text style={{ color: '#FFD700', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+          Pago por Pago Móvil
+        </Text>
+        {cargandoDatosPagoMovil ? (
+          <ActivityIndicator color="#FFD700" size="large" />
+        ) : datosPagoMovilConductor ? (
+          <View style={{ backgroundColor: '#16213e', borderRadius: 16, padding: 20, marginBottom: 24, width: '100%', borderWidth: 1, borderColor: '#FFD700' }}>
+            <Text style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>BANCO</Text>
+            <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>{datosPagoMovilConductor.banco || '-'}</Text>
+            <Text style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>TELÉFONO</Text>
+            <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>{datosPagoMovilConductor.telefono_pago_movil || '-'}</Text>
+            <Text style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>CÉDULA</Text>
+            <Text style={{ color: '#fff', fontSize: 16 }}>{datosPagoMovilConductor.cedula || '-'}</Text>
+          </View>
+        ) : (
+          <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+            El conductor no tiene datos registrados. Pídele el Pago Móvil directamente.
+          </Text>
+        )}
+        <Text style={{ color: '#FFD700', fontSize: 28, fontWeight: 'bold', marginBottom: 32 }}>
+          ${montoViajeRef.current || params.monto_viaje || '0'}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#FFD700', borderRadius: 14, padding: 18, width: '100%', alignItems: 'center' }}
+          onPress={() => {
+            setMostrarPagoMovil(false);
+            setCalificacionTitulo('¿Cómo fue tu conductor?');
+            setMostrarCalificacion(true);
+          }}
+        >
+          <Text style={{ color: '#1A1A2E', fontWeight: 'bold', fontSize: 16 }}>✅ Ya pagué al conductor</Text>
         </TouchableOpacity>
       </View>
     );
