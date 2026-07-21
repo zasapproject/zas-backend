@@ -508,6 +508,7 @@ export default function HomeScreen() {
           destino_lng: coordDestino.longitude,
           precio: precioFinal,
           precio_usuario: precioFinal,
+          metodo_pago: metodoPago,
         }),
       });
       const data = await res.json();

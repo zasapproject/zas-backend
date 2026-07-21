@@ -37,7 +37,7 @@ const ESTADOS_VALIDOS = ['solicitado', 'buscando', 'asignado', 'aceptado', 'en_c
 // POST /api/viajes/nuevo
 // ─────────────────────────────────────────────
 router.post('/nuevo', async (req, res) => {
-  const { usuario_id, origen, destino, origen_lat, origen_lng, destino_lat, destino_lng, precio, precio_usuario } = req.body;
+  const { usuario_id, origen, destino, origen_lat, origen_lng, destino_lat, destino_lng, precio, precio_usuario, metodo_pago } = req.body;
 
   if (!usuario_id || !origen || !destino) {
     return res.status(400).json({ ok: false, error: 'usuario_id, origen y destino son obligatorios' });
@@ -79,6 +79,7 @@ router.post('/nuevo', async (req, res) => {
         duracion_minutos: rutaData?.duracion_minutos || null,
         origen_texto: rutaData?.origen_texto || null,
         destino_texto: rutaData?.destino_texto || null,
+        metodo_pago: metodo_pago || null,
       }])
       .select();
 
@@ -674,6 +675,7 @@ router.post('/:id/elegir-conductor', async (req, res) => {
         precio: oferta.precio_oferta,
         precio_conductor: oferta.precio_oferta,
         estado_negociacion: 'aceptado',
+        metodo_pago,
       })
       .eq('id', req.params.id)
       .select()

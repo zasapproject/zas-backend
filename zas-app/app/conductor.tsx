@@ -892,7 +892,14 @@ export default function ConductorScreen() {
                           </View>
                       }
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={styles.cardTitulo}>{viaje.usuario_nombre}</Text>
+                          {viaje.metodo_pago && (
+                            <Text style={{ color: '#888', fontSize: 11, fontWeight: '600', textTransform: 'uppercase' }}>
+                              {viaje.metodo_pago.replace('_', ' ')}
+                            </Text>
+                          )}
+                        </View>
                         <Text style={{ color: '#FFD700', fontSize: 15, fontWeight: 'bold' }}>
                           {Number(viaje.precio_usuario || viaje.precio)?.toLocaleString('es-CO')} COP
                         </Text>
