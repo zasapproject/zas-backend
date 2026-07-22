@@ -42,6 +42,7 @@
     .map-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .map-logo { font-size: 16px; font-weight: 800; color: var(--gold); }
     .btn-logout { background: transparent; border: 1px solid #333; color: var(--muted); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+    .btn-icon { background: transparent; border: 1px solid #333; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; font-size: 14px; cursor: pointer; display:flex;align-items:center;justify-content:center; }
     .progress-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .progress-step { flex: 1; text-align: center; padding: 8px; border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600; transition: all 0.2s; }
     .progress-step.active { background: var(--gold); color: var(--bg); }
@@ -89,10 +90,14 @@
     .c-nombre { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
     .c-detalle { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
     .c-eta { color: var(--gold); font-size: 12px; font-weight: 600; }
+    .btn-llamar { background: var(--green); color: #08111f; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 18px; cursor: pointer; flex-shrink: 0; display:flex;align-items:center;justify-content:center; margin-left:auto; }
     .buscando { text-align: center; padding: 32px 0; }
     .buscando-icon { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
     .btn-cancelar { width: 100%; background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.3); border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .oferta-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--surface2); }
+    .oferta-item:last-child { border-bottom:none; }
+    .btn-elegir { background: var(--brand-grad); color: #08111f; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 4px; }
 
     /* COMPROBANTE */
     #screen-comprobante { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
@@ -117,6 +122,32 @@
     /* RECUPERAR PASSWORD */
     #screen-recuperar { align-items: center; justify-content: center; padding: 24px; }
     .rec-box { background: var(--surface); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 400px; border: 1px solid var(--surface2); }
+
+    /* PAGO EFECTIVO POST-VIAJE */
+    #screen-pago-efectivo { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); align-items: center; justify-content: center; max-width: 500px; margin: 0 auto; width: 100%; }
+    .pe-box { width:100%; text-align:center; }
+    .pe-icon { font-size:56px; margin-bottom:12px; }
+    .pe-monto { color: var(--gold); font-size: 34px; font-weight: 800; margin: 12px 0 4px; }
+    .pe-sec { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+    /* HISTORIAL */
+    #screen-historial { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
+    .hist-item { background: var(--surface); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+    .hist-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .hist-fecha { font-size:11px; color:var(--muted); }
+    .hist-estado { font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; text-transform:uppercase; }
+    .hist-estado.completado { background:rgba(0,200,83,0.15); color:var(--green); }
+    .hist-estado.cancelado { background:rgba(255,23,68,0.15); color:var(--red); }
+    .hist-ruta { font-size:13px; margin-bottom:6px; }
+    .hist-bottom { display:flex; justify-content:space-between; align-items:center; }
+    .hist-precio { color: var(--gold); font-weight:700; font-size:15px; }
+    .hist-empty { text-align:center; padding:60px 20px; color:var(--muted); }
+
+    /* TERMINOS */
+    #screen-terminos { padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; max-width: 500px; margin: 0 auto; width: 100%; }
+    .term-texto { color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .term-texto h3 { color: var(--text); font-size: 15px; margin: 18px 0 6px; }
+    .term-texto p { margin-bottom: 10px; }
 
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--green); color: var(--green); padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; display: none; white-space: nowrap; }
   </style>
@@ -155,11 +186,11 @@
       </p>
     </div>
     <div id="form-registro" style="display:none">
-      <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Tu nombre" /></div>
+      <div class="input-group"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Nombre(s) y Apellido(s)" /></div>
       <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-tel" placeholder="04121234567" maxlength="11" /></div>
       <div class="input-group"><label>Contraseña</label>
         <div style="position:relative">
-          <input type="password" id="reg-pass" placeholder="Mínimo 4 caracteres" />
+          <input type="password" id="reg-pass" placeholder="Mínimo 5 caracteres" />
           <span onclick="togglePass('reg-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px">👁️</span>
         </div>
       </div>
@@ -171,6 +202,9 @@
       </div>
       <button class="btn-primary" onclick="registrarUsuario()" id="btn-registro">Crear cuenta</button>
       <div class="error-msg" id="registro-error"></div>
+      <p style="text-align:center;margin-top:12px;font-size:12px;color:var(--muted)">
+        Al registrarte aceptas los <a href="#" onclick="showScreen('terminos');return false;" style="color:var(--gold);text-decoration:none">Términos y condiciones</a>
+      </p>
     </div>
   </div>
 </div>
@@ -195,7 +229,11 @@
   <div class="map-header">
     <div class="map-header-top">
       <div class="map-logo" style="display:flex;align-items:center;gap:8px"><img src="zas-logo.png" alt="ZAS" class="brand-logo"/> <span id="header-nombre" style="font-size:13px;font-weight:400;color:var(--muted)"></span></div>
-      <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-icon" onclick="abrirHistorial()" title="Historial">🕐</button>
+        <button class="btn-icon" onclick="showScreen('terminos')" title="Términos">📄</button>
+        <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+      </div>
     </div>
     <div class="progress-bar">
       <div class="progress-step active" id="step-1">1. Origen</div>
@@ -258,12 +296,16 @@
 
 <!-- VIAJE ACTIVO -->
 <div class="screen" id="screen-viaje">
-  <div id="viaje-mapa" style="width:100%;height:220px;border-radius:16px;margin-bottom:16px;display:none;"></div>
+  <div id="viaje-mapa" style="width:100%;height:180px;border-radius:16px;margin-bottom:16px;display:none;"></div>
   <div class="viaje-titulo" id="viaje-titulo">Buscando conductor...</div>
   <div class="viaje-sub" id="viaje-sub">ZAS está buscando el conductor más cercano</div>
   <div class="buscando" id="buscando-anim">
     <div class="buscando-icon">🏍️</div>
     <p style="color:var(--muted);margin-top:16px;font-size:15px">Buscando conductor cercano...</p>
+  </div>
+  <div class="card" id="ofertas-wrap" style="display:none">
+    <div class="lbl" style="margin-bottom:10px">💬 Ofertas de conductores</div>
+    <div id="ofertas-lista"></div>
   </div>
   <div id="conductor-info" style="display:none">
     <div class="conductor-card">
@@ -273,6 +315,7 @@
         <div class="c-detalle" id="c-detalle">—</div>
         <div class="c-eta">Va en camino hacia ti</div>
       </div>
+      <button class="btn-llamar" id="btn-llamar-conductor" style="display:none" onclick="llamarConductor()">📞</button>
     </div>
   </div>
   <div class="card">
@@ -310,8 +353,20 @@
     <img id="comp-foto-preview" style="display:none" />
   </div>
   <input type="file" id="comp-foto-input" accept="image/*" capture="environment" style="display:none" onchange="onComprobanteSeleccionado(this)" />
-  <button class="btn-primary" onclick="subirComprobante()" id="btn-subir-comp">Enviar comprobante</button>
-  <button class="btn-cancelar" onclick="saltarComprobante()" style="margin-top:8px">Pedir conductor sin comprobante</button>
+  <button class="btn-primary" onclick="onEnviarComprobanteClick()" id="btn-subir-comp">Enviar comprobante</button>
+  <button class="btn-cancelar" onclick="onSaltarComprobanteClick()" style="margin-top:8px" id="btn-saltar-comp">Pedir conductor sin comprobante</button>
+</div>
+
+<!-- PAGO EFECTIVO POST-VIAJE -->
+<div class="screen" id="screen-pago-efectivo">
+  <div class="pe-box">
+    <div class="pe-icon">💵</div>
+    <div style="font-size:20px;font-weight:700">Tu viaje ha terminado</div>
+    <div style="color:var(--muted);font-size:14px;margin-top:6px">Paga en efectivo directamente a tu conductor</div>
+    <div class="pe-monto" id="pe-precio">—</div>
+    <div class="pe-sec" id="pe-precio-sec"></div>
+    <button class="btn-primary" onclick="confirmarPagoEfectivo()" id="btn-ya-pague">✅ Ya pagué</button>
+  </div>
 </div>
 
 <!-- CALIFICACIÓN -->
@@ -338,6 +393,40 @@
   </div>
 </div>
 
+<!-- HISTORIAL -->
+<div class="screen" id="screen-historial">
+  <div class="confirmar-header">
+    <button class="btn-back" onclick="showScreen('mapa')">←</button>
+    <div style="font-size:22px;font-weight:700">Historial de viajes</div>
+  </div>
+  <div id="historial-lista"><div style="text-align:center;padding:40px"><div class="spin"></div></div></div>
+</div>
+
+<!-- TERMINOS -->
+<div class="screen" id="screen-terminos">
+  <div class="confirmar-header">
+    <button class="btn-back" onclick="showScreen('mapa')">←</button>
+    <div style="font-size:22px;font-weight:700">Términos y condiciones</div>
+  </div>
+  <div class="term-texto">
+    <p>Bienvenido a ZAS Mototaxi. Al usar esta aplicación aceptas los siguientes términos:</p>
+    <h3>1. Servicio</h3>
+    <p>ZAS conecta pasajeros con conductores de mototaxi independientes en Municipio Ayacucho, Táchira, Venezuela. ZAS no es transportista ni empleador de los conductores.</p>
+    <h3>2. Precios</h3>
+    <p>El precio se calcula antes de solicitar el viaje según distancia y zona. Viajes urbanos (0-6km) tienen tarifa fija; viajes interurbanos son negociables entre conductor y usuario.</p>
+    <h3>3. Pagos</h3>
+    <p>Puedes pagar en efectivo directamente al conductor, o por métodos digitales (Pago Móvil, Zelle, USDT, Bancolombia, Nequi) subiendo el comprobante para verificación de ZAS.</p>
+    <h3>4. Responsabilidad</h3>
+    <p>El usuario es responsable de verificar la identidad del conductor (nombre, placa y modelo de moto) antes de subir al vehículo.</p>
+    <h3>5. Cancelaciones</h3>
+    <p>Puedes cancelar un viaje solicitado en cualquier momento antes de que el conductor llegue, desde la pantalla del viaje activo.</p>
+    <h3>6. Datos personales</h3>
+    <p>ZAS almacena tu nombre, teléfono, email y foto de perfil únicamente para operar el servicio. No se comparte con terceros ajenos a la operación.</p>
+    <h3>7. Contacto</h3>
+    <p>Para soporte, escribe a soporte@zasapps.com.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -349,7 +438,7 @@ let coordOrigen = null, coordDestino = null;
 let nombreOrigen = '', nombreDestino = '';
 let usuarioId = '', metodoPago = 'efectivo';
 let viajeActivo = null, pollingInterval = null;
-let conductorMarker = null, viajeMap = null;
+let conductorMarker = null, viajeMap = null, rutaRenderer = null, rutaService = null;
 let searchTimeout = null;
 let precioCalculado = 0;
 let pagoId = null;
@@ -358,6 +447,13 @@ let calificacionSeleccionada = 0;
 let tasas = { cop_bs: 5.5, usd_bs: 36 };
 let fotoBase64 = '';
 let compFotoBase64 = '';
+let conductoresMarkers = [];
+let conductoresInterval = null;
+let viajeNegociable = false;
+let ofertasData = [];
+let modoComprobante = 'nuevo';
+let pendienteConfirmarNegociacion = false;
+let precioNegociadoActual = 0;
 
 // ── UTILS ──
 function togglePass(id, el) {
@@ -502,7 +598,7 @@ async function registrarUsuario() {
   const errEl = document.getElementById('registro-error');
   errEl.style.display = 'none';
   if (!nombre || !tel || !pass || !email) { errEl.textContent = 'Todos los campos son obligatorios'; errEl.style.display = 'block'; return; }
-  if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener mínimo 4 caracteres'; errEl.style.display = 'block'; return; }
+  if (pass.length < 5) { errEl.textContent = 'La contraseña debe tener mínimo 5 caracteres'; errEl.style.display = 'block'; return; }
   if (!fotoBase64) { errEl.textContent = 'La foto de perfil es obligatoria'; errEl.style.display = 'block'; return; }
   setLoading('btn-registro', true, 'Crear cuenta');
   try {
@@ -548,6 +644,7 @@ async function recuperarPassword() {
 function cerrarSesion() {
   localStorage.removeItem('zas_usuario');
   if (pollingInterval) clearInterval(pollingInterval);
+  if (conductoresInterval) clearInterval(conductoresInterval);
   viajeActivo = null; usuarioId = ''; paso = 'origen';
   coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = '';
@@ -557,7 +654,7 @@ function cerrarSesion() {
 
 // ── MAPA ──
 function iniciarMapa() {
-  if (map) { actualizarPaso(); return; }
+  if (map) { actualizarPaso(); iniciarConductoresDisponibles(); return; }
   map = new google.maps.Map(document.getElementById('map'), {
     center: pinCoord, zoom: 16, disableDefaultUI: true, zoomControl: true,
     styles: [
@@ -582,6 +679,48 @@ function iniciarMapa() {
   autocompleteService = new google.maps.places.AutocompleteService();
   placesService = new google.maps.places.PlacesService(map);
   actualizarPaso();
+  iniciarConductoresDisponibles();
+}
+
+// ── CONDUCTORES DISPONIBLES EN EL MAPA (icono moto, igual que la app) ──
+function iconoMoto(color) {
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="11" fill="${color}" stroke="#0a0a0f" stroke-width="1.5"/>
+        <text x="12" y="17" font-size="13" text-anchor="middle">🏍️</text>
+      </svg>`),
+    scaledSize: new google.maps.Size(30, 30),
+    anchor: new google.maps.Point(15, 15),
+  };
+}
+
+async function cargarConductoresDisponibles() {
+  if (!map) return;
+  try {
+    const res = await fetch(`${API}/api/conductores/disponibles`);
+    const data = await res.json();
+    const conds = data.conductores || [];
+    conductoresMarkers.forEach(m => m.setMap(null));
+    conductoresMarkers = [];
+    conds.forEach(c => {
+      const lat = Number(c.latitud ?? c.lat);
+      const lng = Number(c.longitud ?? c.lng);
+      if (!lat || !lng) return;
+      const marker = new google.maps.Marker({
+        position: { lat, lng }, map,
+        icon: iconoMoto('#00c853'),
+        title: c.nombre || 'Conductor disponible',
+      });
+      conductoresMarkers.push(marker);
+    });
+  } catch {}
+}
+
+function iniciarConductoresDisponibles() {
+  cargarConductoresDisponibles();
+  if (conductoresInterval) clearInterval(conductoresInterval);
+  conductoresInterval = setInterval(cargarConductoresDisponibles, 10000);
 }
 
 function actualizarPaso() {
@@ -690,19 +829,80 @@ function irAMiUbicacion() {
   }
 }
 
+// ── NEGOCIACIÓN: OFERTAS DE CONDUCTORES (viajes interurbanos / nocturnos) ──
+async function cargarOfertas() {
+  if (!viajeActivo) return;
+  try {
+    const res = await fetch(`${API}/api/viajes/${viajeActivo.id}/ofertas`);
+    const data = await res.json();
+    ofertasData = data.ok ? (data.ofertas || []) : [];
+    renderOfertas();
+  } catch {}
+}
+
+function renderOfertas() {
+  const wrap = document.getElementById('ofertas-wrap');
+  const cont = document.getElementById('ofertas-lista');
+  if (!wrap || !cont) return;
+  if (!ofertasData.length) { wrap.style.display = 'none'; cont.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  cont.innerHTML = ofertasData.map(o => {
+    const m = formatearMultimoneda(Number(o.precio_oferta || 0));
+    const inicial = (o.conductor_nombre || '?')[0].toUpperCase();
+    return `<div class="oferta-item">
+      <div class="c-avatar" style="width:44px;height:44px;font-size:16px">${o.conductor_foto ? `<img src="${o.conductor_foto}" alt="">` : inicial}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:14px">${o.conductor_nombre || 'Conductor'}</div>
+        <div style="color:var(--muted);font-size:12px">${[o.conductor_modelo, o.conductor_placa].filter(Boolean).join(' · ')}${o.conductor_modelo || o.conductor_placa ? ' · ' : ''}⭐ ${Number(o.conductor_calificacion || 5).toFixed(1)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:var(--gold);font-weight:700;font-size:15px">${m.cop}</div>
+        <button class="btn-elegir" onclick="elegirOferta('${o.id}',${o.precio_oferta})">Elegir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function elegirOferta(ofertaId, precioOferta) {
+  try {
+    const res = await fetch(`${API}/api/viajes/${viajeActivo.id}/elegir-conductor`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oferta_id: ofertaId, usuario_id: usuarioId, metodo_pago: metodoPago })
+    });
+    const data = await res.json();
+    if (!data.ok) { mostrarToast(data.error || 'No se pudo elegir el conductor', '#ff1744'); return; }
+    viajeActivo = data.viaje;
+    precioCalculado = precioOferta;
+    ofertasData = [];
+    renderOfertas();
+    if (metodoPago === 'efectivo' || metodoPago === 'pago_movil') {
+      await crearPagoParaViaje(viajeActivo.id, precioOferta, metodoPago, null);
+      mostrarViajeActivo(viajeActivo);
+    } else {
+      try {
+        const resDatos = await fetch(`${API}/api/pagos/datos-pago/${metodoPago}`);
+        const dataDatos = await resDatos.json();
+        datosZas = dataDatos.ok ? dataDatos.datos : null;
+      } catch { datosZas = null; }
+      pendienteConfirmarNegociacion = viajeActivo.estado === 'esperando_pago';
+      mostrarComprobanteNegociado(precioOferta);
+    }
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+}
+
 // ── PAGO ──
 function selectPago(metodo, el) {
   metodoPago = metodo;
   document.querySelectorAll('.pago-op').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   const nota = document.getElementById('pago-nota');
-  nota.style.display = metodo !== 'efectivo' ? 'block' : 'none';
+  nota.style.display = (metodo !== 'efectivo' && metodo !== 'pago_movil') ? 'block' : 'none';
 }
 
 // ── SOLICITAR VIAJE ──
 async function solicitarViaje() {
   if (!precioCalculado) { mostrarToast('Esperando cálculo de precio...', '#ff1744'); return; }
-  if (metodoPago !== 'efectivo') {
+  if (metodoPago !== 'efectivo' && metodoPago !== 'pago_movil') {
     await irAComprobantePrevio();
     return;
   }
@@ -722,6 +922,27 @@ async function irAComprobantePrevio() {
   mostrarComprobante();
 }
 
+async function crearPagoParaViaje(viajeId, monto, metodo, comprobanteInfo) {
+  try {
+    const resPago = await fetch(`${API}/api/pagos/nuevo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ viaje_id: viajeId, monto, metodo })
+    });
+    const dataPago = await resPago.json();
+    if (dataPago.ok) {
+      pagoId = dataPago.pago.id;
+      if (dataPago.datos_pago_zas) datosZas = dataPago.datos_pago_zas;
+      if (comprobanteInfo) {
+        await fetch(`${API}/api/pagos/subir-comprobante/${pagoId}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comprobante_url: comprobanteInfo.url, referencia: comprobanteInfo.referencia })
+        });
+      }
+    }
+    return dataPago;
+  } catch { return null; }
+}
+
 async function crearViajeYPago(comprobanteInfo) {
   try {
     const res = await fetch(`${API}/api/viajes/nuevo`, {
@@ -739,24 +960,16 @@ async function crearViajeYPago(comprobanteInfo) {
       return;
     }
     viajeActivo = data.viaje;
-    try {
-      const resPago = await fetch(`${API}/api/pagos/nuevo`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ viaje_id: data.viaje.id, monto: precioCalculado, metodo: metodoPago })
-      });
-      const dataPago = await resPago.json();
-      if (dataPago.ok) {
-        pagoId = dataPago.pago.id;
-        if (dataPago.datos_pago_zas) datosZas = dataPago.datos_pago_zas;
-        if (comprobanteInfo) {
-          await fetch(`${API}/api/pagos/subir-comprobante/${pagoId}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ comprobante_url: comprobanteInfo.url, referencia: comprobanteInfo.referencia })
-          });
-          mostrarToast('✅ Viaje solicitado. ZAS revisará tu comprobante en breve.');
-        }
+    viajeNegociable = !!(data.negociable || viajeActivo.estado_negociacion);
+
+    if (!viajeNegociable) {
+      const dataPago = await crearPagoParaViaje(viajeActivo.id, precioCalculado, metodoPago, comprobanteInfo);
+      if (comprobanteInfo && dataPago?.ok) {
+        mostrarToast('✅ Viaje solicitado. ZAS revisará tu comprobante en breve.');
       }
-    } catch {}
+    } else {
+      mostrarToast('📍 Viaje interurbano/nocturno — esperando ofertas de conductores');
+    }
     mostrarViajeActivo(viajeActivo);
     showScreen('viaje');
     iniciarPolling();
@@ -781,10 +994,20 @@ function mostrarViajeActivo(v) {
     const avatarEl = document.getElementById('c-avatar');
     if (v.conductor_foto) avatarEl.innerHTML = `<img src="${v.conductor_foto}" alt="foto" />`;
     else avatarEl.textContent = (v.conductor_nombre || '?')[0].toUpperCase();
+    const btnLlamar = document.getElementById('btn-llamar-conductor');
+    if (v.conductor_telefono) { btnLlamar.style.display = 'flex'; btnLlamar.dataset.tel = v.conductor_telefono; }
+    else btnLlamar.style.display = 'none';
   } else {
     document.getElementById('viaje-titulo').textContent = 'Buscando conductor...';
-    document.getElementById('viaje-sub').textContent = 'ZAS está buscando el conductor más cercano';
+    document.getElementById('viaje-sub').textContent = (v.estado_negociacion)
+      ? 'Viaje interurbano/nocturno — esperando ofertas de conductores'
+      : 'ZAS está buscando el conductor más cercano';
   }
+}
+
+function llamarConductor() {
+  const tel = document.getElementById('btn-llamar-conductor').dataset.tel;
+  if (tel) window.location.href = 'tel:' + tel;
 }
 
 function iniciarPolling() {
@@ -799,6 +1022,12 @@ function iniciarPolling() {
         if (v) {
           viajeActivo = v;
           mostrarViajeActivo(v);
+          if (v.estado === 'buscando' && v.estado_negociacion) {
+            cargarOfertas();
+          } else if (ofertasData.length) {
+            ofertasData = [];
+            renderOfertas();
+          }
           if (v.conductor_id && (v.estado === 'aceptado' || v.estado === 'en_curso')) {
             actualizarConductorEnMapa(v.conductor_id);
           }
@@ -815,16 +1044,28 @@ function iniciarPolling() {
         }
       }
     } catch {}
-  }, 5000);
+  }, 6000);
 }
 
 // ── POST VIAJE ──
 function mostrarPostViaje(v) {
-  mostrarCalificacion(v);
+  if (metodoPago === 'efectivo') {
+    const m = formatearMultimoneda(Number(v.precio || precioCalculado));
+    document.getElementById('pe-precio').textContent = m.cop;
+    document.getElementById('pe-precio-sec').textContent = m.bs + ' · ' + m.usd;
+    showScreen('pago-efectivo');
+  } else {
+    mostrarCalificacion(v);
+  }
+}
+
+function confirmarPagoEfectivo() {
+  mostrarCalificacion(viajeActivo);
 }
 
 // ── COMPROBANTE ──
 function mostrarComprobante() {
+  modoComprobante = 'nuevo';
   pagoId = null;
   const m = formatearMultimoneda(precioCalculado);
   document.getElementById('comp-precio').textContent = m.cop;
@@ -839,11 +1080,76 @@ function mostrarComprobante() {
   compFotoBase64 = '';
   document.getElementById('comp-foto-preview').style.display = 'none';
   document.getElementById('comp-referencia').value = '';
+  document.getElementById('btn-saltar-comp').textContent = 'Pedir conductor sin comprobante';
   showScreen('comprobante');
 }
 
+function mostrarComprobanteNegociado(monto) {
+  modoComprobante = 'negociado';
+  precioNegociadoActual = monto;
+  pagoId = null;
+  const m = formatearMultimoneda(monto);
+  document.getElementById('comp-precio').textContent = m.cop;
+  document.getElementById('comp-precio-sec').textContent = m.bs + ' · ' + m.usd;
+  const contenido = document.getElementById('datos-pago-contenido');
+  contenido.innerHTML = '';
+  if (datosZas) {
+    Object.entries(datosZas).forEach(([k, val]) => {
+      contenido.innerHTML += `<div class="datos-pago-row"><span class="datos-pago-key">${k.replace(/_/g,' ')}</span><span class="datos-pago-val">${val}</span></div>`;
+    });
+  }
+  compFotoBase64 = '';
+  document.getElementById('comp-foto-preview').style.display = 'none';
+  document.getElementById('comp-referencia').value = '';
+  document.getElementById('btn-saltar-comp').textContent = 'Continuar sin comprobante';
+  showScreen('comprobante');
+}
+
+function onEnviarComprobanteClick() {
+  if (modoComprobante === 'negociado') subirComprobanteNegociado();
+  else subirComprobante();
+}
+
+function onSaltarComprobanteClick() {
+  if (modoComprobante === 'negociado') saltarComprobanteNegociado();
+  else saltarComprobante();
+}
+
+async function subirComprobanteNegociado() {
+  if (!compFotoBase64) { mostrarToast('Selecciona una foto del comprobante', '#ff1744'); return; }
+  setLoading('btn-subir-comp', true, 'Enviando...');
+  try {
+    const resStorage = await fetch(`${API}/api/storage/subir-foto`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: compFotoBase64, nombre: `comprobante_${Date.now()}`, carpeta: 'comprobantes' })
+    });
+    const dataStorage = await resStorage.json();
+    const urlComprobante = dataStorage.ok ? dataStorage.url : compFotoBase64;
+    const referencia = document.getElementById('comp-referencia').value.trim();
+    await crearPagoParaViaje(viajeActivo.id, precioNegociadoActual, metodoPago, { url: urlComprobante, referencia: referencia || null });
+    if (pendienteConfirmarNegociacion) {
+      try {
+        await fetch(`${API}/api/viajes/${viajeActivo.id}/confirmar-pago-negociacion`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      } catch {}
+    }
+    mostrarToast('✅ Comprobante enviado. ZAS lo revisará en breve.');
+    showScreen('viaje');
+  } catch { mostrarToast('Error de conexión', '#ff1744'); }
+  setLoading('btn-subir-comp', false, 'Enviar comprobante');
+}
+
+async function saltarComprobanteNegociado() {
+  await crearPagoParaViaje(viajeActivo.id, precioNegociadoActual, metodoPago, null);
+  if (pendienteConfirmarNegociacion) {
+    try {
+      await fetch(`${API}/api/viajes/${viajeActivo.id}/confirmar-pago-negociacion`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    } catch {}
+  }
+  showScreen('viaje');
+}
+
 function volverDeComprobante() {
-  showScreen('confirmar');
+  showScreen(modoComprobante === 'negociado' ? 'viaje' : 'confirmar');
 }
 
 function onComprobanteSeleccionado(input) {
@@ -924,9 +1230,16 @@ function reiniciarFlujo() {
   paso = 'origen'; coordOrigen = null; coordDestino = null;
   nombreOrigen = ''; nombreDestino = ''; precioCalculado = 0;
   metodoPago = 'efectivo';
+  viajeNegociable = false; ofertasData = []; modoComprobante = 'nuevo';
+  pendienteConfirmarNegociacion = false; precioNegociadoActual = 0;
+  const ofertasWrap = document.getElementById('ofertas-wrap');
+  if (ofertasWrap) ofertasWrap.style.display = 'none';
   document.querySelectorAll('.pago-op').forEach((b, i) => { b.classList.toggle('active', i === 0); });
+  conductorMarker = null; viajeMap = null; rutaRenderer = null;
+  document.getElementById('viaje-mapa').style.display = 'none';
   showScreen('mapa');
   actualizarPaso();
+  iniciarConductoresDisponibles();
 }
 
 async function cancelarViaje() {
@@ -938,7 +1251,8 @@ async function cancelarViaje() {
     });
   } catch {}
   if (pollingInterval) clearInterval(pollingInterval);
-  conductorMarker = null; viajeMap = null;
+  ofertasData = [];
+  conductorMarker = null; viajeMap = null; rutaRenderer = null;
   document.getElementById('viaje-mapa').style.display = 'none';
   reiniciarFlujo();
 }
@@ -961,6 +1275,9 @@ async function actualizarConductorEnMapa(conductorId) {
           { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f3460' }] },
         ]
       });
+      rutaService = new google.maps.DirectionsService();
+      rutaRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true, polylineOptions: { strokeColor: '#2ED9C3', strokeWeight: 4 } });
+      rutaRenderer.setMap(viajeMap);
     }
     if (!conductorMarker) {
       conductorMarker = new google.maps.Marker({ position: pos, map: viajeMap, title: 'Conductor', label: { text: '🏍️', fontSize: '24px' } });
@@ -968,7 +1285,49 @@ async function actualizarConductorEnMapa(conductorId) {
       conductorMarker.setPosition(pos);
     }
     viajeMap.panTo(pos);
+    // Ruta trazada: conductor -> punto de recogida o destino según el estado del viaje
+    if (rutaService && viajeActivo) {
+      const destinoRuta = viajeActivo.estado === 'en_curso'
+        ? { lat: coordDestino?.lat || pos.lat, lng: coordDestino?.lng || pos.lng }
+        : { lat: coordOrigen?.lat || pos.lat, lng: coordOrigen?.lng || pos.lng };
+      rutaService.route({ origin: pos, destination: destinoRuta, travelMode: google.maps.TravelMode.DRIVING }, (result, status) => {
+        if (status === 'OK') rutaRenderer.setDirections(result);
+      });
+    }
   } catch {}
+}
+
+// ── HISTORIAL ──
+async function abrirHistorial() {
+  showScreen('historial');
+  const cont = document.getElementById('historial-lista');
+  cont.innerHTML = `<div style="text-align:center;padding:40px"><div class="spin"></div></div>`;
+  try {
+    const res = await fetch(`${API}/api/viajes/usuario/${usuarioId}`);
+    const data = await res.json();
+    const viajes = (data.viajes || []).filter(v => v.estado === 'completado' || v.estado === 'cancelado');
+    if (!viajes.length) {
+      cont.innerHTML = `<div class="hist-empty">🏍️<br>Aún no tienes viajes en tu historial</div>`;
+      return;
+    }
+    cont.innerHTML = viajes.map(v => {
+      const m = formatearMultimoneda(Number(v.precio || 0));
+      const fecha = v.created_at ? new Date(v.created_at).toLocaleString('es-VE', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+      return `<div class="hist-item">
+        <div class="hist-top">
+          <span class="hist-fecha">${fecha}</span>
+          <span class="hist-estado ${v.estado}">${v.estado}</span>
+        </div>
+        <div class="hist-ruta">${v.origen || '—'} → ${v.destino || '—'}</div>
+        <div class="hist-bottom">
+          <span class="hist-precio">${m.cop}</span>
+          <span style="font-size:11px;color:var(--muted)">${v.conductor_nombre || 'Sin conductor'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch {
+    cont.innerHTML = `<div class="hist-empty">No se pudo cargar el historial</div>`;
+  }
 }
 
 // ── INIT ──
@@ -987,6 +1346,6 @@ window.addEventListener('load', async () => {
 });
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCeyxJrdrzWXYV-iF4xQAMG0FPBeJRZvVY&libraries=places" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCeyxJrdrzWXYV-iF4xQAMG0FPBeJRZvVY&libraries=places&loading=async" async defer></script>
 </body>
 </html>
