@@ -286,6 +286,20 @@ body{display:flex;flex-direction:column}
     </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="l-err">Usuario o contraseña incorrectos</div>
+    <div style="text-align:center;margin-top:14px"><a onclick="mostrarRecuperacion()" style="color:var(--gold);font-size:13px;cursor:pointer">¿Olvidaste tu contraseña?</a></div>
+    <div id="recuperacion" style="display:none;margin-top:14px">
+      <div id="paso1-rec">
+        <input id="correo-admin" class="login-input" type="email" placeholder="soporte@zasapps.com"/>
+        <button onclick="solicitarResetAdmin()" class="login-btn" style="padding:12px">Enviar código</button>
+      </div>
+      <div id="paso2-rec" style="display:none">
+        <p style="color:var(--muted);font-size:12px;text-align:center;margin-bottom:10px">Revisa soporte@zasapps.com</p>
+        <input id="codigo-admin" class="login-input" type="text" placeholder="Código de 6 dígitos" maxlength="6" style="text-align:center;letter-spacing:6px"/>
+        <button onclick="confirmarResetAdmin()" class="login-btn" style="padding:12px">Verificar</button>
+      </div>
+      <div id="paso3-rec" style="display:none"><p style="color:var(--green);font-size:13px;text-align:center">✅ Código correcto. Actualiza la contraseña en Railway → Variables → ADMIN_PASS</p></div>
+      <p id="rec-error" style="color:#ff6b6b;text-align:center;font-size:12px;margin-top:8px;display:none"></p>
+    </div>
   </div>
 </div>
 
@@ -306,6 +320,11 @@ body{display:flex;flex-direction:column}
 
   <!-- ═══ DASHBOARD ═══ -->
   <div class="page active" id="p-dashboard">
+    <div class="filter-row" style="margin-bottom:2px">
+      <button class="filter-btn active" onclick="setPeriodMovil('hoy',this)">Hoy</button>
+      <button class="filter-btn" onclick="setPeriodMovil('semana',this)">Semana</button>
+      <button class="filter-btn" onclick="setPeriodMovil('mes',this)">Mes</button>
+    </div>
     <div class="refresh-bar">
       <div class="refresh-info" id="dash-ts">Cargando...</div>
       <button class="refresh-btn" onclick="loadDashboard()">↻ Actualizar</button>
@@ -317,7 +336,7 @@ body{display:flex;flex-direction:column}
     </div>
     <div class="stats-2">
       <div class="stat-card gold" onclick="goPage('conductores',document.getElementById('nav-conductores'))" style="cursor:pointer"><div class="stat-label">Subs vencidas</div><div class="stat-val" id="d-venc">—</div></div>
-      <div class="stat-card blue" onclick="goPage('viajes',document.getElementById('nav-viajes'))" style="cursor:pointer"><div class="stat-label">Viajes hoy</div><div class="stat-val" id="d-viajes">—</div></div>
+      <div class="stat-card blue" onclick="goPage('viajes',document.getElementById('nav-viajes'))" style="cursor:pointer"><div class="stat-label">Viajes <span id="d-periodo-label-movil">hoy</span></div><div class="stat-val" id="d-viajes">—</div></div>
     </div>
 
     <div class="card">
@@ -388,6 +407,9 @@ body{display:flex;flex-direction:column}
       <div class="stat-card gold"><div class="stat-label">Pendientes</div><div class="stat-val" id="r-pend">—</div></div>
       <div class="stat-card red"><div class="stat-label">Monto total</div><div class="stat-val" id="r-monto">—</div></div>
     </div>
+    <div class="stats-2">
+      <div class="stat-card green"><div class="stat-label">Procesados hoy</div><div class="stat-val" id="r-proc">—</div></div>
+    </div>
     <div id="retiros-list"><div class="loading"><div class="spinner"></div>Cargando retiros...</div></div>
   </div>
 
@@ -444,7 +466,14 @@ body{display:flex;flex-direction:column}
         <div id="pagos-cola-movil"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
       </div>
       <div class="card" style="margin-top:12px">
-        <div class="card-hdr"><span class="card-ttl">Historial reciente</span></div>
+        <div class="card-hdr">
+          <span class="card-ttl">Historial reciente</span>
+          <button class="btn btn-outline" style="padding:5px 10px;font-size:10px" onclick="exportarHistorialMovilCSV()">⬇ CSV</button>
+        </div>
+        <div style="padding:10px 16px;display:flex;gap:8px">
+          <input type="date" class="form-input" id="hist-desde-movil" style="font-size:11px;padding:8px" onchange="loadHistorialPagosMovil()"/>
+          <input type="date" class="form-input" id="hist-hasta-movil" style="font-size:11px;padding:8px" onchange="loadHistorialPagosMovil()"/>
+        </div>
         <div id="pagos-historial-movil"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
       </div>
     </div>
@@ -485,7 +514,7 @@ body{display:flex;flex-direction:column}
     <div class="modal-title">⚡ Activar Suscripción</div>
     <div class="modal-sub" id="ms-nombre">Conductor</div>
     <div class="subs-box">
-      <div class="subs-row"><span class="subs-key">Costo semanal</span><span class="subs-val" style="color:var(--gold)">$20.000 COP</span></div>
+      <div class="subs-row"><span class="subs-key">Costo semanal</span><span class="subs-val" style="color:var(--gold)">$15.000 COP</span></div>
       <div class="subs-row"><span class="subs-key">Duración</span><span class="subs-val">7 días</span></div>
       <div class="subs-row"><span class="subs-key">Estado</span><span class="subs-val" id="ms-estado">—</span></div>
     </div>
@@ -540,6 +569,15 @@ const API = 'https://zasapps.com';
 let conductoresData = [], usuariosData = [], viajesData = [], viajesFiltro = 'todos';
 let conductorSelId = null, masSub = 'tarifas';
 let pagosColaMovilData = [], pagosFiltroMovil = 'todos';
+let currentPeriodMovil = 'hoy';
+
+function setPeriodMovil(p, btn){
+  currentPeriodMovil = p;
+  document.querySelectorAll('#p-dashboard .filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('d-periodo-label-movil').textContent = p==='hoy'?'hoy':p==='semana'?'semana':'mes';
+  loadDashboard();
+}
 
 // ── HELPERS ──
 function getToken(){ return sessionStorage.getItem('zas_token')||''; }
@@ -557,7 +595,9 @@ function toast(msg, tipo){
 
 function lb(url){ document.getElementById('lb-img').src=url; document.getElementById('lightbox').classList.add('show'); }
 
-function avatar(nombre, color){
+function avatar(nombre, color, fotoUrl){
+  if(fotoUrl && fotoUrl.startsWith('http'))
+    return `<img src="${fotoUrl}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" onerror="this.style.display='none'">`;
   const l = nombre?nombre[0].toUpperCase():'?';
   const bg = color||'var(--gold)';
   const tc = (color&&color!=='var(--gold)')?'#fff':'#0a0a0f';
@@ -608,6 +648,27 @@ function doLogout(){
   location.reload();
 }
 
+function mostrarRecuperacion(){
+  const d = document.getElementById('recuperacion');
+  d.style.display = d.style.display==='none' ? 'block' : 'none';
+}
+async function solicitarResetAdmin(){
+  const correo = document.getElementById('correo-admin').value.trim();
+  if(!correo) return;
+  const res = await fetch(`${API}/api/admin/solicitar-reset`,{method:'POST',headers:jH(),body:JSON.stringify({correo})});
+  const data = await res.json();
+  if(data.ok){ document.getElementById('paso1-rec').style.display='none'; document.getElementById('paso2-rec').style.display='block'; }
+  else { document.getElementById('rec-error').textContent=data.error; document.getElementById('rec-error').style.display='block'; }
+}
+async function confirmarResetAdmin(){
+  const codigo = document.getElementById('codigo-admin').value.trim();
+  if(!codigo) return;
+  const res = await fetch(`${API}/api/admin/confirmar-reset`,{method:'POST',headers:jH(),body:JSON.stringify({codigo,nueva_password:'ZAS'+Math.random().toString(36).slice(-4).toUpperCase()})});
+  const data = await res.json();
+  if(data.ok){ document.getElementById('paso2-rec').style.display='none'; document.getElementById('paso3-rec').style.display='block'; }
+  else { document.getElementById('rec-error').textContent=data.error; document.getElementById('rec-error').style.display='block'; }
+}
+
 if(sessionStorage.getItem('zas_admin')==='true'){
   document.getElementById('login-screen').style.display='none';
   loadDashboard();
@@ -644,12 +705,17 @@ async function loadDashboard(){
     const conds = cD.conductores||[];
     const viajes = vD.viajes||[];
     const pagos = sD.pagos||[];
-    const hoy = new Date().toDateString();
+    const ahoraP = new Date();
 
     const activos = conds.filter(c=>c.suscripcion_hasta&&new Date(c.suscripcion_hasta)>new Date()).length;
     const vencidas = conds.filter(c=>!c.suscripcion_hasta||new Date(c.suscripcion_hasta)<=new Date());
     const comps = pagos.filter(p=>p.estado==='en_revision');
-    const viajesHoy = viajes.filter(v=>new Date(v.created_at).toDateString()===hoy);
+    const viajesHoy = viajes.filter(v=>{
+      const d = new Date(v.created_at);
+      if(currentPeriodMovil==='hoy') return d.toDateString()===ahoraP.toDateString();
+      if(currentPeriodMovil==='semana'){ const s=new Date(ahoraP); s.setDate(s.getDate()-7); return d>=s; }
+      const m=new Date(ahoraP); m.setDate(m.getDate()-30); return d>=m;
+    });
     const viajesVivos = viajes.filter(v=>['solicitado','aceptado','en_camino','en_curso','asignado'].includes(v.estado));
 
     document.getElementById('d-activos').textContent = activos;
@@ -691,7 +757,7 @@ async function loadDashboard(){
       vl.innerHTML = vencidas.map(c=>{
         const dias = c.suscripcion_hasta?Math.abs(Math.ceil((new Date(c.suscripcion_hasta)-new Date())/86400000)):null;
         return `<div class="alert-item">
-          ${avatar(c.nombre)}
+          ${avatar(c.nombre,null,c.foto_url)}
           <div class="item-info">
             <div class="item-name">${c.nombre}</div>
             <div class="item-meta">${dias?`Venció hace ${dias}d`:'Sin suscripción'}</div>
@@ -769,7 +835,7 @@ function renderConductores(lista, pagos){
     const diasSubs = tieneAct?Math.ceil((new Date(c.suscripcion_hasta)-new Date())/86400000):0;
     return `<div class="conductor-item">
       <div class="conductor-head" onclick="toggleCond('${c.id}')">
-        ${avatar(c.nombre)}
+        ${avatar(c.nombre,null,c.foto_url)}
         <div class="item-info">
           <div class="item-name">${c.nombre}</div>
           <div class="item-meta">${c.telefono||'—'} · ${c.placa_moto||'—'}</div>
@@ -792,6 +858,7 @@ function renderConductores(lista, pagos){
             ${docThumb(c.foto_licencia,'Licencia')}
             ${docThumb(c.foto_registro_moto,'Registro')}
             ${docThumb(c.foto_rcv,'RCV')}
+            ${docThumb(c.foto_antecedentes,'Antecedentes')}
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--muted);cursor:pointer">
@@ -984,6 +1051,7 @@ async function loadRetiros(){
     const total = retiros.reduce((s,r)=>s+Number(r.monto||0),0);
     document.getElementById('r-pend').textContent = retiros.length;
     document.getElementById('r-monto').textContent = '$'+total.toFixed(0);
+    document.getElementById('r-proc').textContent = '—';
     document.getElementById('dot-retiros').classList.toggle('show', retiros.length>0);
 
     const el = document.getElementById('retiros-list');
@@ -1184,7 +1252,7 @@ function renderUsuarios(lista, pagos){
     const pagosU = (pagos||[]).filter(p=>p.viajes?.usuario_id===u.id);
     return `<div class="conductor-item">
       <div class="conductor-head" onclick="toggleUser('${u.id}')">
-        ${avatar(u.nombre,'var(--blue)')}
+        ${avatar(u.nombre,'var(--blue)',u.foto_url)}
         <div class="item-info">
           <div class="item-name">${u.nombre}</div>
           <div class="item-meta">${u.telefono||'—'}</div>
@@ -1197,9 +1265,9 @@ function renderUsuarios(lista, pagos){
       </div>
       <div class="conductor-body" id="ubody-${u.id}">
         ${u.email?`<div class="info-row"><span class="info-key">Email</span><span class="info-val">${u.email}</span></div>`:''}
-        ${u.foto_cedula?`<div style="margin:10px 0">
+        ${(u.foto_cedula||u.foto_rostro)?`<div style="margin:10px 0">
           <div class="info-key" style="margin-bottom:6px">Documentos</div>
-          <div class="doc-grid">${docThumb(u.foto_cedula,'Cédula')}</div>
+          <div class="doc-grid">${docThumb(u.foto_cedula,'Cédula')}${u.foto_rostro?docThumb(u.foto_rostro,'Rostro'):''}</div>
         </div>`:''}
         ${pagosU.length?`<div style="margin-top:10px">
           <div class="info-key" style="margin-bottom:6px">Pagos de viajes</div>
@@ -1340,7 +1408,12 @@ async function rechazarPagoMovil(tipo, id){
 async function loadHistorialPagosMovil(){
   document.getElementById('pagos-historial-movil').innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
   try {
-    const res = await fetch(`${API}/api/historial-pagos?limit=15`,{headers:aH()});
+    const desde = document.getElementById('hist-desde-movil')?.value;
+    const hasta = document.getElementById('hist-hasta-movil')?.value;
+    let url = `${API}/api/historial-pagos?limit=15`;
+    if(desde) url += `&desde=${desde}`;
+    if(hasta) url += `&hasta=${hasta}`;
+    const res = await fetch(url,{headers:aH()});
     const data = await res.json();
     const hist = data.historial||[];
     const hoy = new Date().toDateString();
@@ -1361,6 +1434,23 @@ async function loadHistorialPagosMovil(){
         </div>
       </div>`).join('');
   } catch { document.getElementById('pagos-historial-movil').innerHTML=`<div class="loading">Error al cargar</div>`; }
+}
+
+async function exportarHistorialMovilCSV(){
+  const desde = document.getElementById('hist-desde-movil')?.value;
+  const hasta = document.getElementById('hist-hasta-movil')?.value;
+  let url = `${API}/api/historial-pagos/exportar?`;
+  if(desde) url += `desde=${desde}&`;
+  if(hasta) url += `hasta=${hasta}&`;
+  try {
+    const res = await fetch(url, {headers:aH()});
+    if(!res.ok){ toast('❌ Error al exportar','red'); return; }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `historial_pagos_zas_${Date.now()}.csv`;
+    a.click();
+  } catch { toast('❌ Error al exportar','red'); }
 }
 
 async function checkPendientesGlobal(){
