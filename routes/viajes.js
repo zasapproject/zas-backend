@@ -353,7 +353,7 @@ router.patch('/estado/:id', async (req, res) => {
     if (estado === 'completado') {
       if (viaje.usuario_id) notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
       if (viaje.conductor_id) {
-        await supabase.from('conductores').update({ estado: 'disponible' }).eq('id', viaje.conductor_id);
+        await supabase.from('conductores').update({ estado: 'disponible', activo: true }).eq('id', viaje.conductor_id);
         console.log('🟢 Conductor liberado');
       }
     }
@@ -361,7 +361,7 @@ router.patch('/estado/:id', async (req, res) => {
       if (conductor_id && viaje.usuario_id) notificarUsuario(viaje.usuario_id, '❌ Viaje cancelado', 'El conductor canceló el viaje.');
       if (!conductor_id && viaje.conductor_id) notificarConductor(viaje.conductor_id, '❌ Viaje cancelado', 'El usuario canceló el viaje.');
       if (viaje.conductor_id) {
-        await supabase.from('conductores').update({ estado: 'disponible' }).eq('id', viaje.conductor_id);
+        await supabase.from('conductores').update({ estado: 'disponible', activo: true }).eq('id', viaje.conductor_id);
       }
     }
 

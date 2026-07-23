@@ -279,8 +279,16 @@ router.patch('/ubicacion/:id', async (req, res) => {
       .update({ lat, lng, activo: true })
       .eq('id', req.params.id)
       .select('id, lat, lng, activo');
-
     if (error) throw error;
+
+    // Si el conductor estaba desconectado pero ya está mandando ubicación,
+    // sincronizarlo a disponible — sin tocar 'ocupado' si está en viaje
+    await supabase
+      .from('conductores')
+      .update({ estado: 'disponible' })
+      .eq('id', req.params.id)
+      .eq('estado', 'desconectado');
+
     res.json({ ok: true, conductor: data[0] });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
