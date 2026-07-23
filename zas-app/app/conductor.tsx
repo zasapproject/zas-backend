@@ -133,7 +133,7 @@ export default function ConductorScreen() {
           }
         } catch {}
         buscarViajes();
-      }, 5000);
+      }, 8000);
 
       const intervaloSub = setInterval(() => verificarSuscripcion(sesion.id), 30000);
     
@@ -167,7 +167,7 @@ export default function ConductorScreen() {
             });
           }
         } catch {}
-      }, 4000);
+      }, 6000);
  
       return () => { clearInterval(intervalo); clearInterval(intervaloSub); clearInterval(intervaloContraoferta); };
     }

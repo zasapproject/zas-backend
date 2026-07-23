@@ -296,7 +296,7 @@ export default function HomeScreen() {
           }
         }
       } catch (e) {}
-    }, 5000);
+    }, 8000);
     timerSenalRef.current = setInterval(() => {
       if (viaje && (viaje.estado === 'aceptado' || viaje.estado === 'en_curso')) {
         const segundosSin = Date.now() - ultimaActualizacionRef.current;

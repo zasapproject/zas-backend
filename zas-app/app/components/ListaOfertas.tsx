@@ -128,7 +128,7 @@ export default function ListaOfertas({
       } catch {}
     };
     buscarOfertas();
-    intervaloOfertas.current = setInterval(buscarOfertas, 4000);
+    intervaloOfertas.current = setInterval(buscarOfertas, 6000);
     return () => clearInterval(intervaloOfertas.current);
   }, [viaje.id, esNegociable, usuarioId]);
 
@@ -195,7 +195,7 @@ export default function ListaOfertas({
       } catch {}
     };
     revisarEstado();
-    intervaloEstadoDirecto.current = setInterval(revisarEstado, 4000);
+    intervaloEstadoDirecto.current = setInterval(revisarEstado, 6000);
     return () => clearInterval(intervaloEstadoDirecto.current);
   }, [viaje.id, esNegociable, usuarioId]);
 

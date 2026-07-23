@@ -10,7 +10,7 @@ const BACKEND_URL = 'https://zasapps.com';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
 const GOOGLE_SERVER_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
 const GOOGLE_DISTANCE_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
-const POLLING_INTERVAL = 4000;
+const POLLING_INTERVAL = 6000;
 
 function decodificarPolyline(encoded) {
   const poly = [];
