@@ -395,18 +395,37 @@ export default function MapaViaje() {
   async function terminarViaje() {
     Alert.alert('Terminar viaje?', 'Confirma que llegaste al destino.', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Terminar', onPress: async () => {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        if (locationSub.current) locationSub.current.remove();
-        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'completado' })
-        });
-        setCalificacionTitulo('¿Cómo fue el usuario?');
-        setMostrarCalificacion(true);
-      }},
+      { text: 'Terminar', onPress: () => ejecutarTerminarViaje() },
     ]);
+  }
+
+  async function ejecutarTerminarViaje() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'completado' }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Respuesta no exitosa');
+
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (locationSub.current) locationSub.current.remove();
+      setCalificacionTitulo('¿Cómo fue el usuario?');
+      setMostrarCalificacion(true);
+    } catch (err) {
+      Alert.alert(
+        'No se pudo terminar el viaje',
+        'Revisa tu conexión e intenta de nuevo. El viaje sigue activo.',
+        [{ text: 'Reintentar', onPress: () => ejecutarTerminarViaje() }]
+      );
+    }
   }
 
   const regionInicial = miUbicacion
