@@ -317,6 +317,28 @@ router.patch('/perfil/:id', authUsuario, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// Admin edita nombre y teléfono del usuario
+// ─────────────────────────────────────────────
+router.patch('/admin-editar/:id', authAdmin, async (req, res) => {
+  const { nombre, telefono } = req.body;
+  if (!nombre || !telefono) {
+    return res.status(400).json({ ok: false, error: 'nombre y telefono son obligatorios' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ nombre, telefono })
+      .eq('id', req.params.id)
+      .select('id, nombre, telefono');
+
+    if (error) throw error;
+    res.json({ ok: true, usuario: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // Reset password usuario
 // ─────────────────────────────────────────────
 router.patch('/reset-password/:id', async (req, res) => {

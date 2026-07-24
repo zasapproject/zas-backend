@@ -387,6 +387,28 @@ router.patch('/perfil/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// Admin edita nombre y teléfono del conductor
+// ─────────────────────────────────────────────
+router.patch('/admin-editar/:id', authAdmin, async (req, res) => {
+  const { nombre, telefono } = req.body;
+  if (!nombre || !telefono) {
+    return res.status(400).json({ ok: false, error: 'nombre y telefono son obligatorios' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('conductores')
+      .update({ nombre, telefono })
+      .eq('id', req.params.id)
+      .select('id, nombre, telefono');
+
+    if (error) throw error;
+    res.json({ ok: true, conductor: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // Subir documentos del conductor
 // ─────────────────────────────────────────────
 router.patch('/documentos/:id', async (req, res) => {

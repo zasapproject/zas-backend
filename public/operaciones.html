@@ -779,6 +779,7 @@ function renderConductores(lista, pagos){
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn btn-gold btn-sm" onclick="abrirModalSubsConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}',${tieneSubsActiva})">${tieneSubsActiva?'Renovar +7d':'Activar'}</button>
+              <button class="btn btn-outline btn-sm" onclick="editarConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}','${(c.telefono||'').replace(/'/g,"\\'")}')">✏️ Editar</button>
               <button class="btn btn-outline btn-sm" onclick="resetPasswordConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">🔑 Reset pass</button>
             </div>
           </div>
@@ -895,6 +896,19 @@ async function confirmarActivacion(){
   else mostrarToast('❌ Error al activar','red');
 }
 
+async function editarConductor(id, nombreActual, telActual){
+  const nuevoNombre = prompt('Nombre del conductor:', nombreActual);
+  if(nuevoNombre===null) return;
+  if(!nuevoNombre.trim()){ alert('El nombre no puede estar vacío'); return; }
+  const nuevoTel = prompt('Teléfono del conductor:', telActual||'');
+  if(nuevoTel===null) return;
+  if(!nuevoTel.trim()){ alert('El teléfono no puede estar vacío'); return; }
+  const res = await fetch(`${API}/api/conductores/admin-editar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({nombre:nuevoNombre.trim(), telefono:nuevoTel.trim()})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast('✅ Datos actualizados'); cargarConductores(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
+}
+
 async function resetPasswordConductor(id, nombre){
   const nueva = prompt(`Nueva contraseña para ${nombre}:`);
   if(!nueva||nueva.length<4){ alert('Mínimo 4 caracteres'); return; }
@@ -952,6 +966,7 @@ function renderUsuarios(lista, pagosDigitales){
               ${u.foto_rostro?docImg(u.foto_rostro,'Rostro'):''}
             </div>
             <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-outline btn-sm" onclick="editarUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}','${(u.telefono||'').replace(/'/g,"\\'")}')">✏️ Editar</button>
               <button class="btn btn-outline btn-sm" onclick="resetPasswordUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">🔑 Reset pass</button>
             </div>
           </div>
@@ -1004,6 +1019,19 @@ async function rechazarPagoDigital(id){
   const data = await res.json();
   if(data.ok){ mostrarToast('❌ Pago rechazado'); cargarUsuarios(); }
   else mostrarToast('❌ '+data.error,'red');
+}
+
+async function editarUsuario(id, nombreActual, telActual){
+  const nuevoNombre = prompt('Nombre del usuario:', nombreActual);
+  if(nuevoNombre===null) return;
+  if(!nuevoNombre.trim()){ alert('El nombre no puede estar vacío'); return; }
+  const nuevoTel = prompt('Teléfono del usuario:', telActual||'');
+  if(nuevoTel===null) return;
+  if(!nuevoTel.trim()){ alert('El teléfono no puede estar vacío'); return; }
+  const res = await fetch(`${API}/api/usuarios/admin-editar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({nombre:nuevoNombre.trim(), telefono:nuevoTel.trim()})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast('✅ Datos actualizados'); cargarUsuarios(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
 }
 
 async function resetPasswordUsuario(id, nombre){

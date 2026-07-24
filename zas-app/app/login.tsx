@@ -10,6 +10,20 @@ const API_URL = "https://zasapps.com";
 export default function LoginScreen() {
   const router = useRouter();
   const [pantalla, setPantalla] = useState("inicio");
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const conductorGuardado = await AsyncStorage.getItem('conductor_sesion');
+        if (conductorGuardado) {
+          router.replace('/conductor');
+          return;
+        }
+      } catch {}
+      setVerificandoSesion(false);
+    })();
+  }, []);
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
@@ -288,6 +302,14 @@ export default function LoginScreen() {
       setCargando(false);
     }
   };
+
+  if (verificandoSesion) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color="#FFD700" size="large" />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
