@@ -3,6 +3,28 @@ const router = express.Router();
 const supabase = require('../supabase');
 const authAdmin = require('../middleware/authAdmin');
 
+// ─────────────────────────────────────────────
+// GET /api/datos-bancarios/mis-datos/:conductor_id
+// El propio conductor consulta sus datos (sin admin)
+// ─────────────────────────────────────────────
+router.get('/mis-datos/:conductor_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('datos_bancarios_conductor')
+      .select('*')
+      .eq('conductor_id', req.params.conductor_id)
+      .single();
+
+    if (error || !data) {
+      return res.json({ ok: true, datos: null, mensaje: 'Sin datos bancarios registrados aún.' });
+    }
+
+    res.json({ ok: true, datos: data });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 router.get('/:conductor_id/pago-movil', async (req, res) => {
   try {
     const { data, error } = await supabase

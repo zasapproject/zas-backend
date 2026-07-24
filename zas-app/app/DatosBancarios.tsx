@@ -28,7 +28,7 @@ export default function DatosBancarios({ conductorId, onGuardado }: {
 
   const cargarDatos = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/datos-bancarios/${conductorId}`);
+      const res = await fetch(`${API_URL}/api/datos-bancarios/mis-datos/${conductorId}`);
       const data = await res.json();
       if (data.ok && data.datos) {
         const d = data.datos;
