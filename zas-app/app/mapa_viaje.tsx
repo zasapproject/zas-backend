@@ -608,12 +608,12 @@ export default function MapaViaje() {
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
         {miUbicacion && (
-  <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+  <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
     <Text style={{ fontSize: 28 }}>{esCondutor ? '🏍' : '🧍'}</Text>
   </Marker>
 )} 
         {!esCondutor && ubicacionConductor && (
-  <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+  <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
     <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
       <Text style={{ fontSize: 28 }}>🏍</Text>
     </Animated.View>
