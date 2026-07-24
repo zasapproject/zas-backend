@@ -347,8 +347,14 @@ router.patch('/estado/:id', async (req, res) => {
 
     const viaje = data[0];
 
-    if (estado === 'aceptado' && viaje.usuario_id) {
-      notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
+    if (estado === 'aceptado') {
+      if (viaje.usuario_id) {
+        notificarUsuario(viaje.usuario_id, '🏍️ Conductor en camino', 'Tu conductor va hacia ti');
+      }
+      if (viaje.conductor_id) {
+        await supabase.from('conductores').update({ estado: 'ocupado', activo: true }).eq('id', viaje.conductor_id);
+        console.log('🔴 Conductor marcado como ocupado');
+      }
     }
     if (estado === 'completado') {
       if (viaje.usuario_id) notificarUsuario(viaje.usuario_id, '✅ Viaje completado', '¡Gracias por viajar con ZAS!');
