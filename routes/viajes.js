@@ -47,6 +47,19 @@ router.post('/nuevo', async (req, res) => {
   }
 
   try {
+    // Bloquear duplicados: si el usuario ya tiene un viaje activo, no crear otro
+    const { data: viajeExistente } = await supabase
+      .from('viajes')
+      .select('id, estado')
+      .eq('usuario_id', usuario_id)
+      .in('estado', ['buscando', 'esperando_pago', 'aceptado', 'en_curso'])
+      .limit(1)
+      .maybeSingle();
+
+    if (viajeExistente) {
+      return res.status(409).json({ ok: false, error: 'Ya tienes un viaje activo', viaje: viajeExistente });
+    }
+
     const rutaData = await obtenerRuta(origen_lat, origen_lng, destino_lat, destino_lng);
 
     // Determinar si el viaje es negociable según distancia real de Google

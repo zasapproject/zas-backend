@@ -492,7 +492,7 @@ export default function HomeScreen() {
   };
 
   const solicitarViaje = async () => {
-    if (!coordOrigen || !coordDestino || !precioCalculado) return;
+    if (!coordOrigen || !coordDestino || !precioCalculado || cargando) return;
     setCargando(true);
     try {
       const precioFinal = esNegociable ? precioUsuario : precioCalculado;
