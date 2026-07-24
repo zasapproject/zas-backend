@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndic
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BACKEND_URL = 'https://zasapps.com';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyD-tWo0Q_GgBD3C52cKidIMk5H3RDNyc0Y';
@@ -72,6 +73,7 @@ async function obtenerEstadoViaje(viajeId) {
 export default function MapaViaje() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const flushUbicaciones = useCallback(async (pendientes) => {
     if (!conductorIdRef.current) return;
     const ultima = pendientes[pendientes.length - 1];
@@ -606,17 +608,17 @@ export default function MapaViaje() {
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
         {miUbicacion && (
-          <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
-            <Text style={{ fontSize: 28 }}>{esCondutor ? (estadoViaje === 'en_curso' ? '🏍' : '🏍🧍') : '🧍'}</Text>
-          </Marker>
-        )}
+  <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+    <Text style={{ fontSize: 28 }}>{esCondutor ? '🏍' : '🧍'}</Text>
+  </Marker>
+)} 
         {!esCondutor && ubicacionConductor && (
-          <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }}>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Text style={{ fontSize: 28 }}>{estadoViaje === 'en_curso' ? '🏍' : '🏍🧍'}</Text>
-            </Animated.View>
-          </Marker>
-        )}
+  <Marker coordinate={ubicacionConductor} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+    <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+      <Text style={{ fontSize: 28 }}>🏍</Text>
+    </Animated.View>
+  </Marker>
+)}
         {coordOrigen && <Marker coordinate={coordOrigen} title="Origen" pinColor="#F5A623" />}
         {coordDestino && <Marker coordinate={coordDestino} title="Destino" pinColor="#E53935" />}
         {ruta.length > 1 && <Polyline coordinates={ruta} strokeColor="#000000" strokeWidth={5} />}
@@ -673,7 +675,7 @@ export default function MapaViaje() {
         )}
       </View>
 
-      <View style={styles.cardInferior}>
+      <View style={[styles.cardInferior, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'ios' ? 24 : 8) }]}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.infoRow}>
             {fotoOtro ? (
@@ -731,6 +733,12 @@ export default function MapaViaje() {
               </TouchableOpacity>
             </View>
           )}
+
+          {!esCondutor && (estadoViaje === 'aceptado' || estadoViaje === 'en_camino') && (
+            <TouchableOpacity style={[styles.btnAccion, { backgroundColor: '#3a1a1a', marginTop: 8 }]} onPress={cancelarViaje}>
+              <Text style={[styles.btnAccionTexto, { color: '#ff6b6b' }]}>Cancelar viaje</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
     </View>
@@ -747,7 +755,7 @@ const styles = StyleSheet.create({
   etaFila: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   etaIcono: { fontSize: 14 },
   etaTexto: { color: '#F5A623', fontSize: 13, fontWeight: '700' },
-  cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, elevation: 10, maxHeight: '70%' },
+  cardInferior: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, elevation: 10, maxHeight: '70%' },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   fotoCircle: { width: 52, height: 52, borderRadius: 26, marginRight: 12, borderWidth: 2, borderColor: '#F5A623' },
   avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F5A623', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
