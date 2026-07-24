@@ -345,32 +345,70 @@ export default function MapaViaje() {
   async function iniciarViaje() {
     Alert.alert('Iniciar viaje?', 'Confirma que el pasajero esta contigo.', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Iniciar', onPress: async () => {
-        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'en_curso' })
-        });
-        setEstadoViaje('en_curso');
-        estadoViajeRef.current = 'en_curso';
-      }},
+      { text: 'Iniciar', onPress: () => ejecutarIniciarViaje() },
     ]);
+  }
+
+  async function ejecutarIniciarViaje() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'en_curso' }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Respuesta no exitosa');
+
+      setEstadoViaje('en_curso');
+      estadoViajeRef.current = 'en_curso';
+    } catch (err) {
+      Alert.alert(
+        'No se pudo iniciar el viaje',
+        'Revisa tu conexión e intenta de nuevo.',
+        [{ text: 'Reintentar', onPress: () => ejecutarIniciarViaje() }]
+      );
+    }
   }
 
   async function cancelarViaje() {
     Alert.alert('Cancelar viaje', '¿Estás seguro?', [
       { text: 'No', style: 'cancel' },
-      { text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        if (locationSub.current) locationSub.current.remove();
-        await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'cancelado' })
-        });
-        router.replace(esCondutorRef.current ? '/conductor' : '/home');
-      }},
+      { text: 'Sí, cancelar', style: 'destructive', onPress: () => ejecutarCancelarViaje() },
     ]);
+  }
+
+  async function ejecutarCancelarViaje() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(`${BACKEND_URL}/api/viajes/estado/${viajeIdRef.current}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'cancelado' }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Respuesta no exitosa');
+
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (locationSub.current) locationSub.current.remove();
+      router.replace(esCondutorRef.current ? '/conductor' : '/home');
+    } catch (err) {
+      Alert.alert(
+        'No se pudo cancelar el viaje',
+        'Revisa tu conexión e intenta de nuevo.',
+        [{ text: 'Reintentar', onPress: () => ejecutarCancelarViaje() }]
+      );
+    }
   }
 
   async function calificar(estrellas) {
