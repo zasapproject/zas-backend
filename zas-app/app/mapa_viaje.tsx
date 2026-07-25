@@ -607,9 +607,9 @@ export default function MapaViaje() {
   return (
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={regionInicial}>
-        {miUbicacion && (
+        {miUbicacion && esCondutor && (
   <Marker coordinate={miUbicacion} anchor={{ x: 0.5, y: 0.5 }}>
-    <Text style={{ fontSize: 28 }}>{esCondutor ? '🏍' : '🧍'}</Text>
+    <Text style={{ fontSize: 28 }}>🏍</Text>
   </Marker>
 )} 
         {!esCondutor && ubicacionConductor && (
