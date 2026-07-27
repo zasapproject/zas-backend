@@ -51,23 +51,29 @@ async function notificarConductor(conductorId, titulo, mensaje, data = {}) {
   }
 }
 
-async function notificarConductoresCercanos(origenLat, origenLng, titulo, mensaje) {
+async function notificarConductoresCercanos(origenLat, origenLng, titulo, mensaje, data = {}) {
   try {
-    const { data } = await supabase.from('conductores').select('id, push_token, latitud, longitud, suscripcion_hasta');
-    if (!data) return;
+    const { data: conductores } = await supabase
+      .from('conductores')
+      .select('id, push_token, latitud, longitud, suscripcion_hasta, estado, activo');
+    if (!conductores) return;
     const ahora = new Date();
-    data.forEach(c => {
-      if (!c.push_token || !c.suscripcion_hasta || new Date(c.suscripcion_hasta) <= ahora) return;
+    conductores.forEach(c => {
+      if (!c.push_token) return;
+      if (c.estado !== 'disponible' || !c.activo) return;
+      if (!c.suscripcion_hasta || new Date(c.suscripcion_hasta) <= ahora) return;
       if (c.latitud && c.longitud && origenLat && origenLng) {
         const dLat = (c.latitud - origenLat) * Math.PI / 180;
         const dLng = (c.longitud - origenLng) * Math.PI / 180;
         const a = Math.sin(dLat/2) ** 2 + Math.cos(origenLat * Math.PI / 180) * Math.cos(c.latitud * Math.PI / 180) * Math.sin(dLng/2) ** 2;
         const distancia = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        if (distancia > 5) return;
+        if (distancia > 3) return;
       }
-      enviarPush(c.push_token, titulo, mensaje);
+      enviarPush(c.push_token, titulo, mensaje, data);
     });
-  } catch {}
+  } catch (err) {
+    console.error('Error notificarConductoresCercanos:', err.message);
+  }
 }
 
 async function notificarPagoAprobado(usuarioId, monto) {

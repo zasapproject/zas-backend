@@ -29,7 +29,7 @@ async function obtenerRuta(origenLat, origenLng, destinoLat, destinoLng) {
   }
 }
 
-const { notificarUsuario, notificarConductor } = require('../pushNotifications');
+const { notificarUsuario, notificarConductor, notificarConductoresCercanos } = require('../pushNotifications');
 
 const ESTADOS_VALIDOS = ['solicitado', 'buscando', 'asignado', 'aceptado', 'en_curso', 'completado', 'cancelado', 'sin_conductor'];
 
@@ -100,6 +100,15 @@ router.post('/nuevo', async (req, res) => {
 
     const viaje = data[0];
     console.log(`✅ Viaje ${viaje.id} creado — ${esNegociable ? (esInterurbano ? 'interurbano (negociable)' : 'urbano nocturno (negociable)') : 'urbano diurno (precio fijo)'}`);
+
+    // Notificar a conductores disponibles cercanos
+    notificarConductoresCercanos(
+      origen_lat,
+      origen_lng,
+      '🏍️ Nuevo viaje disponible',
+      `${origen} → ${destino}`,
+      { viaje_id: viaje.id }
+    );
 
     // Auto-cancelar si pasan 10 minutos sin conductor
     setTimeout(async () => {
