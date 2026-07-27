@@ -496,6 +496,13 @@ function mostrarToast(msg, color){
   setTimeout(()=>t.style.display='none', 3500);
 }
 
+function fechaUTC(fechaStr){
+  if(!fechaStr) return null;
+  // Si ya tiene zona horaria (Z o +00) la respetamos; si no, forzamos UTC
+  const tieneZona = /Z$|[+-]\d{2}:?\d{2}$/.test(fechaStr);
+  return new Date(tieneZona ? fechaStr : fechaStr + 'Z');
+}
+
 function actualizarTimestamp(){
   const now = new Date().toLocaleString('es-VE');
   document.getElementById('last-update').textContent = 'Act: ' + now;
@@ -678,7 +685,7 @@ async function cargarDashboard(){
       dva.innerHTML = `<div style="overflow-x:auto"><table class="tbl">
         <thead><tr><th></th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Precio</th><th>Estado</th><th>Tiempo</th></tr></thead>
         <tbody>${viajesActivos.map(v=>{
-          const min = Math.floor((new Date()-new Date(v.created_at))/60000);
+          const min = Math.max(0, Math.floor((new Date()-fechaUTC(v.created_at))/60000));
           const sem = min>10?'🔴':min>5?'🟡':'🟢';
           return `<tr>
             <td>${sem}</td>
@@ -1194,8 +1201,8 @@ async function cargarViajes(){
         <td style="color:var(--gold);font-weight:700">$${Number(v.precio).toLocaleString()}</td>
         <td style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace">${v.distancia_km?Number(v.distancia_km).toFixed(1)+'km':'—'}</td>
         <td><span class="badge ${v.estado==='completado'?'activo':v.estado==='cancelado'?'vencido':'pendiente'}">● ${v.estado}</span></td>
-        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleDateString('es-VE')}</td>
-        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleDateString('es-VE',{timeZone:'America/Caracas'})}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
     actualizarTimestamp();
@@ -1400,11 +1407,11 @@ function filtrarMonitor(filtro, btn){
 function renderMonitor(){
   const datos = monitorFiltro==='todos' ? monitorViajesData : monitorViajesData.filter(v=>v.estado===monitorFiltro);
   if(!datos.length){document.getElementById('monitor-tabla').innerHTML=`<div class="empty" style="padding:32px"><div class="empty-icon">✅</div><div class="empty-text">Sin viajes en este estado</div></div>`;return;}
-  const ahora=new Date();
+  const ahora=new Date(); // ahora ya está en UTC real (Date.now() siempre es UTC)
   document.getElementById('monitor-tabla').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th></th><th>Fecha</th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
+    <thead><tr><th></th><th>Fecha</th><th>Hora</th><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Precio</th><th>Alerta</th><th>Tiempo</th></tr></thead>
     <tbody>${datos.slice(0,100).map(v=>{
-      const min=Math.floor((ahora-new Date(v.created_at))/60000);
+      const min=Math.max(0, Math.floor((ahora-fechaUTC(v.created_at))/60000));
       let sem='verde',alerta='—';
       if(v.estado==='solicitado'&&min>5){sem='amarillo';alerta=`Sin conductor ${min}min`;}
       if(v.estado==='solicitado'&&min>10){sem='rojo';alerta=`⚠️ Sin conductor ${min}min`;}
@@ -1414,8 +1421,8 @@ function renderMonitor(){
       const labelPago = v.metodo_pago ? (metodosPago[v.metodo_pago] || v.metodo_pago) : '—';
       return `<tr>
         <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sem==='verde'?'var(--green)':sem==='amarillo'?'var(--orange)':'var(--red)'}"></span></td>
-        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${new Date(v.created_at).toLocaleDateString('es-VE')}</td>
-    
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleDateString('es-VE',{timeZone:'America/Caracas'})}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})}</td>
         <td style="font-size:12px">${v.usuario_nombre||'—'}</td>
         <td style="font-size:12px">${v.conductor_nombre||`<span style="color:var(--red)">Sin asignar</span>`}</td>
         <td style="font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.origen_texto||v.origen||'—'}</td>
