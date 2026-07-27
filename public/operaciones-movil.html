@@ -595,6 +595,12 @@ function toast(msg, tipo){
 
 function lb(url){ document.getElementById('lb-img').src=url; document.getElementById('lightbox').classList.add('show'); }
 
+function fechaUTC(fechaStr){
+  if(!fechaStr) return null;
+  const tieneZona = /Z$|[+-]\d{2}:?\d{2}$/.test(fechaStr);
+  return new Date(tieneZona ? fechaStr : fechaStr + 'Z');
+}
+
 function avatar(nombre, color, fotoUrl){
   if(fotoUrl && fotoUrl.startsWith('http'))
     return `<img src="${fotoUrl}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" onerror="this.style.display='none'">`;
@@ -773,7 +779,7 @@ async function loadDashboard(){
       vl2.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🏍️</div>Sin viajes activos ahora mismo</div>`;
     } else {
       vl2.innerHTML = viajesVivos.map(v=>{
-        const min = Math.floor((new Date()-new Date(v.created_at))/60000);
+        const min = Math.floor((new Date()-fechaUTC(v.created_at))/60000);
         const sem = min>10?'rojo':min>5?'amarillo':'verde';
         return `<div class="viaje-row">
           <div class="semaforo ${sem}"></div>
@@ -799,9 +805,12 @@ async function aprobarCompDash(pagoId, conductorId){
   else toast('❌ '+(data.error||'Error'),'red');
 }
 async function rechazarCompDash(pagoId){
-  if(!confirm('¿Rechazar este comprobante?')) return;
-  toast('Comprobante rechazado');
-  loadDashboard();
+  const motivo = prompt('Motivo del rechazo (obligatorio):');
+  if(!motivo || motivo.trim()===''){ alert('Debes escribir un motivo.'); return; }
+  const res = await fetch(`${API}/api/suscripciones/rechazar/${pagoId}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ toast('❌ Comprobante rechazado'); loadDashboard(); }
+  else toast('❌ '+(data.error||'Error'),'red');
 }
 
 // ── CONDUCTORES ──
@@ -885,6 +894,7 @@ function renderConductores(lista, pagos){
           <button class="btn btn-red" onclick="rechazarConductor('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">❌ Rechazar</button>
         </div>
         <div class="action-row">
+          <button class="btn btn-outline" style="flex:1" onclick="editarCond('${c.id}','${c.nombre.replace(/'/g,"\\'")}','${(c.telefono||'').replace(/'/g,"\\'")}')">✏️ Editar</button>
           <button class="btn btn-outline" style="flex:1" onclick="resetPassCond('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">🔑 Reset contraseña</button>
         </div>
         <div style="margin-top:10px">
@@ -935,9 +945,12 @@ async function aprobarSubsCond(pagoId, condId){
 }
 
 async function rechazarComp(id){
-  if(!confirm('¿Rechazar comprobante?')) return;
-  toast('Comprobante rechazado');
-  loadConductores();
+  const motivo = prompt('Motivo del rechazo (obligatorio):');
+  if(!motivo || motivo.trim()===''){ alert('Debes escribir un motivo.'); return; }
+  const res = await fetch(`${API}/api/suscripciones/rechazar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ toast('❌ Comprobante rechazado'); loadConductores(); }
+  else toast('❌ '+(data.error||'Error'),'red');
 }
 
 async function toggleAntecedentes(id, verificado){
@@ -976,6 +989,19 @@ async function resetPassCond(id, nombre){
   const data = await res.json();
   if(data.ok) toast('✅ Contraseña actualizada');
   else toast('❌ '+data.error,'red');
+}
+
+async function editarCond(id, nombreActual, telActual){
+  const nuevoNombre = prompt('Nombre del conductor:', nombreActual);
+  if(nuevoNombre===null) return;
+  if(!nuevoNombre.trim()){ alert('El nombre no puede estar vacío'); return; }
+  const nuevoTel = prompt('Teléfono del conductor:', telActual||'');
+  if(nuevoTel===null) return;
+  if(!nuevoTel.trim()){ alert('El teléfono no puede estar vacío'); return; }
+  const res = await fetch(`${API}/api/conductores/admin-editar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({nombre:nuevoNombre.trim(), telefono:nuevoTel.trim()})});
+  const data = await res.json();
+  if(data.ok){ toast('✅ Datos actualizados'); loadConductores(); }
+  else toast('❌ '+(data.error||'Error'),'red');
 }
 
 // ── SUSCRIPCIONES ──
@@ -1022,7 +1048,7 @@ function renderViajes(){
   if(!lista.length){el.innerHTML=`<div class="card-empty"><div class="card-empty-icon">🗺️</div>Sin viajes en este estado</div>`;return;}
   const ahora = new Date();
   el.innerHTML = lista.slice(0,80).map(v=>{
-    const min = Math.floor((ahora-new Date(v.created_at))/60000);
+    const min = Math.floor((ahora-fechaUTC(v.created_at))/60000);
     const sem = (v.estado==='solicitado'&&min>10)?'rojo':(v.estado==='solicitado'&&min>5)?'amarillo':'verde';
     const eColor = {completado:'green',cancelado:'red',en_curso:'green',solicitado:'gold',aceptado:'gold',en_camino:'blue'}[v.estado]||'muted';
     return `<div class="viaje-row">
@@ -1030,7 +1056,7 @@ function renderViajes(){
       <div class="viaje-data">
         <div class="viaje-ruta">${v.origen_texto||v.origen||'—'} → ${v.destino_texto||v.destino||'—'}</div>
         <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}${v.metodo_pago?' · '+v.metodo_pago:''}</div>
-        <div class="viaje-sub">${new Date(v.created_at).toLocaleDateString('es-VE')} · ${min}min</div>
+        <div class="viaje-sub">${fechaUTC(v.created_at).toLocaleDateString('es-VE',{timeZone:'America/Caracas'})} · ${fechaUTC(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})} · ${min}min</div>
       </div>
       <div class="viaje-right">
         <div class="viaje-precio">$${Number(v.precio||0).toLocaleString()}</div>
@@ -1158,7 +1184,7 @@ async function loadTarifas(){
         </div>
         <div class="tarifa-body">
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-outline" onclick='abrirModalTarifa(${JSON.stringify(m)})'>✏️ Editar</button>
+            <button class="btn btn-outline" onclick='abrirModalTarifa(${JSON.stringify(m).replace(/'/g,"&#39;")})'>✏️ Editar</button>
             <button class="btn btn-outline" onclick="toggleTarifaActivo('${m.id}',${m.activo})">${m.activo?'⏸ Desactivar':'▶ Activar'}</button>
             <button class="btn btn-red" onclick="eliminarTarifa('${m.id}','${m.municipio.replace(/'/g,"\\'")}')">🗑 Eliminar</button>
           </div>
@@ -1284,6 +1310,7 @@ function renderUsuarios(lista, pagos){
           </div>`).join('')}
         </div>`:''}
         <div class="action-row">
+          <button class="btn btn-outline" style="flex:1" onclick="editarUser('${u.id}','${u.nombre.replace(/'/g,"\\'")}','${(u.telefono||'').replace(/'/g,"\\'")}')">✏️ Editar</button>
           <button class="btn btn-outline" style="flex:1" onclick="resetPassUser('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">🔑 Reset contraseña</button>
         </div>
       </div>
@@ -1326,6 +1353,19 @@ async function resetPassUser(id, nombre){
   const data = await res.json();
   if(data.ok) toast('✅ Contraseña actualizada');
   else toast('❌ '+data.error,'red');
+}
+
+async function editarUser(id, nombreActual, telActual){
+  const nuevoNombre = prompt('Nombre del usuario:', nombreActual);
+  if(nuevoNombre===null) return;
+  if(!nuevoNombre.trim()){ alert('El nombre no puede estar vacío'); return; }
+  const nuevoTel = prompt('Teléfono del usuario:', telActual||'');
+  if(nuevoTel===null) return;
+  if(!nuevoTel.trim()){ alert('El teléfono no puede estar vacío'); return; }
+  const res = await fetch(`${API}/api/usuarios/admin-editar/${id}`,{method:'PATCH',headers:jH(),body:JSON.stringify({nombre:nuevoNombre.trim(), telefono:nuevoTel.trim()})});
+  const data = await res.json();
+  if(data.ok){ toast('✅ Datos actualizados'); loadUsuarios(); }
+  else toast('❌ '+(data.error||'Error'),'red');
 }
 
 // ── PAGOS ──
