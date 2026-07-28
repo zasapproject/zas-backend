@@ -975,6 +975,7 @@ function renderUsuarios(lista, pagosDigitales){
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn btn-outline btn-sm" onclick="editarUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}','${(u.telefono||'').replace(/'/g,"\\'")}')">✏️ Editar</button>
               <button class="btn btn-outline btn-sm" onclick="resetPasswordUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">🔑 Reset pass</button>
+              <button class="btn btn-red btn-sm" onclick="eliminarUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">🗑️ Eliminar</button>
             </div>
           </div>
           <div>
@@ -1048,6 +1049,16 @@ async function resetPasswordUsuario(id, nombre){
   const data = await res.json();
   if(data.ok) mostrarToast('✅ Contraseña actualizada');
   else mostrarToast('❌ Error: '+data.error,'red');
+}
+
+async function eliminarUsuario(id, nombre){
+  const motivo = prompt(`Motivo para eliminar a ${nombre}:`, 'Cambio de número de celular, se registrará de nuevo');
+  if(!motivo || motivo.trim()===''){ alert('Debes escribir un motivo.'); return; }
+  if(!confirm(`¿Eliminar a ${nombre}? El usuario deberá registrarse de nuevo.`)) return;
+  const res = await fetch(`${API}/api/usuarios/eliminar/${id}`,{method:'PATCH',headers:jsonH(),body:JSON.stringify({motivo})});
+  const data = await res.json();
+  if(data.ok){ mostrarToast('🗑️ Usuario eliminado'); cargarUsuarios(); }
+  else mostrarToast('❌ '+(data.error||'Error'),'red');
 }
 
 // ═══ PAGOS ═══

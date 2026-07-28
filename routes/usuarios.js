@@ -288,6 +288,7 @@ router.get('/todos', authAdmin, async (req, res) => {
     const { data, error } = await supabase
       .from('usuarios')
       .select('id, nombre, telefono, email, foto_url, foto_cedula, contrasena_temporal, created_at')
+      .eq('activo', true)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -333,6 +334,37 @@ router.patch('/admin-editar/:id', authAdmin, async (req, res) => {
 
     if (error) throw error;
     res.json({ ok: true, usuario: data[0] });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Admin elimina (desactiva) un usuario — soft delete
+// ─────────────────────────────────────────────
+router.patch('/eliminar/:id', authAdmin, async (req, res) => {
+  const { motivo } = req.body;
+  if (!motivo || !motivo.trim()) {
+    return res.status(400).json({ ok: false, error: 'El motivo es obligatorio' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({
+        activo: false,
+        eliminado_en: new Date().toISOString(),
+        motivo_eliminacion: motivo,
+        session_token: null,
+      })
+      .eq('id', req.params.id)
+      .select('id, nombre');
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    }
+
+    res.json({ ok: true, mensaje: 'Usuario eliminado correctamente' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
