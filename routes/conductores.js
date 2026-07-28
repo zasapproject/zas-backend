@@ -487,7 +487,7 @@ router.patch('/notas/:id', authAdmin, async (req, res) => {
   }
 });
 // ─────────────────────────────────────────────
-// Rechazar conductor — guarda auditoría, envía correo, borra la fila
+// Rechazar conductor — guarda auditoría, envía correo, elimina TODO (Supabase incluido)
 // ─────────────────────────────────────────────
 router.delete('/rechazar/:id', authAdmin, async (req, res) => {
   const { motivo } = req.body;
@@ -498,7 +498,7 @@ router.delete('/rechazar/:id', authAdmin, async (req, res) => {
   try {
     const { data: conductor, error: buscarError } = await supabase
       .from('conductores')
-      .select('id, nombre, telefono, email')
+      .select('id, nombre, telefono, email, placa_moto')
       .eq('id', req.params.id)
       .single();
 
@@ -519,14 +519,13 @@ router.delete('/rechazar/:id', authAdmin, async (req, res) => {
       );
     }
 
-    const { error: borrarError } = await supabase
-      .from('conductores')
-      .update({ rechazado: true, motivo_rechazo: motivo, activo: false, estado: 'desconectado' })
-      .eq('id', req.params.id);
+    const { error: eliminarError } = await supabase.rpc('eliminar_conductor_completo', {
+      p_conductor_id: req.params.id,
+    });
 
-    if (borrarError) throw borrarError;
+    if (eliminarError) throw eliminarError;
 
-    res.json({ ok: true, mensaje: 'Conductor rechazado y notificado. Puede registrarse de nuevo con el mismo teléfono o correo.' });
+    res.json({ ok: true, mensaje: 'Conductor rechazado, notificado y eliminado por completo. Puede registrarse de nuevo con cualquier dato.' });
   } catch (error) {
     res.status(400).json({ ok: false, error: error.message });
   }
