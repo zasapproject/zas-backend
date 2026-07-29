@@ -1202,8 +1202,9 @@ async function cargarViajes(){
     viajesData = data.viajes || [];
     document.getElementById('viajes-total').textContent = `${data.total||viajesData.length} viajes registrados`;
     if(!viajesData.length){ document.getElementById('viajes-tabla').innerHTML=`<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">Sin viajes</div></div>`; return; }
+    const metodosPago = {efectivo:'💵 Efectivo',pago_movil:'📱 Pago Móvil',zelle:'💳 Zelle',bancolombia:'🏦 Bancolombia',nequi:'📲 Nequi',transferencia:'🏦 Transferencia',usdt:'₮ USDT'};
     document.getElementById('viajes-tabla').innerHTML = `<div style="overflow-x:auto"><table class="tbl">
-      <thead><tr><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Precio</th><th>Distancia</th><th>Estado</th><th>Fecha</th><th>Hora</th></tr></thead>
+      <thead><tr><th>Usuario</th><th>Conductor</th><th>Origen</th><th>Destino</th><th>Precio</th><th>Distancia</th><th>Estado</th><th>Pago</th><th>Fecha</th><th>Hora</th></tr></thead>
       <tbody>${viajesData.map(v=>`<tr>
         <td style="font-size:12px">${v.usuario_nombre||'—'}</td>
         <td style="font-size:12px">${v.conductor_nombre||'—'}</td>
@@ -1212,6 +1213,7 @@ async function cargarViajes(){
         <td style="color:var(--gold);font-weight:700">$${Number(v.precio).toLocaleString()}</td>
         <td style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace">${v.distancia_km?Number(v.distancia_km).toFixed(1)+'km':'—'}</td>
         <td><span class="badge ${v.estado==='completado'?'activo':v.estado==='cancelado'?'vencido':'pendiente'}">● ${v.estado}</span></td>
+        <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${v.metodo_pago?(metodosPago[v.metodo_pago]||v.metodo_pago):'—'}</td>
         <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleDateString('es-VE',{timeZone:'America/Caracas'})}</td>
         <td style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${fechaUTC(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})}</td>
       </tr>`).join('')}</tbody>
