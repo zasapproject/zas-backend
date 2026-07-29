@@ -42,6 +42,8 @@ export default function ConductorScreen() {
   const conductorLatRef = useRef<number>(0);
   const conductorLngRef = useRef<number>(0);
   const cerrandoSesionRef = useRef(false);
+  const sesionIdRef = useRef<string | null>(null);
+  const ultimoEnvioUbicacionRef = useRef<number>(0);
 
   // ── NEGOCIACIÓN ──────────────────────────────
   const [modalContraoferta, setModalContraoferta] = useState(false);
@@ -174,6 +176,10 @@ export default function ConductorScreen() {
   }, [sesion]);
 
   useEffect(() => {
+    sesionIdRef.current = sesion?.id || null;
+  }, [sesion]);
+
+  useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
@@ -184,6 +190,21 @@ export default function ConductorScreen() {
           setConductorLng(loc.coords.longitude);
           conductorLatRef.current = loc.coords.latitude;
           conductorLngRef.current = loc.coords.longitude;
+
+          // Reportar ubicación al backend mientras está en línea (disponible u ocupado)
+          const ahora = Date.now();
+          if (sesionIdRef.current && ahora - ultimoEnvioUbicacionRef.current > 10000) {
+            ultimoEnvioUbicacionRef.current = ahora;
+            fetch(`${API_URL}/api/conductores/ubicacion`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conductor_id: sesionIdRef.current,
+                latitud: loc.coords.latitude,
+                longitud: loc.coords.longitude,
+              }),
+            }).catch(() => {});
+          }
         }
       );
     })();
