@@ -1042,6 +1042,7 @@ function filtrarViajes(f, btn){
   renderViajes();
 }
 
+const metodosPagoMovil = {efectivo:'💵 Efectivo',pago_movil:'📱 Pago Móvil',zelle:'💳 Zelle',bancolombia:'🏦 Bancolombia',nequi:'📲 Nequi',transferencia:'🏦 Transferencia',usdt:'₮ USDT'};
 function renderViajes(){
   const lista = viajesFiltro==='todos'?viajesData:viajesData.filter(v=>v.estado===viajesFiltro);
   const el = document.getElementById('viajes-list');
@@ -1051,11 +1052,12 @@ function renderViajes(){
     const min = Math.floor((ahora-fechaUTC(v.created_at))/60000);
     const sem = (v.estado==='solicitado'&&min>10)?'rojo':(v.estado==='solicitado'&&min>5)?'amarillo':'verde';
     const eColor = {completado:'green',cancelado:'red',en_curso:'green',solicitado:'gold',aceptado:'gold',en_camino:'blue'}[v.estado]||'muted';
+    const labelPagoMovil = v.metodo_pago ? (metodosPagoMovil[v.metodo_pago]||v.metodo_pago) : '';
     return `<div class="viaje-row">
       <div class="semaforo ${sem}"></div>
       <div class="viaje-data">
         <div class="viaje-ruta">${v.origen_texto||v.origen||'—'} → ${v.destino_texto||v.destino||'—'}</div>
-        <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}${v.metodo_pago?' · '+v.metodo_pago:''}</div>
+        <div class="viaje-sub">${v.usuario_nombre||'—'} · ${v.conductor_nombre||'Sin conductor'}${labelPagoMovil?' · '+labelPagoMovil:''}</div>
         <div class="viaje-sub">${fechaUTC(v.created_at).toLocaleDateString('es-VE',{timeZone:'America/Caracas'})} · ${fechaUTC(v.created_at).toLocaleTimeString('es-VE',{timeZone:'America/Caracas',hour:'2-digit',minute:'2-digit'})} · ${min}min</div>
       </div>
       <div class="viaje-right">
