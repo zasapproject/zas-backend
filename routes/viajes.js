@@ -491,7 +491,7 @@ router.get('/', async (req, res) => {
         usuario_telefono: v.usuarios?.telefono || '',
         conductor_nombre: v.conductores?.nombre || '',
         conductor_telefono: v.conductores?.telefono || '',
-        metodo_pago: ultimoPago?.metodo || null,
+        metodo_pago: v.metodo_pago || ultimoPago?.metodo || null,
         estado_pago: ultimoPago?.estado || null,
         usuarios: undefined,
         conductores: undefined,
