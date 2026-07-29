@@ -44,8 +44,8 @@ const METODOS = [
   { key: 'usdt',        label: '🪙 USDT',            sub: 'Red TRC20' },
 ];
 
-// Tasas fijas
-const TASAS = { usd_cop: 3600, cop_bs: 4.3 };
+// Tasas por defecto — SOLO se usan si falla el fetch a /api/tasas y no hay caché
+const TASAS_DEFAULT = { usd_cop: 3600, cop_bs: 4.3 };
 const MONTO_SUSCRIPCION_COP = 15000;
 
 type Pantalla = 'inicio' | 'metodos' | 'comprobante';
@@ -53,6 +53,7 @@ type Pantalla = 'inicio' | 'metodos' | 'comprobante';
 export default function SuscripcionScreen() {
   const [estado, setEstado]         = useState<any>(null);
   const [cargando, setCargando]     = useState(true);
+  const [tasas, setTasas]           = useState(TASAS_DEFAULT);
   const [conductorId, setConductorId] = useState('');
   const [pantalla, setPantalla]     = useState<Pantalla>('inicio');
   const [metodoPago, setMetodoPago] = useState('');
@@ -62,6 +63,25 @@ export default function SuscripcionScreen() {
   const [referencia, setReferencia]           = useState('');
   const [fotoComprobante, setFotoComprobante] = useState('');
   const [enviando, setEnviando]               = useState(false);
+
+  const cargarTasas = async () => {
+    try {
+      const res  = await fetch(`${API_URL}/api/tasas`);
+      const data = await res.json();
+      if (data.ok && data.tasas?.usd_cop && data.tasas?.cop_bs) {
+        setTasas(data.tasas);
+        await AsyncStorage.setItem('tasas_cache', JSON.stringify(data.tasas));
+        return;
+      }
+      throw new Error('respuesta invalida');
+    } catch {
+      // Sin internet o backend caído: usar la última tasa conocida, no la de hace meses
+      try {
+        const cache = await AsyncStorage.getItem('tasas_cache');
+        if (cache) setTasas(JSON.parse(cache));
+      } catch {}
+    }
+  };
 
   const cargarEstado = async () => {
     setCargando(true);
@@ -80,7 +100,7 @@ export default function SuscripcionScreen() {
     }
   };
 
-  useEffect(() => { cargarEstado(); }, []);
+  useEffect(() => { cargarEstado(); cargarTasas(); }, []);
 
   // ─── seleccionar método ───────────────────────────────────────────────────
   const seleccionarMetodo = async (key: string) => {
@@ -214,8 +234,8 @@ export default function SuscripcionScreen() {
   // PANTALLA: subir comprobante
   if (pantalla === 'comprobante') {
     const datos = DATOS_ZAS[metodoPago] || {};
-    const montoUsd = (MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2);
-    const montoBs  = (MONTO_SUSCRIPCION_COP / TASAS.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
+    const montoUsd = (MONTO_SUSCRIPCION_COP / tasas.usd_cop).toFixed(2);
+    const montoBs  = (MONTO_SUSCRIPCION_COP / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 });
 
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -316,8 +336,8 @@ export default function SuscripcionScreen() {
         <Text style={styles.precioTitulo}>Plan Semanal</Text>
         <Text style={styles.precio}>{MONTO_SUSCRIPCION_COP.toLocaleString('es-CO')} COP</Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
-          <Text style={styles.precioUsd}>Bs {(MONTO_SUSCRIPCION_COP / TASAS.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}</Text>
-          <Text style={styles.precioUsd}>$ {(MONTO_SUSCRIPCION_COP / TASAS.usd_cop).toFixed(2)}</Text>
+          <Text style={styles.precioUsd}>Bs {(MONTO_SUSCRIPCION_COP / tasas.cop_bs).toLocaleString('es-VE', { maximumFractionDigits: 2 })}</Text>
+          <Text style={styles.precioUsd}>$ {(MONTO_SUSCRIPCION_COP / tasas.usd_cop).toFixed(2)}</Text>
         </View>
         <View style={styles.beneficios}>
           <Text style={styles.beneficio}>✔ Acceso ilimitado a viajes</Text>
