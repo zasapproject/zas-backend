@@ -231,7 +231,7 @@ router.get('/', async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/disponibles', async (req, res) => {
   try {
-    const antiguedadMax = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min
+    const antiguedadMax = new Date(Date.now() - 45 * 60 * 1000).toISOString(); // 45 min
     const { data, error } = await supabase
       .from('conductores')
       .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
@@ -254,7 +254,7 @@ router.get('/disponibles', async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/ocupados', async (req, res) => {
   try {
-    const antiguedadMax = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min
+    const antiguedadMax = new Date(Date.now() - 45 * 60 * 1000).toISOString(); // 45 min
     const { data, error } = await supabase
       .from('conductores')
       .select('id, nombre, modelo_moto, placa_moto, calificacion, latitud, longitud')
